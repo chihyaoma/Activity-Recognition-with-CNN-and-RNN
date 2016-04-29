@@ -6,10 +6,15 @@
 We examine and implement several leading techniques for Activity Recognition (video classification), while proposing and investigating a novel convolution on temporally-constructed feature vectors.
 
 How we tackle Activity Recognition problem? 
-- CNN as baseline
-- CNN + RNN [(LRCN)](http://jeffdonahue.com/lrcn/)
-- Temporal CNN
+##### CNN as baseline
+<img src="/Figures/cnn.png" alt="CNN as baseline" height="200">
+##### CNN + RNN [(LRCN)](http://jeffdonahue.com/lrcn/)
+<img src="/Figures/lrcn.png" alt="CNN + RNN (LRCN)" height="200">
+##### Temporal CNN
+<img src="/Figures/tnn.png" alt="Temporal CNN)" height="200">
 
+
+### Demo 
 Demo video coming out soon!
 
 ## Installation 
