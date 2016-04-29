@@ -17,6 +17,15 @@ How we tackle Activity Recognition problem?
 ### Demo 
 Demo video coming out soon!
 
+### Dataset 
+We are currently using [UCF101](http://crcv.ucf.edu/data/UCF101.php) dataset for our project. This dataset has 13320 videos from 101 action categories. 
+<img src="http://crcv.ucf.edu/images/slideshow/UCF101.png" alt="UCF101 Dataset" height="200">
+
+We will move onto [SPORTS-1M](http://cs.stanford.edu/people/karpathy/deepvideo/) dataset to see how much our performance will be changed in the near future. 
+<img src="http://cs.stanford.edu/people/karpathy/deepvideo/sz70h.jpg" alt="SPORTS-1M Dataset" height="200">
+
+
+
 ## Installation 
 Our work is currently implemented in Torch, and depends on the following packages: torch/torch7, torch/nn, torch/nngraph, torch/image, cudnn ...
 
