@@ -1,7 +1,9 @@
 # LRCN and Temporal CNN for Activity Recognition #
 
 [Chih-Yao Ma](http://shallowdown.wix.com/chih-yao-ma)\*, Min-Hung Chen\* 
+
 (\* equal contribution)
+
 ---
 ## Abstract 
 We examine and implement several leading techniques for Activity Recognition (video classification), while proposing and investigating a novel convolution on temporally-constructed feature vectors.
@@ -9,7 +11,18 @@ We examine and implement several leading techniques for Activity Recognition (vi
 #### How we tackle Activity Recognition problem? 
 CNN as baseline, CNN + RNN [(LRCN)](http://jeffdonahue.com/lrcn/), Temporal CNN
 
-<img src="/Figures/cnn.png" alt="CNN as baseline" height="120"><img src="/Figures/lrcn.png" alt="CNN + RNN (LRCN)" height="120"><img src="/Figures/tnn.png" alt="Temporal CNN)" height="120">
+<table align = "center">
+<tr>
+  <td align = "center"> CNN as baseline </td>
+  <td align = "center"> CNN + RNN (LRCN)</td>
+  <td align = "center"> Temporal CNN </td>
+</tr>
+<tr>
+<td> <img src="/Figures/cnn.png" alt="CNN as baseline" height="120"></td>
+<td> <img src="/Figures/lrcn.png" alt="CNN + RNN (LRCN)" height="120"></td>
+<td> <img src="/Figures/tnn.png" alt="Temporal CNN" height="120"> </td>
+</tr>
+</table>
 
 <!-- <img src="/Figures/cnn.png" alt="CNN as baseline" height="200">
 ##### CNN + RNN [(LRCN)](http://jeffdonahue.com/lrcn/)
@@ -24,10 +37,14 @@ Demo video coming out soon!
 ---
 ## Dataset 
 We are currently using [UCF101](http://crcv.ucf.edu/data/UCF101.php) dataset for our project. This dataset has 13320 videos from 101 action categories. 
-<img src="http://crcv.ucf.edu/images/slideshow/UCF101.png" alt="UCF101 Dataset" height="200">
+<p align="center">
+<img src="http://crcv.ucf.edu/images/slideshow/UCF101.png" alt="UCF101 Dataset" height="200" align="middle">
+</p>
 
 We will move onto [SPORTS-1M](http://cs.stanford.edu/people/karpathy/deepvideo/) dataset to see how much our performance will be changed in the near future. 
+<p align="center">
 <img src="http://cs.stanford.edu/people/karpathy/deepvideo/sz70h.jpg" alt="SPORTS-1M Dataset" height="200">
+</p>
 
 
 ---
