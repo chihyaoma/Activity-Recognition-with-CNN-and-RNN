@@ -1,3 +1,10 @@
+### RNN
+We use the [RNN library](https://github.com/Element-Research/rnn) provided by Element-Research. This *RNN_LSTM.lua* takes computed feature vectors from each of the frames, and learns a generic model to represent the videos aross all training video frames. 
+
+Using command line arguments or modify the code in *RNN_LSTM.lua*, you can essentially modify the Learning rate, batch size, CUDA options, LSTI or GRU, dropout layers, and the dimension of hidden layers. 
+
+---
+### Note 
 This is rather a note for me to remember what experiments have been done and what needs to be done in order to moving forward. 
 
 ---
