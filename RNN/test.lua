@@ -25,6 +25,17 @@ local m = require 'model'
 local model = m.model
 local criterion = m.criterion
 
+-- remove the last layer of model and add softmax to generate correct probabilitiesy
+-- model:remove(model:size())
+-- model:add(nn.SoftMax():cuda())
+
+-- Sets Dropout layer to have a different behaviour during evaluation.
+-- TODO: is it okay if we don't un-evaluate the model?
+-- TODO: our of memory...
+-- model:evaluate() 
+
+
+
 -- This matrix records the current confusion across classes
 local confusion = optim.ConfusionMatrix(classes) 
 
@@ -35,6 +46,8 @@ local testLogger = optim.Logger(paths.concat(opt.save,'test.log'))
 local inputs = torch.Tensor(opt.batchSize, TestData:size(2), TestData:size(3))
 local targets = torch.Tensor(opt.batchSize)
 local labels = {}
+local prob = {}
+
 
 
 if opt.AveragePred == true then 
@@ -93,16 +106,51 @@ function test(TestData, TestTarget)
 			-- average all the prediction across all frames
 			preds = torch.mean(predsFrames, 3):squeeze()
 
-			sorted, indices = torch.sort(preds,2,true)
-			predLabels = indices[{{},1}]
+
+			-- Get the top N class indexes and probabilities
+			local N = 3
+			local probLog, predLabels = preds:topk(N, true, true)
+
+			-- Convert log probabilities back to [0, 1]
+			probLog:exp()
+
+
+
+			-- Get the top 1 class indexes
+			-- sorted, indices = torch.sort(preds,2,true)
+			-- predLabels = indices[{{},1}]
 
 			-- combine all the label numbers from batches
+			-- idx = 1
+			-- for i = t,t+opt.batchSize-1 do
+			-- 	-- labels[i] = predLabels[idx]
+			-- 	labels[i] = classes[predLabels[idx]]
+			-- 	idx = idx + 1
+			-- end
+
 			idx = 1
 			for i = t,t+opt.batchSize-1 do
-				-- labels[i] = predLabels[idx]
-				labels[i] = classes[predLabels[idx]]
+				labels[i] = {}
+				prob[i] = {}
+				for j = 1, N do
+					-- local indClass = predLabels[idx][j]
+					labels[i][j] = classes[predLabels[idx][j]]
+					prob[i][j] = probLog[idx][j]
+				end
 				idx = idx + 1
 			end
+
+
+--[[
+print(prob)
+-- print(labels)
+local answer
+repeat
+   io.write("continue with this operation (y/n)? ")
+   io.flush()
+   answer=io.read()
+until answer=="y" or answer=="n"
+--]]
 
 		else
 			-- test sample
@@ -126,8 +174,9 @@ function test(TestData, TestTarget)
   	-- if the performance is so far the best..
 	if confusion.totalValid * 100 >= bestAcc then
 		bestAcc = confusion.totalValid * 100
-		-- save the labels into file
+		-- save the labels and probabilities into file
 		torch.save('labels.txt', labels,'ascii')
+		torch.save('prob.txt', prob,'ascii')
 	end
 	print(sys.COLORS.red .. '==> Best testing accuracy = ' .. bestAcc .. '%')
 
@@ -139,6 +188,13 @@ function test(TestData, TestTarget)
 	end
 	confusion:zero()
 end
+
+
+-- remove the last SoftMax layer and add back the LogSoftMax layer
+-- model:remove(model:size())
+-- model:add(nn.LogSoftMax():cuda())
+
+
 
 -- Export:
 return test
