@@ -41,7 +41,8 @@ We are currently using [UCF101](http://crcv.ucf.edu/data/UCF101.php) dataset for
 <img src="http://crcv.ucf.edu/images/slideshow/UCF101.png" alt="UCF101 Dataset" height="200" align="middle">
 </p>
 
-We will move onto [SPORTS-1M](http://cs.stanford.edu/people/karpathy/deepvideo/) dataset to see how much our performance will be changed in the near future.
+We will move onto [Sports-1M](http://cs.stanford.edu/people/karpathy/deepvideo/) dataset to see how much our performance will be changed in the near future. 
+
 <p align="center">
 <img src="http://cs.stanford.edu/people/karpathy/deepvideo/sz70h.jpg" alt="SPORTS-1M Dataset" height="200">
 </p>

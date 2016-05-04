@@ -25,7 +25,6 @@ local model = m.model
 local criterion = m.criterion
 
 -- This matrix records the current confusion across classes
-
 local confusion = optim.ConfusionMatrix(classes) 
 
 -- Logger:
