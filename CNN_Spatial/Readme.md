@@ -52,7 +52,7 @@ luarocks install ffmpeg
 
 		apt-get install ia32-libs
 
-=============================================================================
+---
 ## File List & Implementation details & Usage:
 If you don't want to try all the codes, you can just try the first one, which is used to generate our final Res-101 features.
 
@@ -85,15 +85,15 @@ notes:
 4. need "transforms.lua" to pre-process images
 5. need to download the [Res-101](https://www.dropbox.com/s/6sjuhukma6izufi/resnet-101.t7?dl=0) model and put it into the folder 'models/'.
 
-=============================================================================
+---
 
 Other notes:
 
 1. After running these codes, a new empty folder "out_frames" will be generated. You can ignore it. That's only for debugging.
 2. The images in the folder "images" are only for debugging. They won't be used in the final experiment.
 
-=============================================================================
+---
 #### Contact
 [Min-Hung Chen](https://www.linkedin.com/in/chensteven) at <cmhungsteve@gatech.edu>
 
-Last updated: 05/02/2016
+Last updated: 05/04/2016
