@@ -25,16 +25,10 @@ local m = require 'model'
 local model = m.model
 local criterion = m.criterion
 
--- remove the last layer of model and add softmax to generate correct probabilitiesy
--- model:remove(model:size())
--- model:add(nn.SoftMax():cuda())
-
 -- Sets Dropout layer to have a different behaviour during evaluation.
 -- TODO: is it okay if we don't un-evaluate the model?
 -- TODO: our of memory...
 -- model:evaluate() 
-
-
 
 -- This matrix records the current confusion across classes
 local confusion = optim.ConfusionMatrix(classes) 
@@ -108,25 +102,11 @@ function test(TestData, TestTarget)
 
 
 			-- Get the top N class indexes and probabilities
-			local N = 3
+			local N = 1
 			local probLog, predLabels = preds:topk(N, true, true)
 
 			-- Convert log probabilities back to [0, 1]
 			probLog:exp()
-
-
-
-			-- Get the top 1 class indexes
-			-- sorted, indices = torch.sort(preds,2,true)
-			-- predLabels = indices[{{},1}]
-
-			-- combine all the label numbers from batches
-			-- idx = 1
-			-- for i = t,t+opt.batchSize-1 do
-			-- 	-- labels[i] = predLabels[idx]
-			-- 	labels[i] = classes[predLabels[idx]]
-			-- 	idx = idx + 1
-			-- end
 
 			idx = 1
 			for i = t,t+opt.batchSize-1 do
@@ -139,18 +119,6 @@ function test(TestData, TestTarget)
 				end
 				idx = idx + 1
 			end
-
-
---[[
-print(prob)
--- print(labels)
-local answer
-repeat
-   io.write("continue with this operation (y/n)? ")
-   io.flush()
-   answer=io.read()
-until answer=="y" or answer=="n"
---]]
 
 		else
 			-- test sample
@@ -188,13 +156,6 @@ until answer=="y" or answer=="n"
 	end
 	confusion:zero()
 end
-
-
--- remove the last SoftMax layer and add back the LogSoftMax layer
--- model:remove(model:size())
--- model:add(nn.LogSoftMax():cuda())
-
-
 
 -- Export:
 return test
