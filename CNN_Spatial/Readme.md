@@ -16,41 +16,33 @@ wget http://www.rarlab.com/rar/rarlinux-3.6.0.tar.gz
 tar -zxvf rarlinux-*.tar.gz
 ./rar/unrar x UCF11_updated_mpg.rar
 ```
+To solve the problems for running the 32-bit unrar on a 64-bit system.
+* For Ubuntu 13.10 and above
+```bash
+sudo dpkg --add-architecture i386
+sudo apt-get update
+sudo apt-get install libncurses5:i386 libstdc++6:i386 zlib1g:i386
+```
+* For earlier version
+```bash
+apt-get install ia32-libs
+```
 
-## Requirement
+## Libraries
 There are some libraries and you need to install before running my codes.
 
-
-
-### get ffmpeg library:
+### ffmpeg library:
+```bash
 sudo apt-get install ffmpeg
-
-### get video libraries for lua:
 luarocks install ffmpeg
-
-### Common Problems
-1. ffmpeg installation problems for Ubuntu 14.04:
-
-	sudo add-apt-repository ppa:mc3man/trusty-media
-
-	sudo apt-get update
-
-	sudo apt-get dist-upgrade
-
-	sudo apt-get install ffmpeg
-
-2. run 32-bit unrar in a 64-bit system
-	* For Ubuntu 13.10 and above
-
-		sudo dpkg --add-architecture i386
-
-		sudo apt-get update
-
-		sudo apt-get install libncurses5:i386 libstdc++6:i386 zlib1g:i386
-
-	* For earlier version
-
-		apt-get install ia32-libs
+```
+To solve the installation problems for for Ubuntu 14.04:
+```bash
+sudo add-apt-repository ppa:mc3man/trusty-media
+sudo apt-get update
+sudo apt-get dist-upgrade
+sudo apt-get install ffmpeg
+```
 
 ---
 ## File List & Implementation details & Usage:
