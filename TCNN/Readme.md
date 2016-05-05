@@ -41,9 +41,9 @@ The output text file has contains the Top N prediction labels and probabilities.
 We use a 2-layer architecture. Each layer includes one convolution layer and one max-pooling layer. Before the final softmax layer, there are two full-connected linear layers.
 
 ### model
-hidden state #: 16 --> 32 --> 256
-convolution kernel size: 3 --> 11
-pooling size: 2 --> 2
+* hidden state #: 16 --> 32 --> 256
+* convolution kernel size: 3 --> 11
+* pooling size: 2 --> 2
 
 ### results
 * training time: 53 epochs
