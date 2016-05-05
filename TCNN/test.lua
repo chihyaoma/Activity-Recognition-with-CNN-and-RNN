@@ -76,7 +76,8 @@ function test(testData, classes, epo)
 
    -- test over test data
    print(sys.COLORS.red .. '==> testing on test set:')
-   predlabeltxt = {}
+   local predlabeltxt = {}
+   local prob = {}
    for t = 1,testData:size(),opt.batchSize do
       -- disp progress
 	  collectgarbage()
@@ -97,14 +98,29 @@ function test(testData, classes, epo)
 
       -- test sample
       local preds = model:forward(inputs)
-      --print(preds:size())
-      _,indices = torch.sort(preds,2,true)
-      predlabels = indices[{{},1}]
-      --print(predlabels:size())
+
+      -- Get the top N class indexes and probabilities
+      local N = 3
+      local probLog, predLabels = preds:topk(N, true, true)
+
+      -- Convert log probabilities back to [0, 1]
+      probLog:exp()
+
+      -- --print(preds:size())
+      -- _,indices = torch.sort(preds,2,true)
+      -- predlabels = indices[{{},1}]
+      -- --print(predlabels:size())
 
       
       for i = 1,opt.batchSize do
-         predlabeltxt[i-1+t] = classes[predlabels[i]]
+         --predlabeltxt[i-1+t] = classes[predlabels[i]]
+         predlabeltxt[i-1+t] = {}
+         prob[i-1+t] = {}
+         for j = 1, N do
+            predlabeltxt[i-1+t][j] = classes[predLabels[i][j]]
+            prob[i-1+t][j] = probLog[i][j]
+         end
+
       end
 
       -- idx = 1
@@ -137,6 +153,7 @@ function test(testData, classes, epo)
       accMax = confusion.totalValid
       epoBest = epo
       torch.save('labels.txt',predlabeltxt,'ascii')
+      torch.save('prob.txt',prob,'ascii')
    end
    print("\n the max accuracy is " .. accMax ..' in the epoch '.. epoBest)
 
