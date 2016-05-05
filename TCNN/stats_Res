@@ -1,0 +1,45 @@
+1. 
+Setting:
+1st CNN feature: Res-101 (2048-dim)
+frame#: 48
+nstates = {20,50,250}
+convsize = {3, 11} 
+convstep = {1, 1}
+convpad  = {(convsize[1]-1)/2, (convsize[2]-1)/2} ==> not change the conv. output dim.
+poolsize = {4, 2}
+poolstep = {4, 2} ==> pool. output dim. = input dim./poolsize
+
+Results: 
+III. UCF-101 w/ 1st set (one dropout layer)
+(1) default (15 epochs)  
+training: 99.832
+testing:  75.147
+
+(2) [16,32,256] + [3,11] + [4,2] ( epochs) (sgd(99 epochs) / adam(30 epochs) / rmsprop(33 epochs))
+training: 100 / 100 / 99.968
+testing: 76.64 / 71.947 / 72.827 
+(-r 15e-5)
+
+(3) [16,32,256] + [3,11] + [2,2] (53 epochs)
+training: 100 
+testing: 77.47
+(-r 15e-5)
+
+===========================================================
+3. 1 layer ==> "results_Res_1L"
+Setting:
+1st CNN feature: Res-101 (2048-dim)
+frame#: 48
+nstates = {25,250}
+convsize = {11}
+convstep = {1}
+convpad  = {(convsize[1]-1)/2} ==> not change the conv. output dim.
+poolsize = {4}
+poolstep = {4} ==> pool. output dim. = input dim./poolsize
+
+Results: 
+(1) default (31 epochs)
+training: 99.937
+testing:  72.000
+
+===========================================================

@@ -64,6 +64,9 @@ $ source ~/.bashrc
 You will also need to install some of the packages we used from LuaRocks. LuaRocks should already be installed with your Torch.
 ```bash
 $ luarocks install torch
+$ luarocks install pl
+$ luarocks install trepl
+$ luarocks install image
 $ luarocks install nn
 $ luarocks install dok
 $ luarocks install gnuplot
