@@ -12,29 +12,29 @@ This folder contains codes to generate feature vectors of the UCF-101 database. 
 ---
 ## Requirement
 ### Dataset
-There are more details for downloading the [UCF101](http://crcv.ucf.edu/data/UCF101.php) dataset.
+There are more details for downloading the [UCF-101](http://crcv.ucf.edu/data/UCF101.php) dataset.
 
 
 You can ownload from the website or use the command line:
 ```bash
-wget http://crcv.ucf.edu/data/UCF11_updated_mpg.rar
+$ wget http://crcv.ucf.edu/data/UCF11_updated_mpg.rar
 ```
 if you dont have unrar (or use sudo apt-get):
 ```bash
-wget http://www.rarlab.com/rar/rarlinux-3.6.0.tar.gz
-tar -zxvf rarlinux-*.tar.gz
-./rar/unrar x UCF11_updated_mpg.rar
+$ wget http://www.rarlab.com/rar/rarlinux-3.6.0.tar.gz
+$ tar -zxvf rarlinux-*.tar.gz
+$ ./rar/unrar x UCF11_updated_mpg.rar
 ```
 To solve the problems for running the 32-bit unrar on a 64-bit system.
 * For Ubuntu 13.10 and above
 ```bash
-sudo dpkg --add-architecture i386
-sudo apt-get update
-sudo apt-get install libncurses5:i386 libstdc++6:i386 zlib1g:i386
+$ sudo dpkg --add-architecture i386
+$ sudo apt-get update
+$ sudo apt-get install libncurses5:i386 libstdc++6:i386 zlib1g:i386
 ```
 * For earlier version
 ```bash
-apt-get install ia32-libs
+$ apt-get install ia32-libs
 ```
 
 ### Pre-trained model
@@ -51,15 +51,15 @@ There are some libraries and you need to install before running my codes.
 
 #### ffmpeg library:
 ```bash
-sudo apt-get install ffmpeg
-luarocks install ffmpeg
+$ sudo apt-get install ffmpeg
+$ luarocks install ffmpeg
 ```
 To solve the installation problems for for Ubuntu 14.04:
 ```bash
-sudo add-apt-repository ppa:mc3man/trusty-media
-sudo apt-get update
-sudo apt-get dist-upgrade
-sudo apt-get install ffmpeg
+$ sudo add-apt-repository ppa:mc3man/trusty-media
+$ sudo apt-get update
+$ sudo apt-get dist-upgrade
+$ sudo apt-get install ffmpeg
 ```
 
 ### Other files
@@ -67,10 +67,12 @@ transforms.lua: pre-process images (scaling, normalization and cropping)
 
 ---
 ## Usage
-### command: th run_UCF101_final_ResNet.lua
+```bash
+$ th run_UCF101_final_ResNet.lua
+```
 Tunable parameters (around line 83):
 * numFrameMin:	frame # you want to extract for each video (default: 50)
-* numSplit:			train/test split # of UCF-101 (default: 1)
+* numSplit:			training/testing split # of UCF-101 (default: 1)
 
 ### Some parameters:
 * class# = 101
@@ -90,4 +92,4 @@ After running these codes, a new empty folder "out_frames" will be generated. Yo
 #### Contact
 [Min-Hung Chen](https://www.linkedin.com/in/chensteven) at <cmhungsteve@gatech.edu>
 
-Last updated: 05/04/2016
+Last updated: 05/05/2016
