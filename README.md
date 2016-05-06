@@ -33,9 +33,11 @@ CNN as baseline, CNN + RNN [(LRCN)](http://jeffdonahue.com/lrcn/), Temporal CNN
 
 ### Demo
 
+<p align="center">
 <a href="http://www.youtube.com/watch?feature=player_embedded&v=81FSYgw6BVA
 " target="_blank"><img src="http://img.youtube.com/vi/81FSYgw6BVA/0.jpg"
 alt="IMAGE ALT TEXT HERE" width="360" height="270" border="10" /></a>
+</p>
 
 The above YouTube video demonstrates the top-3 predictions results of our LRCN and temporal CNN model. The text on the top is the ground truth, three texts are the predictions for each of the method, and the bar right next to the predictions are how confident the model makes predictions.  
 
