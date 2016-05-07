@@ -29,7 +29,7 @@ out = cv2.VideoWriter('output.avi',fourcc, 20.0, (width*scale, height*scale))
 with open('labels_rnn_3Pred.txt') as rnn:
 	linesRNN = rnn.readlines()
 	numPred = np.size(linesRNN)
-with open('labels_tcnn.txt') as tcnn:
+with open('labels_tcnn_3Pred.txt') as tcnn:
 	linesTCNN = tcnn.readlines()
 
 
@@ -48,7 +48,10 @@ for number in indVideo:
 	videoInfoRNN_2nd = linesRNN[idx+1].split()
 	videoInfoRNN_3rd = linesRNN[idx+2].split()
 
-	videoInfoTCNN = linesTCNN[number].split()
+	# videoInfoTCNN = linesTCNN[number].split()
+	videoInfoTCNN_1st = linesTCNN[idx].split()
+	videoInfoTCNN_2nd = linesTCNN[idx+1].split()
+	videoInfoTCNN_3rd = linesTCNN[idx+2].split()
 
 	# Read the video file
 	fileName = '/home/chih-yao/Downloads/UCF-101/' + videoInfoRNN_1st[0]
@@ -71,9 +74,11 @@ for number in indVideo:
 			cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame)
 
 			# get probabilities of predictions
-			prob = map(float, [videoInfoRNN_1st[2], videoInfoRNN_2nd[2], videoInfoRNN_3rd[2]])
+			probRNN = map(float, [videoInfoRNN_1st[2], videoInfoRNN_2nd[2], videoInfoRNN_3rd[2]])
+			probTCNN = map(float, [videoInfoTCNN_1st[2], videoInfoTCNN_2nd[2], videoInfoTCNN_3rd[2]])
 			
-			length = [x * 100 for x in prob]
+			lengthRNN = [x * 100 for x in probRNN]
+			lengthTCNN = [x * 100 for x in probTCNN]
 
 			# print bars as the probabilities
 			# probabilities for RNN 
@@ -84,21 +89,21 @@ for number in indVideo:
 			y_spacing = 20
 
 			# probabilities for RNN
-			frame = cv2.line(frame, (x_bar,y_bar), (x_bar + int(length[0]), y_bar), (255,0,255), 5)
-			frame = cv2.line(frame, (x_bar,y_bar+y_spacing), (x_bar + int(length[1]), y_bar+y_spacing), (255,0,255), 5)
-			frame = cv2.line(frame, (x_bar,y_bar+y_spacing*2), (x_bar + int(length[2]), y_bar+y_spacing*2), (255,0,255), 5)
+			frame = cv2.line(frame, (x_bar,y_bar), (x_bar + int(lengthRNN[0]), y_bar), (255,0,255), 5)
+			frame = cv2.line(frame, (x_bar,y_bar+y_spacing), (x_bar + int(lengthRNN[1]), y_bar+y_spacing), (255,0,255), 5)
+			frame = cv2.line(frame, (x_bar,y_bar+y_spacing*2), (x_bar + int(lengthRNN[2]), y_bar+y_spacing*2), (255,0,255), 5)
 
 			# probabilities for TCNN
-			frame = cv2.line(frame, (x_bar+x_spacing, y_bar), (x_bar+x_spacing + int(length[0]), y_bar), (255,0,255), 5)
-			frame = cv2.line(frame, (x_bar+x_spacing, y_bar+y_spacing), (x_bar+x_spacing + int(length[1]), y_bar+y_spacing), (255,0,255), 5)
-			frame = cv2.line(frame, (x_bar+x_spacing, y_bar+y_spacing*2), (x_bar+x_spacing + int(length[2]), y_bar+y_spacing*2), (255,0,255), 5)
+			frame = cv2.line(frame, (x_bar+x_spacing, y_bar), (x_bar+x_spacing + int(lengthTCNN[0]), y_bar), (255,0,255), 5)
+			frame = cv2.line(frame, (x_bar+x_spacing, y_bar+y_spacing), (x_bar+x_spacing + int(lengthTCNN[1]), y_bar+y_spacing), (255,0,255), 5)
+			frame = cv2.line(frame, (x_bar+x_spacing, y_bar+y_spacing*2), (x_bar+x_spacing + int(lengthTCNN[2]), y_bar+y_spacing*2), (255,0,255), 5)
 
 			# Print predictions beside the probability bars
 			# Print ground truth
 			font = cv2.FONT_HERSHEY_SIMPLEX
 			cv2.putText(frame, groundTruth, (225,20), font, 0.8, (0,255,0), 1, cv2.LINE_AA)
 
-			x_pred = 150
+			x_pred = 175
 			y_pred = 40
 
 			# Print predictions from RNN
@@ -109,9 +114,9 @@ for number in indVideo:
 
 			# Print predictions from TCNN
 			cv2.putText(frame, 'TCNN', (x_pred+x_spacing, y_pred), font, 0.5, (0,0,255), 1, cv2.LINE_AA)
-			cv2.putText(frame, videoInfoTCNN[1], (x_pred+x_spacing, y_pred+y_spacing), font, 0.5, (255,255,0), 1, cv2.LINE_AA)
-			cv2.putText(frame, 'Class #2', (x_pred+x_spacing, y_pred+y_spacing*2), font, 0.5, (255,255,0), 1, cv2.LINE_AA)
-			cv2.putText(frame, 'Class #3', (x_pred+x_spacing, y_pred+y_spacing*3), font, 0.5, (255,255,0), 1, cv2.LINE_AA)
+			cv2.putText(frame, videoInfoTCNN_1st[1], (x_pred+x_spacing, y_pred+y_spacing), font, 0.5, (255,255,0), 1, cv2.LINE_AA)
+			cv2.putText(frame, videoInfoTCNN_2nd[1], (x_pred+x_spacing, y_pred+y_spacing*2), font, 0.5, (255,255,0), 1, cv2.LINE_AA)
+			cv2.putText(frame, videoInfoTCNN_3rd[1], (x_pred+x_spacing, y_pred+y_spacing*3), font, 0.5, (255,255,0), 1, cv2.LINE_AA)
 
 			# write the processed frame
 			out.write(frame)
