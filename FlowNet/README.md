@@ -11,10 +11,24 @@ One of the best Optical flow algorithm is [FlowNet](http://arxiv.org/abs/1504.06
 Download FlowNet from the link [here](http://lmb.informatik.uni-freiburg.de/resources/software.php).
 Follow the instructions provided from the authors for compiling the FlowNet with Caffe library.
 
-##### OpenCV-Python  
+##### OpenCV-Python (Ubuntu)
 We use the OpenCV library with Python to read and process the frames for each video. More information about how to use OpenCv with Python, please check the [OpenCV-Python tutorial](http://docs.opencv.org/3.0-beta/doc/py_tutorials/py_tutorials.html).
 
-###### Install OpenCV 2.4+ for Python 2.7+
+###### Option 1: Install OpenCV 3.0 for Python 3.4+
+Follow the step-by-step install instructions from this [blog](http://www.pyimagesearch.com/2015/07/20/install-opencv-3-0-and-python-3-4-on-ubuntu/).
+
+Note: If you follow this, you'll install OpenCV in a virtual environment, which is recommended by the author.
+
+To activate the virtual environment (You can change the environment name. Here we use 'cv' ):
+```
+$ workon cv
+```
+To leave the virtual environment:
+```
+$ deactivate
+```
+
+###### Option 2: Install OpenCV 2.4+ for Python 2.7+
 1. download _opencv.sh_ from this folder
 2. In terminal, type:
 ```
@@ -55,9 +69,13 @@ $ python read_video.py
 TODO:
 - [x] Compile FlowNet with Caffe
 - [x] Write Python code with OpenCV for simple video processing
-- [ ] install OpenCV 3+ on Python 3.4+
+- [x] install OpenCV 3+ on Python 3.4+
 - [ ] Write the script to process the whole video dataset
 - [ ] Write Python code with OpenCV for FlowNet processing
 
+---
+#### Contact:
 
-#### Contact: [Chih-Yao Ma](http://shallowdown.wix.com/chih-yao-ma) at <cyma@gatech.edu>
+[Chih-Yao Ma](http://shallowdown.wix.com/chih-yao-ma) at <cyma@gatech.edu>
+
+[Min-Hung Chen](https://www.linkedin.com/in/chensteven) at <cmhungsteve@gatech.edu>

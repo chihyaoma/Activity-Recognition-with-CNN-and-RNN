@@ -7,6 +7,12 @@
 # Contact: Min-Hung (Steve) Chen at <cmhungsteve@gatech.edu>
 # Last update: 05/13/2016
 
+# string: a = 'ZX'; b = 'CV'; a + b = 'ZXCV'
+# list the files in a foler: 
+# 1. import os; os.listdir("./")
+# 2. import glob; glob.glob('./*.avi')
+
+
 import numpy as np
 import cv2
 
