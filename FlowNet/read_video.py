@@ -5,6 +5,7 @@
 
 
 # Contact: Min-Hung (Steve) Chen at <cmhungsteve@gatech.edu>
+#          Chih-Yao Ma at cyma@gatech.edu
 # Last update: 05/13/2016
 
 # string: a = 'ZX'; b = 'CV'; a + b = 'ZXCV'
@@ -25,10 +26,6 @@ Fr = round(1 / cap.get(2))
 #Fr = 25
 Wd = int(cap.get(3))
 Ht = int(cap.get(4))
-
-# print Fr
-# print Wd
-# print Ht
 
 # Define the codec and create VideoWriter object
 # fourcc = cv2.cv.CV_FOURCC('X', 'V', 'I', 'D') # opencv 2.4
@@ -64,9 +61,8 @@ while(cap.isOpened):
 
         # Display the resulting frame
         cv2.imshow('Processed frame', frameProc)
-
-        ch = 0xFF & cv2.waitKey(Fr)
-        if ch == 27:
+        
+        if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
         prvs = next
