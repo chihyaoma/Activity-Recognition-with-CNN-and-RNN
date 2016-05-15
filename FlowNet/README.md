@@ -17,7 +17,7 @@ We use the OpenCV library with Python to read and process the frames for each vi
 ###### Option 1: Install OpenCV 3.0 for Python 3.4+
 Follow the step-by-step install instructions from this [blog](http://www.pyimagesearch.com/2015/07/20/install-opencv-3-0-and-python-3-4-on-ubuntu/).
 
-Note: If you follow this, you'll install OpenCV in a virtual environment, which is recommended by the author.
+Note: If you follow this, you'll install OpenCV in a virtual environment, which is recommended by the blog author.
 
 To activate the virtual environment (You can change the environment name. Here we use 'cv' ):
 ```
@@ -29,40 +29,14 @@ $ deactivate
 ```
 
 ###### Option 2: Install OpenCV 2.4+ for Python 2.7+
-1. download _opencv.sh_ from this folder
-2. In terminal, type:
-```
-$ chmod +x opencv.sh
-$ ./opencv.sh
-```
-3. Now you have to configure OpenCV. First, open the opencv.conf file with the following code:
-```
-$ sudo gedit /etc/ld.so.conf.d/opencv.conf
-```
-Add the following line at the end of the file (it may be empty, but it's OK.) and then save it:
-```
-/usr/local/lib
-```
-Run the following code to configure the library:
-```
-$ sudo ldconfig
-```
-4. Now you have to open another file:
-```
-sudo gedit /etc/bash.bashrc
-```
-Add these two lines at the end of the file and save it:
-```
-PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig
-export PKG_CONFIG_PATH
-```
-Finally, **restart the computer or logout and then login again**
+1. follow the instructions from the [official Ubuntu document](https://help.ubuntu.com/community/OpenCV).
+2. After installing OpenCV, you have to configure OpenCV. You can follow the instructions from the [blog](http://www.samontab.com/web/2014/06/installing-opencv-2-4-9-in-ubuntu-14-04-lts/).
 
 ---
 ### Usage
 Currently this code can read one video and generate the corresponding optical flow video using an OpenCV built-in function. Simply run the following command:
 ```
-$ python read_video.py
+$ python3 read_video.py
 ```
 
 ---
@@ -70,7 +44,7 @@ TODO:
 - [x] Compile FlowNet with Caffe
 - [x] Write Python code with OpenCV for simple video processing
 - [x] install OpenCV 3+ on Python 3.4+
-- [ ] Write the script to process the whole video dataset
+- [x] Write the script to process the whole video dataset
 - [ ] Write Python code with OpenCV for FlowNet processing
 
 ---
