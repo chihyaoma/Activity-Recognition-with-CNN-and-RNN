@@ -1,0 +1,24 @@
+net: "model_simple/train.prototxt"
+#test_iter: 80
+#test_interval: 5000
+base_lr: 0.00001
+
+lr_policy: "multistep"
+gamma: 0.5
+stepvalue: 200000
+stepvalue: 300000
+stepvalue: 400000
+stepvalue: 500000
+
+momentum: 0.9
+
+weight_decay: 0.0004
+max_iter: 1200000
+snapshot: 5000
+snapshot_prefix: "flow"
+
+solver_mode: GPU  # Some of our layers only support GPU
+type: "Adam"
+momentum2: 0.999
+
+display: 50 
