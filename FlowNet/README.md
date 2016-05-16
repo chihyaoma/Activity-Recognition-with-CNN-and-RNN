@@ -14,7 +14,7 @@ Follow the instructions provided from the authors for compiling the FlowNet with
 We provide the [python scripts](https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/tree/master/FlowNet/flownet-release/models/flownet/scripts) to process the videos using FlowNet. Because of how the FlowNet is being set up, the FlowNet will take saved image files as input. As you can see directly from [read_video.py](https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/FlowNet/read_video.py) and [opticalFlow_dataset.py](https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/FlowNet/opticalFlow_dataset.py), we save the frames into files and ask FlowNet to run which will load the images back into the caffe model. Then, again because of the last of FloeNet, the output will be saved into **.flo** file. Note that there are certainly ways to avoid these processes, but our intention is to simply use FlowNet as tool without going into too many details and modifications.
 
 ##### OpenCV-Python (Ubuntu)
-We use the OpenCV library with Python to read and process the frames for each video. More information about how to use OpenCv with Python, please check the [OpenCV-Python tutorial](http://docs.opencv.org/3.0-beta/doc/py_tutorials/py_tutorials.html).
+We use the OpenCV library with Python to read and process the frames for each video. More information about how to use OpenCV with Python, please check the [OpenCV-Python tutorial](http://docs.opencv.org/3.0-beta/doc/py_tutorials/py_tutorials.html).
 
 ###### Option 1: Install OpenCV 3.0 for Python 3.4+
 Follow the step-by-step install instructions from this [blog](http://www.pyimagesearch.com/2015/07/20/install-opencv-3-0-and-python-3-4-on-ubuntu/).
@@ -40,7 +40,7 @@ The [read_video.py](https://github.com/chihyaoma/Activity-Recognition-with-CNN-a
 ```
 $ python read_video.py
 ```
-On the other hand, the [opticalFlow_dataset.py](https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/FlowNet/opticalFlow_dataset.py) can read through the whole UCF-101 dataset and generate optical flow maps for each video. You will need to specify where is the UCF-101 located and the code will handle the rest. 
+On the other hand, the [opticalFlow_dataset.py](https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/FlowNet/opticalFlow_dataset.py) can read through the whole UCF-101 dataset and generate optical flow maps for each video. You will need to specify where is the UCF-101 located and the code will handle the rest.
 ```
 $ python opticalFlow_dataset.py
 ```
