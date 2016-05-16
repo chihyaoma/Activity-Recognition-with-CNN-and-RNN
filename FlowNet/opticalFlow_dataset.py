@@ -16,7 +16,7 @@ import os
 from scripts.flownet import FlowNet
 
 #----------------------------------------------
-#-- 			  Data paths 			     --
+#--               Data paths                 --
 #----------------------------------------------
 
 # dirDatabase = '/media/cmhung/MyDisk/CMHung_FS/Big_and_Data/PhDResearch/Code/Dataset/UCF-101/'
@@ -24,7 +24,7 @@ from scripts.flownet import FlowNet
 dirDatabase = '/home/chih-yao/Downloads/UCF-101/'
 
 #----------------------------------------------
-#-- 			      Class		        	 --
+#--                   Class                  --
 #----------------------------------------------
 nameClass = os.listdir(dirDatabase)
 numClassTotal = len(nameClass)  # 101 classes
@@ -85,8 +85,8 @@ for c in range(numClassTotal):  # c = 0 ~ 100
 
                     # Get frame sizes
                     height, width, channels = prvs.shape
-                    cv2.imshow('Frame 1', prvs)
-                    cv2.imshow('Frame 2', next)
+
+                    imgDisplay = np.hstack((prvs, next))
 
                     # save the frames into png files for FlowNet to read
                     # TODO: stupid but is the easiest way without reconfigure
@@ -115,7 +115,7 @@ for c in range(numClassTotal):  # c = 0 ~ 100
                     # compute the optical flow from two adjacent frames
                     # next = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
                     # flow = cv2.calcOpticalFlowFarneback(
-                    # 	prvs, next, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+                    #   prvs, next, None, 0.5, 3, 15, 3, 5, 1.2, 0)
 
                     # show in RGB for visualization
                     mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
@@ -127,7 +127,9 @@ for c in range(numClassTotal):  # c = 0 ~ 100
                     out.write(frameProc)
 
                     # Display the resulting frame
-                    cv2.imshow('Frame for ' + nameParse[0], frameProc)
+                    imgDisplay = np.hstack((imgDisplay, frameProc))
+                    cv2.imshow(
+                        'Previous, current frames and flow map for video: ' + nameParse[0], imgDisplay)
 
                     if cv2.waitKey(1) & 0xFF == ord('q'):
                         break
