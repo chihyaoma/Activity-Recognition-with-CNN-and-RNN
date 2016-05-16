@@ -1,21 +1,27 @@
-# Simple optical flow algorithm 
+# Simple optical flow algorithm
 # run for the whole UCF-101 dataset
 
 # python version: 3.4.3
 # OpenCV version: 3.1.0
 
 
-# Contact: Min-Hung (Steve) Chen at <cmhungsteve@gatech.edu>
-# Last update: 05/13/2016
+# Contact:
+# Min-Hung (Steve) Chen at <cmhungsteve@gatech.edu>
+# Chih-Yao Ma at <cyma@gatech.edu>
+# Last update: 05/16/2016
 
 import numpy as np
 import cv2
 import os
+from scripts.flownet import FlowNet
 
 #----------------------------------------------
 #-- 			  Data paths 			     --
 #----------------------------------------------
-dirDatabase = '/media/cmhung/MyDisk/CMHung_FS/Big_and_Data/PhDResearch/Code/Dataset/UCF-101/'
+
+# dirDatabase = '/media/cmhung/MyDisk/CMHung_FS/Big_and_Data/PhDResearch/Code/Dataset/UCF-101/'
+
+dirDatabase = '/home/chih-yao/Downloads/UCF-101/'
 
 #----------------------------------------------
 #-- 			      Class		        	 --
@@ -28,75 +34,112 @@ numClassTotal = len(nameClass)  # 101 classes
 fourcc = cv2.VideoWriter_fourcc(*'XVID')  # opencv 3.0
 
 for c in range(numClassTotal):  # c = 0 ~ 100
-	dirClass = dirDatabase + nameClass[c] + '/'
-	nameSubVideo = os.listdir(dirClass)
-	numSubVideoTotal = len(nameSubVideo)  # videos
+    dirClass = dirDatabase + nameClass[c] + '/'
+    nameSubVideo = os.listdir(dirClass)
+    numSubVideoTotal = len(nameSubVideo)  # videos
 
-	for sv in range(numSubVideoTotal):
+    outdir = dirDatabase + 'FlowMap' + '/' + nameClass[c] + '/'
 
-		videoName = nameSubVideo[sv]
-		videoPath = dirClass + videoName
-		print('==> Loading the video: ' + videoName)
+    # create folder if not yet existed
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
 
-		cap = cv2.VideoCapture(videoPath)
+    for sv in range(numSubVideoTotal):
 
-		# information of the video
-		# property identifier:
-		# 1: ?; 2: s/frame; 3: width; 4: height; 6: ?; 7: ?
-		Fr = round(1 / cap.get(2))
-		# Fr = 25
-		Wd = int(cap.get(3))
-		Ht = int(cap.get(4))
+        videoName = nameSubVideo[sv]
+        videoPath = dirClass + videoName
+        print('==> Loading the video: ' + videoName)
 
-		# print(Fr)
-		# print(Wd)
-		# print(Ht)
+        cap = cv2.VideoCapture(videoPath)
 
-		# output name
-		nameParse = videoName.split(".")
-		nameOutput = nameParse[0] + '_flow.' + nameParse[1]
-		out = cv2.VideoWriter(dirClass + nameOutput, fourcc, Fr, (Wd, Ht))
+        # information of the video
+        # property identifier:
+        # 1: ?; 2: s/frame; 3: width; 4: height; 6: ?; 7: ?
+        Fr = round(1 / cap.get(2))
+        Wd = int(cap.get(3))
+        Ht = int(cap.get(4))
 
-		# read the first frame
-		ret, frame1 = cap.read()
-		prvs = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)  # convert to gray scale
+        # output name
+        nameParse = videoName.split(".")
+        nameOutput = nameParse[0] + '_flow.' + nameParse[1]
 
-		# save in HSV (because of the optical flow algorithm we used)
-		hsv = np.zeros_like(frame1)
-		hsv[..., 1] = 255
+        out = cv2.VideoWriter(outdir + nameOutput, fourcc, Fr, (Wd, Ht))
 
-		while(cap.isOpened):
-			# Capture frame-by-frame
-			ret, frame2 = cap.read()
+        # read the first frame
+        ret, prvs = cap.read()
+        # prvs = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)  # convert to gray
+        # scale
 
-			if ret == True:
-				# print "print frame.shape", frame.shape
+        # save in HSV (because of the optical flow algorithm we used)
+        hsv = np.zeros_like(prvs)
+        hsv[..., 1] = 255
 
-				# compute the optical flow from two adjacent frames
-				next = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
-				flow = cv2.calcOpticalFlowFarneback(
-					prvs, next, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+        indFrame = 1
 
-				# show in RGB for visualization
-				mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
-				hsv[..., 0] = ang * 180 / np.pi / 2
-				hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
-				frameProc = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+        while(cap.isOpened):
+            # Capture frame-by-frame
+            ret, next = cap.read()
 
-				out.write(frameProc)
+            if (indFrame % 7) == 0:
+                if ret is True:
 
-				# Display the resulting frame
-				cv2.imshow('Processed frame', frameProc)
+                    # Get frame sizes
+                    height, width, channels = prvs.shape
+                    cv2.imshow('Frame 1', prvs)
+                    cv2.imshow('Frame 2', next)
 
-				ch = 0xFF & cv2.waitKey(Fr)
-				if ch == 27:
-					break
-				prvs = next
+                    # save the frames into png files for FlowNet to read
+                    # TODO: stupid but is the easiest way without reconfigure
+                    # the FlowNet and possible re-train the model
+                    cv2.imwrite('data/frame1.png', prvs)
+                    cv2.imwrite('data/frame2.png', next)
 
-			else:
-				break
+                    # compute the optical flow from two adjacent frames
+                    FlowNet.run(prvs)  # the FlowNet will save a .flo file
 
-		# When everything done, release the capture
-		cap.release()
-		out.release()
-		cv2.destroyAllWindows()
+                    # read the .flo file
+                    fileName = 'flownetc-pred-0000000.flo'
+                    flowMapSize = np.fromfile(fileName, np.float32, count=1)
+                    if flowMapSize != 202021.25:
+                        print 'Dimension incorrect. Invalid .flo file'
+                    else:
+                        data = np.fromfile(fileName, np.float32,
+                                           count=2 * width * height)
+
+                    flow = np.resize(data, (height, width, 2))
+
+                    for index, x in np.ndenumerate(flow):
+                        if x > 100:
+                            flow[index] = 0
+
+                    # compute the optical flow from two adjacent frames
+                    # next = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
+                    # flow = cv2.calcOpticalFlowFarneback(
+                    # 	prvs, next, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+
+                    # show in RGB for visualization
+                    mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
+                    hsv[..., 0] = ang * 180 / np.pi / 2
+                    hsv[..., 2] = cv2.normalize(
+                        mag, None, 0, 255, cv2.NORM_MINMAX)
+                    frameProc = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+
+                    out.write(frameProc)
+
+                    # Display the resulting frame
+                    cv2.imshow('Frame for ' + nameParse[0], frameProc)
+
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        break
+
+                    prvs = next
+
+                else:
+                    break
+
+            indFrame = indFrame + 1
+
+        # When everything done, release the capture
+        cap.release()
+        out.release()
+        cv2.destroyAllWindows()
