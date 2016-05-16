@@ -40,35 +40,39 @@ prvs = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)  # convert to gray scale
 hsv = np.zeros_like(frame1)
 hsv[..., 1] = 255
 
+indFrame = 1
+
 while(cap.isOpened):
     # Capture frame-by-frame
     ret, frame2 = cap.read()
+    if (indFrame % 10) == 0:
 
-    if ret == True:
-        # print "print frame.shape", frame.shape
+        if ret == True:
 
-        # compute the optical flow from two adjacent frames
-        next = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
-        flow = cv2.calcOpticalFlowFarneback(
-            prvs, next, None, 0.5, 3, 15, 3, 5, 1.2, 0)
-        # show in RGB for visualization
-        mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
-        hsv[..., 0] = ang * 180 / np.pi / 2
-        hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
-        frameProc = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+            # compute the optical flow from two adjacent frames
+            next = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
+            flow = cv2.calcOpticalFlowFarneback(
+                prvs, next, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+            # show in RGB for visualization
+            mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
+            hsv[..., 0] = ang * 180 / np.pi / 2
+            hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
+            frameProc = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
 
-        out.write(frameProc)
+            out.write(frameProc)
 
-        # Display the resulting frame
-        cv2.imshow('Processed frame', frameProc)
-        
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+            # Display the resulting frame
+            cv2.imshow('Processed frame', frameProc)
+            
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
 
-        prvs = next
+            prvs = next
 
-    else:
-        break
+        else:
+                break
+                
+    indFrame = indFrame + 1
 
 # When everything done, release the capture
 cap.release()
