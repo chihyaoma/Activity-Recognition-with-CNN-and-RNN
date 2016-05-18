@@ -46,6 +46,11 @@ $ python opticalFlow_dataset.py
 ```
 
 ---
+### Note
+##### normalization
+We have tried two ways to normalize the flow map. One obvious way is to normalize the flow map individually. The other way is that, the normalization is being done within the *opticalFlow_dataset.py*. This normalization is based on the maximum value for each of the video. The purpose of doing this is so that flow map can have universal scale for the movement of the objects in the videos. 
+
+---
 TODO:
 - [x] Compile FlowNet with Caffe
 - [x] install OpenCV 3+ on Python 3.4+
