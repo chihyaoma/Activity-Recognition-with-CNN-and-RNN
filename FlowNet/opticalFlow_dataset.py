@@ -15,16 +15,16 @@ import cv2
 import os
 from scripts.flownet import FlowNet
 
-#----------------------------------------------
-#--               Data paths                 --
-#----------------------------------------------
+# ----------------------------------------------
+# --               Data paths                 --
+# ----------------------------------------------
 
 # dirDatabase = '/media/cmhung/MyDisk/CMHung_FS/Big_and_Data/PhDResearch/Code/Dataset/UCF-101/'
 dirDatabase = '/home/chih-yao/Downloads/UCF-101/'
 
-#----------------------------------------------
-#--                   Class                  --
-#----------------------------------------------
+# ----------------------------------------------
+# --                   Class                  --
+# ----------------------------------------------
 nameClass = os.listdir(dirDatabase)
 numClassTotal = len(nameClass)  # 101 classes
 
@@ -55,10 +55,10 @@ for c in range(numClassTotal):  # c = 0 ~ 100
         cap = cv2.VideoCapture(videoPath)
 
         # information of the video
-        Fr = round(1 / cap.get(2)) # frame rate
+        Fr = round(1 / cap.get(2))  # frame rate
         Wd = int(cap.get(3))
         Ht = int(cap.get(4))
-        nFrame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) # get number of frames
+        nFrame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))  # get number of frames
 
         # output name
         nameParse = videoName.split(".")
@@ -68,8 +68,8 @@ for c in range(numClassTotal):  # c = 0 ~ 100
         filename = outdir + nameOutput
 
         if not os.path.exists(filename):
-                        
-            step = 7 # steps for computing optical flow
+
+            step = 7  # steps for computing optical flow
             numFlowMap = int(nFrame / step)
 
             # initialize video file with 1 FPS
@@ -92,11 +92,11 @@ for c in range(numClassTotal):  # c = 0 ~ 100
             while(cap.isOpened):
                 # Capture frame-by-frame
                 ret, next = cap.read()
-                
+
                 if ret is True:
                     indFrame = indFrame + 1
 
-                    if ((indFrame-1) % step) == 0 and indFlowMap < numFlowMap:
+                    if ((indFrame - 1) % step) == 0 and indFlowMap < numFlowMap:
 
                         imgDisplay = np.hstack((prvs, next))
 
@@ -139,7 +139,7 @@ for c in range(numClassTotal):  # c = 0 ~ 100
                         hsv[:, :, 2, indFlowMap] = mag
 
                         # Display the resulting frame
-                        tmp = hsv[:, :, :, indFlowMap].astype('B') # convert to uint8
+                        tmp = hsv[:, :, :, indFlowMap].astype('B')  # convert to uint8
                         frameProc = cv2.cvtColor(tmp, cv2.COLOR_HSV2BGR)
                         imgDisplay = np.hstack((imgDisplay, frameProc))
 
@@ -151,18 +151,18 @@ for c in range(numClassTotal):  # c = 0 ~ 100
                         indFlowMap = indFlowMap + 1
 
                 else:
-                    break         
+                    break
 
             # When everything done, release the capture
             cap.release()
-            
+
             # normalize the flow maps for each video
             magNorm = np.divide(hsv[:, :, 2, :], maxMag)
             magNorm = np.multiply(magNorm, 255)
 
             # convert to uint8
             hsv = hsv.astype('B')
-                       
+
             # convert each frame from HSV to RGB and save them into a video file
             for indFlowMap in range(numFlowMap):
 
@@ -175,5 +175,5 @@ for c in range(numClassTotal):  # c = 0 ~ 100
                 #     break
 
             out.release()
-        
+
 cv2.destroyAllWindows()
