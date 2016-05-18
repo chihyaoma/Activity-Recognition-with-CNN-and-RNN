@@ -55,13 +55,10 @@ for c in range(numClassTotal):  # c = 0 ~ 100
         cap = cv2.VideoCapture(videoPath)
 
         # information of the video
-        # property identifier:
-        # 1: ?; 2: s/frame; 3: width; 4: height; 6: ?; 7: ?
-        Fr = round(1 / cap.get(2))
+        Fr = round(1 / cap.get(2)) # frame rate
         Wd = int(cap.get(3))
         Ht = int(cap.get(4))
-        # get number of frames
-        nFrame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        nFrame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) # get number of frames
 
         # output name
         nameParse = videoName.split(".")
@@ -72,7 +69,7 @@ for c in range(numClassTotal):  # c = 0 ~ 100
 
         if not os.path.exists(filename):
                         
-            step = 7
+            step = 7 # steps for computing optical flow
             numFlowMap = int(nFrame / step)
 
             # initialize video file with 1 FPS
@@ -85,7 +82,6 @@ for c in range(numClassTotal):  # c = 0 ~ 100
             height, width, channels = prvs.shape
 
             # save in HSV (because of the optical flow algorithm we used)
-            # hsv = np.zeros_like(prvs)
             hsv = np.zeros((height, width, channels, numFlowMap))
             hsv[:, :, 1, :] = 255
 
@@ -138,17 +134,15 @@ for c in range(numClassTotal):  # c = 0 ~ 100
                         if maxMagTmp > maxMag:
                             maxMag = maxMagTmp
 
-
                         # convert to HSV
                         hsv[:, :, 0, indFlowMap] = ang * 180 / np.pi / 2
-                        # hsv[..., 2] = cv2.normalize(
-                        #     mag, None, 0, 255, cv2.NORM_MINMAX)
                         hsv[:, :, 2, indFlowMap] = mag
 
                         # Display the resulting frame
-                        tmp = hsv[:, :, :, indFlowMap].astype('B')
+                        tmp = hsv[:, :, :, indFlowMap].astype('B') # convert to uint8
                         frameProc = cv2.cvtColor(tmp, cv2.COLOR_HSV2BGR)
                         imgDisplay = np.hstack((imgDisplay, frameProc))
+
                         cv2.imshow('Previous, current frames and flow map', imgDisplay)
                         if cv2.waitKey(1) & 0xFF == ord('q'):
                             break
@@ -165,7 +159,6 @@ for c in range(numClassTotal):  # c = 0 ~ 100
             # normalize the flow maps for each video
             magNorm = np.divide(hsv[:, :, 2, :], maxMag)
             magNorm = np.multiply(magNorm, 255)
-            # hsv[:, :, 2, :] = np.round(magNorm)
 
             # convert to uint8
             hsv = hsv.astype('B')
@@ -176,10 +169,11 @@ for c in range(numClassTotal):  # c = 0 ~ 100
                 # conver from HSV to RGB for visualization
                 frameProc = cv2.cvtColor(hsv[:, :, :, indFlowMap], cv2.COLOR_HSV2BGR)
                 out.write(frameProc)
-                # cv2.imshow('Previous, current frames and flow map', frameProc)
 
+                # cv2.imshow('Previous, current frames and flow map', frameProc)
                 # if cv2.waitKey(1) & 0xFF == ord('q'):
-                #             break
+                #     break
+
             out.release()
         
 cv2.destroyAllWindows()
