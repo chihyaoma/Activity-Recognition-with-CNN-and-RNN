@@ -15,7 +15,7 @@ import cv2
 from scripts.flownet import FlowNet
 
 # read the video file
-cap = cv2.VideoCapture('v_Basketball_g01_c01.avi')
+cap = cv2.VideoCapture('youtubeHorseRide.mp4')
 
 # information of the video
 # property identifier:
@@ -28,6 +28,9 @@ Ht = int(cap.get(4))
 # fourcc = cv2.cv.CV_FOURCC('X','V','I','D')
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 out = cv2.VideoWriter('out_flow.avi', fourcc, Fr, (Wd, Ht))
+
+# initialize the display window
+cv2.namedWindow('Previous, current frames and flow map')
 
 # read the first frame
 ret, prvs = cap.read()
@@ -43,15 +46,43 @@ while(cap.isOpened):
     # Capture frame-by-frame
     ret, next = cap.read()
 
-    if (indFrame % 7) == 0:
+    if (indFrame % 3) == 0:
 
         if ret == True:
+
+
 
             # Get frame sizes
             height, width, channels = prvs.shape
 
-            cv2.imshow('Frame 1', prvs)
-            cv2.imshow('Frame 2', next)
+
+            # normalize across two frames 
+            # prvs = prvs.astype(float)
+            # next = next.astype(float)
+
+            # minVal_R = min(prvs[..., 0].min(), next[..., 0].min())
+            # maxVal_R = max(prvs[..., 0].max(), next[..., 0].max())
+            # minVal_G = min(prvs[..., 1].min(), next[..., 1].min())
+            # maxVal_G = max(prvs[..., 1].max(), next[..., 1].max())
+            # minVal_B = min(prvs[..., 2].min(), next[..., 2].min())
+            # maxVal_B = max(prvs[..., 2].max(), next[..., 2].max())
+            
+            # prvs[..., 0] = (prvs[..., 0] - minVal_R) / (maxVal_R - minVal_R) * 255
+            # prvs[..., 1] = (prvs[..., 1] - minVal_G) / (maxVal_G - minVal_G) * 255
+            # prvs[..., 2] = (prvs[..., 2] - minVal_B) / (maxVal_B - minVal_B) * 255
+            # next[..., 0] = (next[..., 0] - minVal_R) / (maxVal_R - minVal_R) * 255
+            # next[..., 1] = (next[..., 1] - minVal_G) / (maxVal_G - minVal_G) * 255
+            # next[..., 2] = (next[..., 2] - minVal_B) / (maxVal_B - minVal_B) * 255
+
+            # convert to uint8
+            # prvs = prvs.astype('B')
+            # next = next.astype('B')
+
+            imgDisplay = np.hstack((prvs, next))
+            # cv2.imshow('Frame 1', prvs)
+            # cv2.imshow('Frame 2', next)
+
+
             # save the frames into png files for FlowNet to read
             # TODO: this maybe stupid but is the easiest way without reconfigure
             # the FlowNet and possible re-train the model
@@ -73,8 +104,8 @@ while(cap.isOpened):
             flow = np.resize(data, (height, width, 2))
 
             for index, x in np.ndenumerate(flow):
-                if x > 100:
-                    flow[index] = 0
+                if x > 500:
+                    flow[index] = 500
 
             # show in RGB for visualization
             mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
@@ -82,11 +113,15 @@ while(cap.isOpened):
             hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
             frameProc = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
 
+            # cv2.imwrite('flow.png', frameProc)
             # write the processed frame
             out.write(frameProc)
+            imgDisplay = np.hstack((imgDisplay, frameProc))
+
 
             # Display the resulting frame
-            cv2.imshow('Processed frame', frameProc)
+            imgDisplay = cv2.resize(imgDisplay, (0,0), fx=0.33, fy=0.33)
+            cv2.imshow('Previous, current frames and flow map', imgDisplay)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
