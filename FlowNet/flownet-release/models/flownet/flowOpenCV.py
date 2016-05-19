@@ -12,10 +12,9 @@
 
 import numpy as np
 import cv2
-from scripts.flownet import FlowNet
 
 # read the video file
-cap = cv2.VideoCapture('v_PlayingGuitar_g01_c01.avi')
+cap = cv2.VideoCapture('youtubeHorseRide.mp4')
 
 # information of the video
 # property identifier:
@@ -24,11 +23,9 @@ Fr = int(round(1 / cap.get(2)))
 Wd = int(cap.get(3))
 Ht = int(cap.get(4))
 
-# Define the codec and create VideoWriter object
-# fourcc = cv2.cv.CV_FOURCC('X','V','I','D')
-fourcc = cv2.VideoWriter_fourcc(*'XVID')
-out = cv2.VideoWriter('out_flow.avi', fourcc, Fr, (Wd, Ht))
-
+# initialize the display window
+cv2.namedWindow('flow map')
+cv2.namedWindow('Previous, current frames')
 # read the first frame
 ret, prvs = cap.read()
 prvs = cv2.cvtColor(prvs, cv2.COLOR_BGR2GRAY)  # convert to gray scale
@@ -38,22 +35,27 @@ hsv = np.zeros((Ht, Wd, 3)).astype('B')
 hsv[..., 1] = 255
 
 indFrame = 1
+step = 3
+# Define the codec and create VideoWriter object
+# fourcc = cv2.cv.CV_FOURCC('X','V','I','D')
+fourcc = cv2.VideoWriter_fourcc(*'XVID')
+out = cv2.VideoWriter('opencvFlow_out.avi', fourcc, Fr / step, (Wd, Ht))
 
 while(cap.isOpened):
 
     # Capture frame-by-frame
     ret, next = cap.read()
 
-    if (indFrame % 1) == 0:
+    if (indFrame % step) == 0:
 
-        if ret == True:
+        if ret is True:
 
             # Get frame sizes
             height, width = prvs.shape
 
             next = cv2.cvtColor(next, cv2.COLOR_BGR2GRAY)
 
-            # normalize across two frames 
+            # normalize across two frames
             # prvs = prvs.astype(float)
             # next = next.astype(float)
 
@@ -63,7 +65,7 @@ while(cap.isOpened):
             # maxVal_G = max(prvs[..., 1].max(), next[..., 1].max())
             # minVal_B = min(prvs[..., 2].min(), next[..., 2].min())
             # maxVal_B = max(prvs[..., 2].max(), next[..., 2].max())
-            
+
             # prvs[..., 0] = (prvs[..., 0] - minVal_R) / (maxVal_R - minVal_R) * 255
             # prvs[..., 1] = (prvs[..., 1] - minVal_G) / (maxVal_G - minVal_G) * 255
             # prvs[..., 2] = (prvs[..., 2] - minVal_B) / (maxVal_B - minVal_B) * 255
@@ -75,11 +77,12 @@ while(cap.isOpened):
             # prvs = prvs.astype('B')
             # next = next.astype('B')
 
-            cv2.imshow('Frame 1', prvs)
-            cv2.imshow('Frame 2', next)
+            imgDisplay = np.hstack((prvs, next))
+            # cv2.imshow('Frame 1', prvs)
+            # cv2.imshow('Frame 2', next)
 
             # compute the optical flow from two adjacent frames
-            
+
             flow = cv2.calcOpticalFlowFarneback(
                 prvs, next, None, 0.5, 3, 15, 3, 5, 1.2, 0)
             # show in RGB for visualization
@@ -93,7 +96,10 @@ while(cap.isOpened):
             out.write(frameProc)
 
             # Display the resulting frame
-            cv2.imshow('Processed frame', frameProc)
+            imgDisplay = cv2.resize(imgDisplay, (0, 0), fx=0.5, fy=0.5)
+            frameProc = cv2.resize(frameProc, (0, 0), fx=0.5, fy=0.5)
+            cv2.imshow('Previous, current frames', imgDisplay)
+            cv2.imshow('flow map', frameProc)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
