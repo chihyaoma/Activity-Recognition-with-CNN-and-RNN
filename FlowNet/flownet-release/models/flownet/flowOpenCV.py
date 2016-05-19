@@ -20,6 +20,7 @@ cap = cv2.VideoCapture('youtubeHorseRide.mp4')
 # property identifier:
 # 1: ?; 2: s/frame; 3: width; 4: height; 6: ?; 7: ?
 Fr = int(round(1 / cap.get(2)))
+fps = int(cap.get(cv2.CAP_PROP_FPS))
 Wd = int(cap.get(3))
 Ht = int(cap.get(4))
 
@@ -39,7 +40,7 @@ step = 3
 # Define the codec and create VideoWriter object
 # fourcc = cv2.cv.CV_FOURCC('X','V','I','D')
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
-out = cv2.VideoWriter('opencvFlow_out.avi', fourcc, Fr / step, (Wd, Ht))
+out = cv2.VideoWriter('opencvFlow_out.avi', fourcc, fps / step, (Wd, Ht))
 
 while(cap.isOpened):
 
