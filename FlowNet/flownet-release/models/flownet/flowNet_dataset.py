@@ -26,7 +26,7 @@ dirDatabase = '/home/chih-yao/Downloads/UCF-101/'
 # --                   Class                  --
 # ----------------------------------------------
 nameClass = os.listdir(dirDatabase)
-nameClass = nameClass.sort()
+nameClass.sort()
 numClassTotal = len(nameClass)  # 101 classes
 
 # Define the codec and create VideoWriter object
