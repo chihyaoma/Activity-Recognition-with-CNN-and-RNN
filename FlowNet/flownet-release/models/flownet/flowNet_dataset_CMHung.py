@@ -1,7 +1,7 @@
 # Simple optical flow algorithm
 # run for the whole UCF-101 dataset
 
-# python version: 3.4.3
+# python version: 2.7.6 / 3.4.3
 # OpenCV version: 3.1.0
 
 
@@ -63,6 +63,7 @@ for c in idxClassAll[::-1]:  # c = 0 ~ 100 (start from the last one)
 
         # information of the video
         Fr = round(1 / cap.get(2))  # frame rate
+        fps = int(cap.get(cv2.CAP_PROP_FPS))
         Wd = int(cap.get(3))
         Ht = int(cap.get(4))
         nFrame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))  # get number of frames
@@ -76,11 +77,11 @@ for c in idxClassAll[::-1]:  # c = 0 ~ 100 (start from the last one)
 
         if not os.path.exists(filename):
 
-            step = 7  # steps for computing optical flow
+            step = 5  # steps for computing optical flow
             numFlowMap = int(nFrame / step)
 
             # initialize video file with 1 FPS
-            out = cv2.VideoWriter(filename, fourcc, 1, (Wd, Ht))
+            out = cv2.VideoWriter(filename, fourcc, fps / step, (Wd, Ht))
 
             # read the first frame
             ret, prvs = cap.read()
