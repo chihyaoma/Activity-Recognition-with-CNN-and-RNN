@@ -20,7 +20,8 @@ from scripts.flownet import FlowNet
 # ----------------------------------------------
 
 # dirDatabase = '/media/cmhung/MyDisk/CMHung_FS/Big_and_Data/PhDResearch/Code/Dataset/UCF-101/'
-dirDatabase = '/home/chih-yao/Downloads/UCF-101/'
+outdirDatabase = '/home/chih-yao/Downloads/UCF-101/'
+dirDatabase = '/home/chih-yao/Downloads/UCF-101/RGB/'
 
 # ----------------------------------------------
 # --                   Class                  --
@@ -41,7 +42,7 @@ for c in range(numClassTotal):  # c = 0 ~ 100
     nameSubVideo = os.listdir(dirClass)
     numSubVideoTotal = len(nameSubVideo)  # videos
 
-    outdir = dirDatabase + 'FlowMap' + '/' + nameClass[c] + '/'
+    outdir = outdirDatabase + 'FlowMap' + '/' + nameClass[c] + '/'
 
     # create folder if not yet existed
     if not os.path.exists(outdir):
@@ -52,7 +53,6 @@ for c in range(numClassTotal):  # c = 0 ~ 100
         videoName = nameSubVideo[sv]
         videoPath = dirClass + videoName
         print('==> Loading the video: ' + videoName)
-
         cap = cv2.VideoCapture(videoPath)
 
         # information of the video
