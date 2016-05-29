@@ -14,6 +14,17 @@ Codes were initially adapted/modified from an imagenet example from [imagenet-mu
 ---
 ### Note
 
+##### Code Description
+import from [imagenet-multiGPU.torch](https://github.com/soumith/imagenet-multiGPU.torch)
+- `main.lua` (~30 lines) - loads all other files, starts training.
+- `opts.lua` (~50 lines) - all the command-line options and description
+- `data.lua` (~60 lines) - contains the logic to create K threads for parallel data-loading.
+- `donkey.lua` (~200 lines) - contains the data-loading logic and details. It is run by each data-loader thread. random image cropping, generating 10-crops etc. are in here.
+- `model.lua` (~80 lines) - creates AlexNet model and criterion
+- `train.lua` (~190 lines) - logic for training the network. we hard-code a learning rate + weight decay schedule that produces good results.
+- `test.lua` (~120 lines) - logic for testing the network on validation set (including calculating top-1 and top-5 errors)
+- `dataset.lua` (~430 lines) - a general purpose data loader, mostly derived from [here: imagenetloader.torch](https://github.com/soumith/imagenetloader.torch). That repo has docs and more examples of using this loader.
+
 
 ---
 TODO:
