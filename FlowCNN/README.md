@@ -28,7 +28,12 @@ import from [imagenet-multiGPU.torch](https://github.com/soumith/imagenet-multiG
 
 ---
 TODO:
-- [x]
+- [ ] Setup CNN training with multiple GPU usage
+- [ ] Adapt the code for using UCF-101 dataset
+- [ ] Train CNN with Imagenet for better initialization
+- [ ] Train CNN on flow maps
+- [ ] Train CNN on both RGB and flow maps for generating feature representations
+
 
 ---
 #### Contact:
