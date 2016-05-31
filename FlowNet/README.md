@@ -12,7 +12,7 @@ note: the main codes are in the path: *flownet-release/models/flownet/*
 Download FlowNet from the link [here](http://lmb.informatik.uni-freiburg.de/resources/software.php).
 Follow the instructions provided from the authors for compiling the FlowNet with Caffe library.
 
-We provide the [python scripts](https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/tree/master/FlowNet/flownet-release/models/flownet/scripts) to process the videos using FlowNet. Because of how the FlowNet is being set up, the FlowNet will take saved image files as input. As you can see directly from [flowNet_video_M_C++.py](https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/FlowNet/flownet-release/models/flownet/flowNet_video_M_C%2B%2B.py) and [flowNet_dataset.py](https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/FlowNet/flownet-release/models/flownet/flowNet_dataset.py), we save the frames into files and ask FlowNet to run which will load the images back into the caffe model. Then, again because of the last of FloeNet, the output will be saved into **.flo** file. Note that there are certainly ways to avoid these processes, but our intention is to simply use FlowNet as tool without going into too many details and modifications.
+We provide the [python scripts](https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/tree/master/FlowNet/flownet-release/models/flownet/scripts) to process the videos using FlowNet. Because of how the FlowNet is being set up, the FlowNet will take saved image files as input. As you can see directly from [flowNet_video_M_C++.py](https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/FlowNet/flownet-release/models/flownet/flowNet_video_M_C%2B%2B.py) and [flowNet_dataset_M.py](https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/FlowNet/flownet-release/models/flownet/flowNet_dataset_M.py), we save the frames into files and ask FlowNet to run which will load the images back into the caffe model. Then, again because of the last of FloeNet, the output will be saved into **.flo** file. Note that there are certainly ways to avoid these processes, but our intention is to simply use FlowNet as tool without going into too many details and modifications.
 
 #### OpenCV-Python (Ubuntu)
 We use the OpenCV library with Python to read and process the frames for each video. More information about how to use OpenCV with Python, please check the [OpenCV-Python tutorial](http://docs.opencv.org/3.0-beta/doc/py_tutorials/py_tutorials.html).
@@ -44,9 +44,9 @@ The [flowNet_video_M_C++.py](https://github.com/chihyaoma/Activity-Recognition-w
 ```
 $ python flowNet_video_M_C++.py
 ```
-On the other hand, the [flowNet_dataset.py](https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/FlowNet/flownet-release/models/flownet/flowNet_dataset.py) can read through the whole UCF-101 dataset and generate optical flow maps for each video. You will need to specify where is the UCF-101 located and the code will handle the rest.
+On the other hand, the [flowNet_dataset_M.py](https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/FlowNet/flownet-release/models/flownet/flowNet_dataset_M.py) can read through the whole UCF-101 dataset and generate optical flow maps for each video. You will need to specify where is the UCF-101 located and the code will handle the rest.
 ```
-$ python flowNet_dataset.py
+$ python flowNet_dataset_M.py
 ```
 
 ---
@@ -54,7 +54,7 @@ $ python flowNet_dataset.py
 #### Visualization
 The original flow file can't be directly seen. Therefore, we adopted the standard Middlebury color encoding method to visualize the flow map. This method is used in the code *flowNet_video_M_C++.py*.
 
-In addition, We have also tried another two visualization methods by normalizing the flow maps. One obvious way is to normalize the flow map individually. The other way is that, the normalization is being done within the *flowNet_dataset.py*. This normalization is based on the maximum value for each of the video. The purpose of doing this is so that flow map can have universal scale for the movement of the objects in the videos.
+In addition, We have also tried another two visualization methods by normalizing the flow maps. One obvious way is to normalize the flow map individually. The other way is that, the normalization is being done within the *flowNet_dataset_M.py*. This normalization is based on the maximum value for each of the video. The purpose of doing this is so that flow map can have universal scale for the movement of the objects in the videos.
 
 #### Other files
 * *flowNet_video_M_Python.py*: implement the Middlebury color coding in Python (twice more slower)
@@ -75,7 +75,7 @@ Test video: *v_Archery_g01_c06.avi*
 - [x] Write Python code with OpenCV for single video processing
 - [x] Write the Python script with OpenCV to process the whole video dataset
 - [x] load the original Middlebury color coding C++ function to Python
-- [ ] The script for the whole dataset with the Middlebury color style
+- [x] The script for the whole dataset with the Middlebury color style
 
 ---
 ### Contact:
@@ -84,4 +84,4 @@ Test video: *v_Archery_g01_c06.avi*
 
 [Min-Hung Chen](https://www.linkedin.com/in/chensteven) at <cmhungsteve@gatech.edu>
 
-Last updated: 05/30/2016
+Last updated: 05/31/2016
