@@ -1,192 +1,174 @@
 --
---  Copyright (c) 2014, Facebook, Inc.
+--  Copyright (c) 2016, Facebook, Inc.
 --  All rights reserved.
 --
 --  This source code is licensed under the BSD-style license found in the
 --  LICENSE file in the root directory of this source tree. An additional grant
 --  of patent rights can be found in the PATENTS file in the same directory.
 --
-require 'optim'
-
---[[
-   1. Setup SGD optimization state and learning rate schedule
-   2. Create loggers.
-   3. train - this function handles the high-level training loop,
-              i.e. load data, train model, save model and state to disk
-   4. trainBatch - Used by train() to train a single batch after the data is loaded.
-]]--
-
--- Setup a reused optimization state (for sgd). If needed, reload it from disk
-local optimState = {
-    learningRate = opt.LR,
-    learningRateDecay = 0.0,
-    momentum = opt.momentum,
-    dampening = 0.0,
-    weightDecay = opt.weightDecay
-}
-
-if opt.optimState ~= 'none' then
-    assert(paths.filep(opt.optimState), 'File not found: ' .. opt.optimState)
-    print('Loading optimState from file: ' .. opt.optimState)
-    optimState = torch.load(opt.optimState)
-end
-
--- Learning rate annealing schedule. We will build a new optimizer for
--- each epoch.
+--  The training loop and learning rate schedule
 --
--- By default we follow a known recipe for a 55-epoch training. If
--- the learningRate command-line parameter has been specified, though,
--- we trust the user is doing something manual, and will use her
--- exact settings for all optimization.
---
--- Return values:
---    diff to apply to optimState,
---    true IFF this is the first epoch of a new regime
-local function paramsForEpoch(epoch)
-    if opt.LR ~= 0.0 then -- if manually specified
-        return { }
-    end
-    local regimes = {
-        -- start, end,    LR,   WD,
-        {  1,     18,   1e-2,   5e-4, },
-        { 19,     29,   5e-3,   5e-4  },
-        { 30,     43,   1e-3,   0 },
-        { 44,     52,   5e-4,   0 },
-        { 53,    1e8,   1e-4,   0 },
-    }
 
-    for _, row in ipairs(regimes) do
-        if epoch >= row[1] and epoch <= row[2] then
-            return { learningRate=row[3], weightDecay=row[4] }, epoch == row[1]
-        end
-    end
-end
+local optim = require 'optim'
 
--- 2. Create loggers.
-trainLogger = optim.Logger(paths.concat(opt.save, 'train.log'))
-local batchNumber
-local top1_epoch, loss_epoch
+local M = {}
+local Trainer = torch.class('resnet.Trainer', M)
 
--- 3. train - this function handles the high-level training loop,
---            i.e. load data, train model, save model and state to disk
-function train()
-   print('==> doing epoch on training data:')
-   print("==> online epoch # " .. epoch)
-
-   local params, newRegime = paramsForEpoch(epoch)
-   if newRegime then
-      optimState = {
-         learningRate = params.learningRate,
-         learningRateDecay = 0.0,
-         momentum = opt.momentum,
-         dampening = 0.0,
-         weightDecay = params.weightDecay
-      }
-   end
-   batchNumber = 0
-   cutorch.synchronize()
-
-   -- set the dropouts to training mode
-   model:training()
-
-   local tm = torch.Timer()
-   top1_epoch = 0
-   loss_epoch = 0
-   for i=1,opt.epochSize do
-      -- queue jobs to data-workers
-      donkeys:addjob(
-         -- the job callback (runs in data-worker thread)
-         function()
-            local inputs, labels = trainLoader:sample(opt.batchSize)
-            return inputs, labels
-         end,
-         -- the end callback (runs in the main thread)
-         trainBatch
-      )
-   end
-
-   donkeys:synchronize()
-   cutorch.synchronize()
-
-   top1_epoch = top1_epoch * 100 / (opt.batchSize * opt.epochSize)
-   loss_epoch = loss_epoch / opt.epochSize
-
-   trainLogger:add{
-      ['% top1 accuracy (train set)'] = top1_epoch,
-      ['avg loss (train set)'] = loss_epoch
+function Trainer:__init(model, criterion, opt, optimState)
+   self.model = model
+   self.criterion = criterion
+   self.optimState = optimState or {
+      learningRate = opt.LR,
+      learningRateDecay = 0.0,
+      momentum = opt.momentum,
+      nesterov = true,
+      dampening = 0.0,
+      weightDecay = opt.weightDecay,
    }
-   print(string.format('Epoch: [%d][TRAINING SUMMARY] Total Time(s): %.2f\t'
-                          .. 'average loss (per batch): %.2f \t '
-                          .. 'accuracy(%%):\t top-1 %.2f\t',
-                       epoch, tm:time().real, loss_epoch, top1_epoch))
-   print('\n')
-
-   -- save model
-   collectgarbage()
-
-   -- clear the intermediate states in the model before saving to disk
-   -- this saves lots of disk space
-   model:clearState()
-   saveDataParallel(paths.concat(opt.save, 'model_' .. epoch .. '.t7'), model) -- defined in util.lua
-   torch.save(paths.concat(opt.save, 'optimState_' .. epoch .. '.t7'), optimState)
-end -- of train()
--------------------------------------------------------------------------------------------
--- GPU inputs (preallocate)
-local inputs = torch.CudaTensor()
-local labels = torch.CudaTensor()
-
-local timer = torch.Timer()
-local dataTimer = torch.Timer()
-
-local parameters, gradParameters = model:getParameters()
-
--- 4. trainBatch - Used by train() to train a single batch after the data is loaded.
-function trainBatch(inputsCPU, labelsCPU)
-   cutorch.synchronize()
-   collectgarbage()
-   local dataLoadingTime = dataTimer:time().real
-   timer:reset()
-
-   -- transfer over to GPU
-   inputs:resize(inputsCPU:size()):copy(inputsCPU)
-   labels:resize(labelsCPU:size()):copy(labelsCPU)
-
-   local err, outputs
-   feval = function(x)
-      model:zeroGradParameters()
-      outputs = model:forward(inputs)
-      err = criterion:forward(outputs, labels)
-      local gradOutputs = criterion:backward(outputs, labels)
-      model:backward(inputs, gradOutputs)
-      return err, gradParameters
-   end
-   optim.sgd(feval, parameters, optimState)
-
-   -- DataParallelTable's syncParameters
-   if model.needsSync then
-      model:syncParameters()
-   end
-   
-
-   cutorch.synchronize()
-   batchNumber = batchNumber + 1
-   loss_epoch = loss_epoch + err
-   -- top-1 error
-   local top1 = 0
-   do
-      local _,prediction_sorted = outputs:float():sort(2, true) -- descending
-      for i=1,opt.batchSize do
-	 if prediction_sorted[i][1] == labelsCPU[i] then
-	    top1_epoch = top1_epoch + 1;
-	    top1 = top1 + 1
-	 end
-      end
-      top1 = top1 * 100 / opt.batchSize;
-   end
-   -- Calculate top-1 error, and print information
-   print(('Epoch: [%d][%d/%d]\tTime %.3f Err %.4f Top1-%%: %.2f LR %.0e DataLoadingTime %.3f'):format(
-          epoch, batchNumber, opt.epochSize, timer:time().real, err, top1,
-          optimState.learningRate, dataLoadingTime))
-
-   dataTimer:reset()
+   self.opt = opt
+   self.params, self.gradParams = model:getParameters()
 end
+
+function Trainer:train(epoch, dataloader)
+   -- Trains the model for a single epoch
+   self.optimState.learningRate = self:learningRate(epoch)
+
+   local timer = torch.Timer()
+   local dataTimer = torch.Timer()
+
+   local function feval()
+      return self.criterion.output, self.gradParams
+   end
+
+   local trainSize = dataloader:size()
+   local top1Sum, top5Sum, lossSum = 0.0, 0.0, 0.0
+   local N = 0
+
+   print('=> Training epoch # ' .. epoch)
+   -- set the batch norm to training mode
+   self.model:training()
+   for n, sample in dataloader:run() do
+      local dataTime = dataTimer:time().real
+
+      -- Copy input and target to the GPU
+      self:copyInputs(sample)
+
+      local output = self.model:forward(self.input):float()
+      local loss = self.criterion:forward(self.model.output, self.target)
+
+      self.model:zeroGradParameters()
+      self.criterion:backward(self.model.output, self.target)
+      self.model:backward(self.input, self.criterion.gradInput)
+
+      optim.sgd(feval, self.params, self.optimState)
+
+      local top1, top5 = self:computeScore(output, sample.target, 1)
+      top1Sum = top1Sum + top1
+      top5Sum = top5Sum + top5
+      lossSum = lossSum + loss
+      N = N + 1
+
+      print((' | Epoch: [%d][%d/%d]    Time %.3f  Data %.3f  Err %1.4f  top1 %7.3f  top5 %7.3f'):format(
+         epoch, n, trainSize, timer:time().real, dataTime, loss, top1, top5))
+
+      -- check that the storage didn't get changed do to an unfortunate getParameters call
+      assert(self.params:storage() == self.model:parameters()[1]:storage())
+
+      timer:reset()
+      dataTimer:reset()
+   end
+
+   return top1Sum / N, top5Sum / N, lossSum / N
+end
+
+function Trainer:test(epoch, dataloader)
+   -- Computes the top-1 and top-5 err on the validation set
+
+   local timer = torch.Timer()
+   local dataTimer = torch.Timer()
+   local size = dataloader:size()
+
+   local nCrops = self.opt.tenCrop and 10 or 1
+   local top1Sum, top5Sum = 0.0, 0.0
+   local N = 0
+
+   self.model:evaluate()
+   for n, sample in dataloader:run() do
+      local dataTime = dataTimer:time().real
+
+      -- Copy input and target to the GPU
+      self:copyInputs(sample)
+
+      local output = self.model:forward(self.input):float()
+      local loss = self.criterion:forward(self.model.output, self.target)
+
+      local top1, top5 = self:computeScore(output, sample.target, nCrops)
+      top1Sum = top1Sum + top1
+      top5Sum = top5Sum + top5
+      N = N + 1
+
+      print((' | Test: [%d][%d/%d]    Time %.3f  Data %.3f  top1 %7.3f (%7.3f)  top5 %7.3f (%7.3f)'):format(
+         epoch, n, size, timer:time().real, dataTime, top1, top1Sum / N, top5, top5Sum / N))
+
+      timer:reset()
+      dataTimer:reset()
+   end
+   self.model:training()
+
+   print((' * Finished epoch # %d     top1: %7.3f  top5: %7.3f\n'):format(
+      epoch, top1Sum / N, top5Sum / N))
+
+   return top1Sum / N, top5Sum / N
+end
+
+function Trainer:computeScore(output, target, nCrops)
+   if nCrops > 1 then
+      -- Sum over crops
+      output = output:view(output:size(1) / nCrops, nCrops, output:size(2))
+         --:exp()
+         :sum(2):squeeze(2)
+   end
+
+   -- Coputes the top1 and top5 error rate
+   local batchSize = output:size(1)
+
+   local _ , predictions = output:float():sort(2, true) -- descending
+
+   -- Find which predictions match the target
+   local correct = predictions:eq(
+      target:long():view(batchSize, 1):expandAs(output))
+
+   -- Top-1 score
+   local top1 = 1.0 - (correct:narrow(2, 1, 1):sum() / batchSize)
+
+   -- Top-5 score, if there are at least 5 classes
+   local len = math.min(5, correct:size(2))
+   local top5 = 1.0 - (correct:narrow(2, 1, len):sum() / batchSize)
+
+   return top1 * 100, top5 * 100
+end
+
+function Trainer:copyInputs(sample)
+   -- Copies the input to a CUDA tensor, if using 1 GPU, or to pinned memory,
+   -- if using DataParallelTable. The target is always copied to a CUDA tensor
+   self.input = self.input or (self.opt.nGPU == 1
+      and torch.CudaTensor()
+      or cutorch.createCudaHostTensor())
+   self.target = self.target or torch.CudaTensor()
+
+   self.input:resize(sample.input:size()):copy(sample.input)
+   self.target:resize(sample.target:size()):copy(sample.target)
+end
+
+function Trainer:learningRate(epoch)
+   -- Training schedule
+   local decay = 0
+   if self.opt.dataset == 'imagenet' then
+      decay = math.floor((epoch - 1) / 30)
+   elseif self.opt.dataset == 'cifar10' then
+      decay = epoch >= 122 and 2 or epoch >= 81 and 1 or 0
+   end
+   return self.opt.LR * math.pow(0.1, decay)
+end
+
+return M.Trainer
