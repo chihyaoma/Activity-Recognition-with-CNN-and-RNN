@@ -15,7 +15,7 @@ import cv2
 from scripts.flownet import FlowNet
 
 # read the video file
-cap = cv2.VideoCapture('youtubeHorseRide.mp4')
+cap = cv2.VideoCapture('v_Basketball_g01_c01.avi')
 
 # information of the video
 # property identifier:
