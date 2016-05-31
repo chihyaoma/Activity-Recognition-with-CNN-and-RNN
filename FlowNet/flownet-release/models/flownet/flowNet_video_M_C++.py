@@ -10,10 +10,11 @@
 # Min-Hung (Steve) Chen at <cmhungsteve@gatech.edu>
 # Chih-Yao Ma at <cyma@gatech.edu>
 #
-# Last update: 05/30/2016
+# Last update: 05/31/2016
 
 import numpy as np
 import cv2
+import os
 from scripts.flownet import FlowNet
 from time import time
 
@@ -22,12 +23,24 @@ import sys
 sys.path.insert(1, './colorflow_Python_C++/build/lib.linux-x86_64-2.7/')
 import ColorFlow
 
+os.environ['GLOG_minloglevel'] = '3' # suppress the output
+
 #==============================================#
 
 # read the video file
-# cap = cv2.VideoCapture('v_Basketball_g01_c01.avi')
-cap = cv2.VideoCapture('v_Archery_g01_c06.avi')
+nameVideoIn = 'v_Archery_g01_c06'
+# nameVideoIn = 'v_Basketball_g01_c01'
+# nameVideoIn = 'v_Basketball_g03_c06'
+# nameVideoIn = 'v_TaiChi_g01_c01'
+# nameVideoIn = 'v_HorseRiding_g01_c06'
+# nameVideoIn = 'v_PlayingGuitar_g01_c01'
+# nameVideoIn = 'v_HighJump_g01_c05'
+# nameVideoIn = 'v_LongJump_g01_c06'
+# nameVideoIn = 'v_ParallelBars_g02_c02'
 
+
+
+cap = cv2.VideoCapture(nameVideoIn + '.avi')
 
 # information of the video
 # Fr = round(1 / cap.get(2))  # frame rate
@@ -43,15 +56,22 @@ fourcc = cv2.VideoWriter_fourcc(*'XVID')
 # initialize the display window
 cv2.namedWindow('Previous, current frames and flow map')
 
-# output named
-filename = 'FlowNet_out_M_C++.avi'
-
+# output name
 step = 5  # steps for computing optical flow
+nameVideoOut = nameVideoIn + '_M_C++_' + str(step)
+
+dirOut = 'VideoOutputs'
+# create folder if not yet existed
+if not os.path.exists(dirOut):
+    os.makedirs(dirOut)
+
+pathVideoOut = dirOut + '/' + nameVideoOut + '.avi'
+
 
 numFlowMap = int(nFrame / step)
 
 # initialize video file with 1 FPS
-out = cv2.VideoWriter(filename, fourcc, fps / step, (Wd, Ht))
+out = cv2.VideoWriter(pathVideoOut, fourcc, fps / step, (Wd, Ht))
 
 # read the first frame
 ret, prvs = cap.read()
@@ -89,15 +109,15 @@ while(cap.isOpened):
             FlowNet.run(prvs)
 
             # read the .flo file
-            fileName = 'flownetc-pred-0000000.flo'
+            nameFlow = 'flownetc-pred-0000000.flo'
             # temporary output image in the Middlebury color style
-            outTempName = 'outTemp.ppm'
+            nameOutTemp = 'outTemp.ppm'
 
             # convert the flow file to the color image file
-            ColorFlow.flow2color(outTempName, fileName)
+            ColorFlow.flow2color(nameOutTemp, nameFlow)
 
             # read the temporary output image (.ppm)
-            img = cv2.imread(outTempName)
+            img = cv2.imread(nameOutTemp)
 
             imgDisplay = np.hstack((imgDisplay, img))
             out.write(img)
@@ -119,6 +139,7 @@ out.release()
 
 cv2.destroyAllWindows()
 
+# calculate the computation time
 tEnd = time()
 tElapsed = tEnd - tStart
 print("time elapsed = %.2f seconds " % tElapsed)
