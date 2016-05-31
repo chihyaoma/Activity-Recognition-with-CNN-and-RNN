@@ -1,17 +1,3 @@
-----------------------------------------------------------------
--- Activity-Recognition-with-CNN-and-RNN
--- https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN
--- 
--- 
--- Train a CNN on flow map of UCF-101 dataset 
--- 
--- 
--- Contact: Chih-Yao Ma at <cyma@gatech.edu>
-
---  ************************************************************************
---
---  This code incorporates material from:
---  fb.resnet.torch (https://github.com/facebook/fb.resnet.torch)
 --
 --  Copyright (c) 2016, Facebook, Inc.
 --  All rights reserved.
@@ -20,44 +6,60 @@
 --  LICENSE file in the root directory of this source tree. An additional grant
 --  of patent rights can be found in the PATENTS file in the same directory.
 --
---  ************************************************************************
-
 require 'torch'
-require 'cutorch'
 require 'paths'
-require 'xlua'
 require 'optim'
 require 'nn'
+local DataLoader = require 'dataloader'
+local models = require 'models/init'
+local Trainer = require 'train'
+local opts = require 'opts'
+local checkpoints = require 'checkpoints'
 
 torch.setdefaulttensortype('torch.FloatTensor')
+torch.setnumthreads(1)
 
-local opts = paths.dofile('opts.lua')
-
-opt = opts.parse(arg)
-
-nClasses = opt.nClasses
-
-paths.dofile('util.lua')
-paths.dofile('model.lua')
-opt.imageSize = model.imageSize or opt.imageSize
-opt.imageCrop = model.imageCrop or opt.imageCrop
-
-print(opt)
-
-cutorch.setDevice(opt.GPU) -- by default, use GPU 1
+local opt = opts.parse(arg)
 torch.manualSeed(opt.manualSeed)
+cutorch.manualSeedAll(opt.manualSeed)
 
-print('Saving everything to: ' .. opt.save)
-os.execute('mkdir -p ' .. opt.save)
+-- Load previous checkpoint, if it exists
+local checkpoint, optimState = checkpoints.latest(opt)
 
-paths.dofile('data.lua')
-paths.dofile('train.lua')
-paths.dofile('test.lua')
+-- Create model
+local model, criterion = models.setup(opt, checkpoint)
 
-epoch = opt.epochNumber
+-- Data loading
+local trainLoader, valLoader = DataLoader.create(opt)
 
-for i = 1,opt.nEpochs do
-   train()
-   test()
-   epoch = epoch + 1
+-- The trainer handles the training loop and evaluation on validation set
+local trainer = Trainer(model, criterion, opt, optimState)
+
+if opt.testOnly then
+   local top1Err, top5Err = trainer:test(0, valLoader)
+   print(string.format(' * Results top1: %6.3f  top5: %6.3f', top1Err, top5Err))
+   return
 end
+
+local startEpoch = checkpoint and checkpoint.epoch + 1 or opt.epochNumber
+local bestTop1 = math.huge
+local bestTop5 = math.huge
+for epoch = startEpoch, opt.nEpochs do
+   -- Train for a single epoch
+   local trainTop1, trainTop5, trainLoss = trainer:train(epoch, trainLoader)
+
+   -- Run model on validation set
+   local testTop1, testTop5 = trainer:test(epoch, valLoader)
+
+   local bestModel = false
+   if testTop1 < bestTop1 then
+      bestModel = true
+      bestTop1 = testTop1
+      bestTop5 = testTop5
+      print(' * Best model ', testTop1, testTop5)
+   end
+
+   checkpoints.save(epoch, model, trainer.optimState, bestModel)
+end
+
+print(string.format(' * Finished top1: %6.3f  top5: %6.3f', bestTop1, bestTop5))
