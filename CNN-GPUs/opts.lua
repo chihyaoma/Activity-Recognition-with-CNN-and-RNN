@@ -1,3 +1,16 @@
+---------------------------------------------------------------
+--  Activity-Recognition-with-CNN-and-RNN
+--  https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN
+-- 
+-- 
+--  Train a CNN on flow map of UCF-101 dataset 
+-- 
+-- 
+--  Contact: Chih-Yao Ma at <cyma@gatech.edu>
+---------------------------------------------------------------
+-- 
+--  This code incorporates material from: 
+--  https://github.com/facebook/fb.resnet.torch
 --
 --  Copyright (c) 2016, Facebook, Inc.
 --  All rights reserved.
@@ -37,8 +50,8 @@ function M.parse(arg)
    cmd:option('-momentum',        0.9,   'momentum')
    cmd:option('-weightDecay',     1e-4,  'weight decay')
    ---------- Model options ----------------------------------
-   cmd:option('-netType',      'resnet', 'Options: resnet | preresnet')
-   cmd:option('-depth',        34,       'ResNet depth: 18 | 34 | 50 | 101 | ...', 'number')
+   cmd:option('-netType',      'wide-resnet', 'Options: resnet | preresnet | wide-resnet')
+   -- cmd:option('-depth',        34,       'ResNet depth: 18 | 34 | 50 | 101 | ...', 'number')
    cmd:option('-shortcutType', '',       'Options: A | B | C')
    cmd:option('-retrain',      'none',   'Path to model to retrain with')
    cmd:option('-optimState',   'none',   'Path to an optimState to reload from')
@@ -46,6 +59,9 @@ function M.parse(arg)
    cmd:option('-shareGradInput',  'false', 'Share gradInput tensors to reduce memory usage')
    cmd:option('-resetClassifier', 'false', 'Reset the fully connected layer for fine-tuning')
    cmd:option('-nClasses',         0,      'Number of classes in the dataset')
+   ---------- Wide ResNet options ----------------------------------
+   cmd:option('-depth',         40,      'Depth of the Wide ResNet should be 6n+4')
+   cmd:option('-widen_factor',  1,      'Widen factor of the Wide ResNet')
    cmd:text()
 
    local opt = cmd:parse(arg or {})
