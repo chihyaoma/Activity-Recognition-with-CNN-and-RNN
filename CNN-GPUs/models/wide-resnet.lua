@@ -1,3 +1,14 @@
+---------------------------------------------------------------
+--  Activity-Recognition-with-CNN-and-RNN
+--  https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN
+-- 
+-- 
+--  Adapt Wide ResNet to fb.resnet.torch library
+-- 
+-- 
+--  Contact: Chih-Yao Ma at <cyma@gatech.edu>
+---------------------------------------------------------------
+--  
 --  Wide Residual Network
 --  This is an implementation of the wide residual networks described in:
 --  "Wide Residual Networks", http://arxiv.org/abs/1605.07146
@@ -17,15 +28,12 @@
 --  ************************************************************************
 
 local nn = require 'nn'
-local utils = paths.dofile'utils.lua'
+require 'cunn'
 
-assert(opt and opt.depth)
-assert(opt and opt.num_classes)
-assert(opt and opt.widen_factor)
+local Convolution = cudnn.SpatialConvolution
+local Avg = cudnn.SpatialAveragePooling
+local ReLU = cudnn.ReLU
 
-local Convolution = nn.SpatialConvolution
-local Avg = nn.SpatialAveragePooling
-local ReLU = nn.ReLU
 local Max = nn.SpatialMaxPooling
 local SBatchNorm = nn.SpatialBatchNormalization
 
@@ -34,6 +42,11 @@ local function Dropout()
 end
 
 local function createModel(opt)
+   
+   assert(opt and opt.depth)
+   assert(opt and opt.nClasses)
+   assert(opt and opt.widen_factor)
+
    local depth = opt.depth
 
    local blocks = {}
@@ -100,17 +113,47 @@ local function createModel(opt)
       model:add(ReLU(true))
       model:add(Avg(8, 8, 1, 1))
       model:add(nn.View(nStages[4]):setNumInputDims(3))
-      model:add(nn.Linear(nStages[4], opt.num_classes))
+      model:add(nn.Linear(nStages[4], opt.nClasses))
    end
 
-   utils.DisableBias(model)
-   utils.testModel(model)
-   utils.MSRinit(model)
-   utils.FCinit(model)
+   local function ConvInit(name)
+      for k,v in pairs(model:findModules(name)) do
+         local n = v.kW*v.kH*v.nOutputPlane
+         v.weight:normal(0,math.sqrt(2/n))
+         if cudnn.version >= 4000 then
+            v.bias = nil
+            v.gradBias = nil
+         else
+            v.bias:zero()
+         end
+      end
+   end
+   local function BNInit(name)
+      for k,v in pairs(model:findModules(name)) do
+         v.weight:fill(1)
+         v.bias:zero()
+      end
+   end
+
+   ConvInit('cudnn.SpatialConvolution')
+   ConvInit('nn.SpatialConvolution')
+   BNInit('fbnn.SpatialBatchNormalization')
+   BNInit('cudnn.SpatialBatchNormalization')
+   BNInit('nn.SpatialBatchNormalization')
+   for k,v in pairs(model:findModules('nn.Linear')) do
+      v.bias:zero()
+   end
+   model:cuda()
+
+   if opt.cudnn == 'deterministic' then
+      model:apply(function(m)
+         if m.setMode then m:setMode(1,1,1) end
+      end)
+   end
    
-   -- model:get(1).gradInput = nil
+   model:get(1).gradInput = nil
 
    return model
 end
 
-return createModel(opt)
+return createModel
