@@ -18,6 +18,13 @@
 --  This source code is licensed under the BSD-style license found in the
 --  LICENSE file in the root directory of this source tree. An additional grant
 --  of patent rights can be found in the PATENTS file in the same directory.
+
+-- modified by: 
+-- Chih-Yao Ma at <cyma@gatech.edu>
+-- Min-Hung (Steve) Chen at <cmhungsteve@gatech.edu>
+
+-- Last updated: 06/04/2016
+
 --
 local M = { }
 
@@ -29,8 +36,8 @@ function M.parse(arg)
    cmd:text('Options:')
     ------------ General options --------------------
 
-   cmd:option('-data',       '',         'Path to dataset')
-   cmd:option('-dataset',    'imagenet', 'Options: imagenet | cifar10')
+   cmd:option('-data',       '/media/cmhung/MyDisk/CMHung_FS/Big_and_Data/PhDResearch/Code/Dataset/UCF-101/FlowMap-frame/',         'Path to dataset')
+   cmd:option('-dataset',    'ucf101', 'Options: ucf101 | imagenet | cifar10')
    cmd:option('-manualSeed', 0,          'Manually set RNG seed')
    cmd:option('-nGPU',       1,          'Number of GPUs to use by default')
    cmd:option('-backend',    'cudnn',    'Options: cudnn | cunn')
