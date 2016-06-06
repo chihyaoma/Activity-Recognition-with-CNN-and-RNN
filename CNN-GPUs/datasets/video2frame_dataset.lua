@@ -12,7 +12,7 @@
 
 -- author: Min-Hung Chen
 -- contact: cmhungsteve@gatech.edu
--- Last updated: 06/04/2016
+-- Last updated: 06/06/2016
 
 -- require 'xlua'
 require 'torch'
@@ -61,8 +61,8 @@ pathVideoIn = pathDatabase .. dirVideoIn .. '/'
 
 -- outputs
 dirVideoOut = dirVideoIn .. '-frame'
-dirTrain = 'train' .. tostring(idSplit)
-dirTest = 'val' .. tostring(idSplit)
+dirTrain = 'train' 
+dirTest = 'val' 
 pathTrain = pathDatabase .. dirVideoOut .. '/' .. dirTrain .. '/'
 pathTest = pathDatabase .. dirVideoOut .. '/' .. dirTest .. '/'
 
@@ -211,19 +211,19 @@ else
 				end
 				collectgarbage()
 			end
-			print('Split: '..idSplit)
-			print('Finished class#: '..Tr.countClass)
+			Tr.c_finished = c -- save the index
+			Te.c_finished = c -- save the index
+			-- print('Split: '..idSplit)
+			-- print('Finished class#: '..Tr.countClass)
 			print('Generated training data#: '..Tr.countVideo)
 			print('Generated testing data#: '..Te.countVideo)
 			print('The elapsed time for the class '..nameClass[c]..': ' .. timerClass:time().real .. ' seconds')
 			torch.save(outTrain[idSplit].name, Tr)
 			torch.save(outTest[idSplit].name, Te)
-
 			collectgarbage()
 			print(' ')
 		end
-		Tr.c_finished = c -- save the index
-		Te.c_finished = c -- save the index
+		
 	end
 end       	
 

@@ -23,7 +23,7 @@
 -- Chih-Yao Ma at <cyma@gatech.edu>
 -- Min-Hung (Steve) Chen at <cmhungsteve@gatech.edu>
 
--- Last updated: 06/04/2016
+-- Last updated: 06/06/2016
 
 --
 local M = { }
@@ -78,7 +78,7 @@ function M.parse(arg)
    opt.shareGradInput = opt.shareGradInput ~= 'false'
    opt.resetClassifier = opt.resetClassifier ~= 'false'
 
-   if opt.dataset == 'imagenet' then
+   if opt.dataset == 'ucf101' or opt.dataset == 'imagenet' then
       -- Handle the most common case of missing -data flag
       local trainDir = paths.concat(opt.data, 'train')
       if not paths.dirp(opt.data) then

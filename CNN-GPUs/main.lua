@@ -15,6 +15,7 @@ local models = require 'models/init'
 local Trainer = require 'train'
 local opts = require 'opts'
 local checkpoints = require 'checkpoints'
+require 'datasets/video2frame_dataset'
 
 torch.setdefaulttensortype('torch.FloatTensor')
 torch.setnumthreads(1)
@@ -27,7 +28,7 @@ cutorch.manualSeedAll(opt.manualSeed)
 local checkpoint, optimState = checkpoints.latest(opt)
 
 -- Create model
-local model, criterion = models.setup(opt, checkpoint)
+local model, criterion = models.setup(opt, checkpoint) -- debugging
 
 -- Data loading
 local trainLoader, valLoader = DataLoader.create(opt)

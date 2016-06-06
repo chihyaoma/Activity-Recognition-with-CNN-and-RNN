@@ -22,8 +22,8 @@ TODO:
 - [x] Adapt Wide ResNet for multiple GPUs (architecture of Wide ResNet is now only for CIFAR-10)
 - [x] Architecture of wide ResNet for Imagenet
 - [ ] Train CNN with Imagenet for better initialization (~1 week with GPUs) or wait for pre-trained model to be released
-- [ ] Train a **single** CNN model on both RGB and flow maps for generating feature representations
-- [ ] Prepare UCF-101 dataset for training (generating the frames......)
+- [ ] Train CNN on both RGB and flow maps for generating feature representations
+- [X] Prepare UCF-101 dataset for training
 
 
 ---

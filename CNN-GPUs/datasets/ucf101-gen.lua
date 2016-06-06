@@ -95,8 +95,8 @@ function M.exec(opt, cacheFile)
    local imagePath = torch.CharTensor()  -- path to each image in dataset
    local imageClass = torch.LongTensor() -- class index of each image (class index in self.classes)
 
-   local trainDir = paths.concat(opt.data, 'train1')
-   local valDir = paths.concat(opt.data, 'val1')
+   local trainDir = paths.concat(opt.data, 'train')
+   local valDir = paths.concat(opt.data, 'val')
    assert(paths.dirp(trainDir), 'train directory not found: ' .. trainDir)
    assert(paths.dirp(valDir), 'val directory not found: ' .. valDir)
 

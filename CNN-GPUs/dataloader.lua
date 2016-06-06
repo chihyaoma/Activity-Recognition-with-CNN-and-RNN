@@ -13,9 +13,8 @@
 -- Chih-Yao Ma at <cyma@gatech.edu>
 -- Min-Hung (Steve) Chen at <cmhungsteve@gatech.edu>
 
--- Last updated: 06/04/2016
+-- Last updated: 06/06/2016
 
-require 'datasets/video2frame_dataset'
 local datasets = require 'datasets/init'
 local Threads = require 'threads'
 Threads.serialization('threads.sharedserialize')
