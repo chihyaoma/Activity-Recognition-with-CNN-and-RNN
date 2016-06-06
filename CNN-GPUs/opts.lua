@@ -69,6 +69,7 @@ function M.parse(arg)
    ---------- Wide ResNet options ----------------------------------
    cmd:option('-depth',         40,      'Depth of the Wide ResNet should be 6n+4')
    cmd:option('-widen_factor',  1,      'Widen factor of the Wide ResNet')
+   cmd:option('-dropout',     0,      'probability for dropout layer')
    cmd:text()
 
    local opt = cmd:parse(arg or {})
