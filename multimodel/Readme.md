@@ -50,7 +50,7 @@ TODO:
 * Fusion: choose **SVM**
   1. averaging
   2. training a multi-class linear SVM on stacked L2-normalised softmax scores as features
-* best accuracy: 87% (UCF-101)
+* Best accuracy: 87% (UCF-101)
 
 ---
 ## Multimodal Deep Learning for Robust RGB-D Object Recognition
@@ -60,6 +60,27 @@ TODO:
 <p align="center">
 <img src="Figures/CNN_RGBD.png" alt="CNN_RGBD" height="300" align="middle">
 </p>
+
+* Input preprocessing
+  * scaling: warping vs. this paper (like replicate)
+  <p align="center">
+  <img src="Figures/depth_color_encoding.png" alt="depth_color_encoding" align="middle">
+  </p>
+  * depth encoding: gray scale vs. surface normal vs. HHA vs. this papers (depth-jet)
+    * depth-jet is fast and accurate (surface normal has the highest accuracy)
+  <p align="center">
+  <img src="Figures/depth_scaling.png" alt="depth_scaling" height = "200" align="middle">
+  </p>
+* Network training
+  * Train the stream networks
+    * [CaffeNet](http://ucb-icsi-vision-group.github.io/caffe-paper/caffe.pdf) pre-trained model on ImageNet
+    * train RGB and optical flow stream network separately
+    * training with fine-tuning is better than training from scatch
+  * Train the fusion network
+    * combine two fc7 layers --> fc1-fus layer
+* Robust classification from depth images
+  * sample the noise patterns from the [RGB-D SLAM](http://ais.informatik.uni-freiburg.de/publications/papers/sturm12iros.pdf) dataset
+* Best accuracy ([Washington RGB-D](https://homes.cs.washington.edu/~xren/publication/lai_icra11_rgbd_dataset.pdf) Object dataset): 91.3% +-1.4
 
 ---
 ## Action Recognition with Trajectory-Pooled Deep-Convolutional Descriptors
