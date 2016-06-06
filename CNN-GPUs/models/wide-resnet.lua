@@ -61,7 +61,7 @@ local function createModel(opt)
       local block = nn.Sequential()
       local convs = nn.Sequential()     
 
-      for i,v in ipairs(conv_params) dozzzzz
+      for i,v in ipairs(conv_params) do
          if i == 1 then
             local module = nInputPlane == nOutputPlane and convs or block
             module:add(SBatchNorm(nInputPlane)):add(ReLU(true))
