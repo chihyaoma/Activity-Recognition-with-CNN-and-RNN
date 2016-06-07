@@ -1,5 +1,7 @@
 # LRCN and Temporal CNN for Activity Recognition #
 
+![MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+
 [Chih-Yao Ma](http://shallowdown.wix.com/chih-yao-ma)\*, Min-Hung Chen\*
 
 (\* equal contribution)
