@@ -12,7 +12,7 @@
 
 -- author: Min-Hung Chen
 -- contact: cmhungsteve@gatech.edu
--- Last updated: 06/06/2016
+-- Last updated: 06/09/2016
 
 -- require 'xlua'
 require 'torch'
@@ -53,10 +53,11 @@ end
 ----------------------------------------------
 -- 				Data paths				    --
 ----------------------------------------------
-pathDatabase = '/media/cmhung/MyDisk/CMHung_FS/Big_and_Data/PhDResearch/Code/Dataset/UCF-101/'
+nameDatabase = 'UCF-101'
+pathDatabase = '/media/cmhung/MyDisk/CMHung_FS/Big_and_Data/PhDResearch/Code/Dataset/'..nameDatabase..'/'
 
 -- input
-dirVideoIn = 'FlowMap'
+dirVideoIn = 'FlowMap-M'
 pathVideoIn = pathDatabase .. dirVideoIn .. '/'
 
 -- outputs
@@ -77,10 +78,10 @@ end
 
 -- Output information --
 outTrain = {}
-table.insert(outTrain, {name = 'data_UCF101_train_'..idSplit..'.t7'})
+table.insert(outTrain, {name = 'data_'..nameDatabase..'_train_'..dirVideoIn..'.t7'})
 
 outTest = {}
-table.insert(outTest, {name = 'data_UCF101_val_'..idSplit..'.t7'})
+table.insert(outTest, {name = 'data_'..nameDatabase..'_val_'..dirVideoIn..'.t7'})
 
 ----------------------------------------------
 -- 					Class		        	--
