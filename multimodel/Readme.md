@@ -45,7 +45,7 @@ TODO:
 <img src="Figures/two-stream_pipeline.png" alt="two-stream" height="200" align="middle">
 </p>
 
-* Spatial: choose **pre-trained + last layer**
+* Spatial: **[pre-trained](http://www.matthewzeiler.com/pubs/arxive2013/eccv2014.pdf)** on ILSVRC-2012 & **fine-tuning** on UCF-101
 * Temporal: [optical flow](http://lmb.informatik.uni-freiburg.de/Publications/2004/Bro04a/) or [trajectory (iDT)](https://hal.inria.fr/hal-00873267v2) ==> choose **bi-directional optical flow**
 * Fusion: choose **SVM**
   1. averaging
@@ -80,7 +80,7 @@ TODO:
     * combine two fc7 layers --> fc1-fus layer
 * Robust classification from depth images
   * sample the noise patterns from the [RGB-D SLAM](http://ais.informatik.uni-freiburg.de/publications/papers/sturm12iros.pdf) dataset
-* Best accuracy ([Washington RGB-D](https://homes.cs.washington.edu/~xren/publication/lai_icra11_rgbd_dataset.pdf) Object dataset): 91.3% +-1.4
+* Best accuracy ([Washington RGB-D](https://homes.cs.washington.edu/~xren/publication/lai_icra11_rgbd_dataset.pdf) Object dataset): 91.3%
 
 ---
 ## Action Recognition with Trajectory-Pooled Deep-Convolutional Descriptors
@@ -115,6 +115,16 @@ TODO:
 <p align="center">
 <img src="Figures/MMSS.png" alt="MMSS" height="200" align="middle">
 </p>
+
+* Main idea: learn a new feature representation containing two properties:
+  * common properties shared by two modalities
+  * modal-specific properties captures separately by individual modalities
+* X, Y: features from [AlexNet](https://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.pdf) (but smaller for the GPU memory consideration)
+* W_1/W_2: a transformation matrix that turn X/Y into a new features which has two parts:
+  * T_1s/T_2s: modal-specific properties
+  * T_c: common properties
+* W: map T to labels
+* Goal: learn W_1, W_2 and W
 
 ---
 ## Real-time Action Recognition with Enhanced Motion Vector CNNs
