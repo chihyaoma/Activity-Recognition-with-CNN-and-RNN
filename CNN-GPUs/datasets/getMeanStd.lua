@@ -16,9 +16,9 @@ local ffi = require 'ffi'
 local t = require 'transforms'
 
 local tm = torch.Timer()
-local nSamples = 1000000 -- number of samples to calculate the mean and std
-local dataset = 'imagenet' -- specify which dataset to use
-local dataDir = '/home/chih-yao/Downloads/dataset/' .. dataset
+local nSamples = 500000 -- number of samples to calculate the mean and std
+local dataset = 'ucf101-flow' -- specify which dataset to use
+local dataDir = '/home/chih-yao/Downloads/dataset/UCF-101/FlowMap-M-frame'
 local meanstdCache = dataset .. '-meanstdCache.t7'
 
 -- load the cachefile saved before 
