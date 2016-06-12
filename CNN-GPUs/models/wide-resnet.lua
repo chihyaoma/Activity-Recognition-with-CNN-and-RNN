@@ -98,7 +98,7 @@ local function createModel(opt)
    end
 
    local model = nn.Sequential()
-   if opt.dataset == 'imagenet' or opt.dataset == 'ucf101' then
+   if opt.dataset == 'imagenet' or opt.dataset == 'ucf101' or opt.dataset == 'ucf101-flow' then
       assert((depth - 4) % 6 == 0, 'depth should be 6n+4')
       local n = (depth - 4) / 6
 

@@ -36,8 +36,8 @@ function M.parse(arg)
    cmd:text('Options:')
     ------------ General options --------------------
 
-   cmd:option('-data',       '/media/cmhung/MyDisk/CMHung_FS/Big_and_Data/PhDResearch/Code/Dataset/UCF-101/FlowMap-frame/',         'Path to dataset')
-   cmd:option('-dataset',    'ucf101', 'Options: ucf101 | imagenet | cifar10')
+   cmd:option('-data',       '',         'Path to dataset')
+   cmd:option('-dataset',    'ucf101-flow', 'Options: ucf101 | ucf101-flow | imagenet | cifar10')
    cmd:option('-manualSeed', 0,          'Manually set RNG seed')
    cmd:option('-nGPU',       1,          'Number of GPUs to use by default')
    cmd:option('-backend',    'cudnn',    'Options: cudnn | cunn')
@@ -57,8 +57,8 @@ function M.parse(arg)
    cmd:option('-momentum',        0.9,   'momentum')
    cmd:option('-weightDecay',     1e-4,  'weight decay')
    ---------- Model options ----------------------------------
-   cmd:option('-netType',      'wide-resnet', 'Options: resnet | preresnet | wide-resnet')
-   -- cmd:option('-depth',        34,       'ResNet depth: 18 | 34 | 50 | 101 | ...', 'number')
+   cmd:option('-netType',      'preresnet', 'Options: resnet | preresnet | wide-resnet')
+   cmd:option('-depth',        34,       'ResNet depth: 18 | 34 | 50 | 101 | ...', 'number')
    cmd:option('-shortcutType', '',       'Options: A | B | C')
    cmd:option('-retrain',      'none',   'Path to model to retrain with')
    cmd:option('-optimState',   'none',   'Path to an optimState to reload from')
@@ -67,9 +67,9 @@ function M.parse(arg)
    cmd:option('-resetClassifier', 'false', 'Reset the fully connected layer for fine-tuning')
    cmd:option('-nClasses',         0,      'Number of classes in the dataset')
    ---------- Wide ResNet options ----------------------------------
-   cmd:option('-depth',         40,      'Depth of the Wide ResNet should be 6n+4')
+   -- cmd:option('-depth',         40,      'Depth of the Wide ResNet should be 6n+4')
    cmd:option('-widen_factor',  1,      'Widen factor of the Wide ResNet')
-   cmd:option('-dropout',     0,      'probability for dropout layer')
+   cmd:option('-dropout',     0,      'probability for dropout layer of the Wide ResNet')
    cmd:text()
 
    local opt = cmd:parse(arg or {})
@@ -79,7 +79,7 @@ function M.parse(arg)
    opt.shareGradInput = opt.shareGradInput ~= 'false'
    opt.resetClassifier = opt.resetClassifier ~= 'false'
 
-   if opt.dataset == 'ucf101' or opt.dataset == 'imagenet' then
+   if opt.dataset == 'ucf101' or opt.dataset == 'ucf101-flow' or opt.dataset == 'imagenet' then
       -- Handle the most common case of missing -data flag
       local trainDir = paths.concat(opt.data, 'train')
       if not paths.dirp(opt.data) then

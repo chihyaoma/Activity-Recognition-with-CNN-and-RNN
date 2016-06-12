@@ -15,7 +15,7 @@ local models = require 'models/init'
 local Trainer = require 'train'
 local opts = require 'opts'
 local checkpoints = require 'checkpoints'
-require 'datasets/video2frame_dataset'
+-- require 'datasets/video2frame_dataset'
 
 torch.setdefaulttensortype('torch.FloatTensor')
 torch.setnumthreads(1)
