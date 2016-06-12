@@ -13,6 +13,7 @@ require 'nn'
 local image = require 'image'
 local paths = require 'paths'
 local ffi = require 'ffi'
+local t = require 'transforms'
 
 local tm = torch.Timer()
 local nSamples = 1000000 -- number of samples to calculate the mean and std
@@ -39,12 +40,13 @@ for i=1,nSamples do
 		print(('Calculating mean and std [ %d / %d]'):format(i, nSamples))
 	end
 
-	local path = ffi.string(dataCache.train.imagePath[randNum[1]]:data())
+	local path = ffi.string(dataCache.train.imagePath[randNum[i]]:data())
 	local img = image.load(paths.concat(dataDir, split, path), 3, 'float')
-
+	local cropImg = image.scale(img, 224, 224)
+	
 	for j=1,3 do
-		meanEstimate[j] = meanEstimate[j] + img[j]:mean()
-		stdEstimate[j] = stdEstimate[j] + img[j]:std()
+		meanEstimate[j] = meanEstimate[j] + cropImg[j]:mean()
+		stdEstimate[j] = stdEstimate[j] + cropImg[j]:std()
 	end
 
 end
