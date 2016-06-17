@@ -8,11 +8,13 @@
 --
 --  The training loop and learning rate schedule
 --
-
+local xlua = require 'xlua'
 local optim = require 'optim'
 
 local M = {}
 local Trainer = torch.class('resnet.Trainer', M)
+
+local testLogger = optim.Logger('test.log')
 
 function Trainer:__init(model, criterion, opt, optimState)
    self.model = model
@@ -49,6 +51,9 @@ function Trainer:train(epoch, dataloader)
    self.model:training()
    for n, sample in dataloader:run() do
       local dataTime = dataTimer:time().real
+
+      -- disp progress
+      xlua.progress(n, dataloader:size())
 
       -- Copy input and target to the GPU
       self:copyInputs(sample)
@@ -96,6 +101,9 @@ function Trainer:test(epoch, dataloader)
    for n, sample in dataloader:run() do
       local dataTime = dataTimer:time().real
 
+      -- disp progress
+      xlua.progress(n, dataloader:size())
+
       -- Copy input and target to the GPU
       self:copyInputs(sample)
 
@@ -117,6 +125,9 @@ function Trainer:test(epoch, dataloader)
 
    print((' * Finished epoch # %d     top1: %7.3f  top5: %7.3f\n'):format(
       epoch, top1Sum / N, top5Sum / N))
+
+   -- update log
+   testLogger:add{['epoch'] = epoch, ['top-1 error'] = top1Sum / N, ['top-5 error'] = top5Sum / N}
 
    return top1Sum / N, top5Sum / N
 end
@@ -163,10 +174,12 @@ end
 function Trainer:learningRate(epoch)
    -- Training schedule
    local decay = 0
-   if self.opt.dataset == 'imagenet' or self.opt.dataset == 'ucf101' or self.opt.dataset == 'ucf101-flow' then
+   if self.opt.dataset == 'imagenet' or self.opt.dataset == 'ucf101' then
       decay = math.floor((epoch - 1) / 30)
    elseif self.opt.dataset == 'cifar10' then
       decay = epoch >= 122 and 2 or epoch >= 81 and 1 or 0
+   elseif self.opt.dataset == 'ucf101-flow' then
+      decay = math.floor((epoch - 1) / 15)
    end
    return self.opt.LR * math.pow(0.1, decay)
 end
