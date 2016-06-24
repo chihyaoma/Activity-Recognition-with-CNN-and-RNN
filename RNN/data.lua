@@ -105,16 +105,23 @@ local UCF101_list = true
 if UCF101_list == true then 
 
    -- training and testing data from UCF101 website
-   -- local TrainFeatureLabels = torch.load('/home/chih-yao/Downloads/feat_label_UCF101_train_1.t7')
-   local TrainFeatureLabels = torch.load('/home/chih-yao/Downloads/data_UCF101_train_1.t7')
+   local TrainFeatureLabels = torch.load('/home/chih-yao/Documents/CNN-Temporal/data_UCF101_train_1.t7')
    TrainData = TrainFeatureLabels.featMats
+
+   -- check if there are enough frames to extract
+   assert(TrainData:size(3) >= opt.rho, '# of frames lower than rho')
+   
+   -- extract #rho of frames
    TrainData = ExtractFrames(TrainData, opt.rho)
    TrainTarget = TrainFeatureLabels.labels
 
-   -- local TestFeatureLabels = torch.load('/home/chih-yao/Downloads/feat_label_UCF101_test_1.t7')
-   local TestFeatureLabels = torch.load('/home/chih-yao/Downloads/data_UCF101_test_1.t7')
+   local TestFeatureLabels = torch.load('/home/chih-yao/Documents/CNN-Temporal/data_UCF101_test_1.t7')
    TestData = TestFeatureLabels.featMats
+
    if opt.AveragePred == false then 
+      -- check if there are enough frames to extract
+      assert(TrainData:size(3) >= opt.rho, '# of frames lower than rho')
+      -- extract #rho of frames
       TestData = ExtractFrames(TestData, opt.rho)
    end
    TestTarget = TestFeatureLabels.labels
@@ -124,8 +131,6 @@ else
    
    ds = {}
 
-   -- local InputFeatureLabels = torch.load('feat_label_UCF11.t7')
-   -- local InputFeatureLabels = torch.load('/home/chih-yao/Downloads/feat_label_UCF101.t7')
    local InputFeatureLabels = torch.load('/home/chih-yao/Downloads/feat_label_UCF101_2.t7')
 
    ds.input = InputFeatureLabels.featMats
