@@ -1,3 +1,5 @@
+--  Activity-Recognition-with-CNN-and-RNN
+--  https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN
 --
 --  Copyright (c) 2016, Facebook, Inc.
 --  All rights reserved.
@@ -11,8 +13,9 @@
 
 -- modified by: 
 -- Min-Hung (Steve) Chen at <cmhungsteve@gatech.edu>
+-- Chih-Yao Ma at <cyma@gatech.edu>
 
--- Last updated: 06/04/2016
+-- Last updated: 06/25/2016
 
 local image = require 'image'
 local paths = require 'paths'
@@ -70,16 +73,8 @@ end
 
 -- Computed from random subset of ImageNet training images
 local meanstd = {
-   mean = { 0.485, 0.456, 0.406 },
-   std = { 0.229, 0.224, 0.225 },
-}
-local pca = {
-   eigval = torch.Tensor{ 0.2175, 0.0188, 0.0045 },
-   eigvec = torch.Tensor{
-      { -0.5675,  0.7192,  0.4009 },
-      { -0.5808, -0.0045, -0.8140 },
-      { -0.5836, -0.6948,  0.4203 },
-   },
+   mean = { 0.392, 0.376, 0.348 },
+   std = { 0.241, 0.234, 0.231 },
 }
 
 function ImagenetDataset:preprocess()
