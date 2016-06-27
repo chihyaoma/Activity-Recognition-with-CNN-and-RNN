@@ -18,9 +18,9 @@ CNN as baseline, CNN + RNN [(LRCN)](http://jeffdonahue.com/lrcn/), Temporal CNN
   <td align = "center"> Temporal CNN </td>
 </tr>
 <tr>
-<td> <img src="/Figures/cnn.png" alt="CNN as baseline" height="120"></td>
-<td> <img src="/Figures/lrcn.png" alt="CNN + RNN (LRCN)" height="120"></td>
-<td> <img src="/Figures/tnn.png" alt="Temporal CNN" height="120"> </td>
+<td> <img src="/figures/cnn.png" alt="CNN as baseline" height="120"></td>
+<td> <img src="/figures/lrcn.png" alt="CNN + RNN (LRCN)" height="120"></td>
+<td> <img src="/figures/tnn.png" alt="Temporal CNN" height="120"> </td>
 </tr>
 </table>
 
