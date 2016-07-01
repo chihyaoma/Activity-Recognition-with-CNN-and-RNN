@@ -1,5 +1,5 @@
 //Generate optical flow videos
-//Target dataset: UCF-101
+//single video
 //
 //author: Min-Hung Chen
 //contact: cmhungsteve@gatech.edu
