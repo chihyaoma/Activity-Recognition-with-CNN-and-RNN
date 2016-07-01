@@ -1,4 +1,4 @@
-//Generate optical flow videos
+//Generate the optical flow video
 //single video
 //
 //author: Min-Hung Chen
