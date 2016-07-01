@@ -14,8 +14,8 @@ TODO:
 - [x] setup Eclipse + OpenCV 3.0
 - [x] use the OpenCV build-in function to compute the optical flow for two frames (with CUDA)
 - [x] compute the optical flow video for one single video
-- [ ] compute the optical flow videos for the whole UCF-101
-
+- [x] compute the optical flow videos for the whole UCF-101
+- [ ] modify the normalization method
 
 ---
 #### Contact:
