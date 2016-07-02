@@ -1,16 +1,15 @@
 ----------------------------------------------------------------
--- Georgia Tech 2016 Spring
--- Deep Learning for Perception
--- Final Project: LRCN model for Video Classification
+--  Activity-Recognition-with-CNN-and-RNN
+--  https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN
 --
 -- 
--- This is a testing code for implementing the RNN model with LSTM 
--- written by Chih-Yao Ma. 
+--  This is a testing code for implementing the RNN model with LSTM 
+--  written by Chih-Yao Ma. 
 -- 
--- The code will take feature vectors (from CNN model) from contiguous 
--- frames and train against the ground truth, i.e. the labeling of video classes. 
+--  The code will take feature vectors (from CNN model) from contiguous 
+--  frames and train against the ground truth, i.e. the labeling of video classes. 
 -- 
--- Contact: Chih-Yao Ma at <cyma@gatech.edu>
+--  Contact: Chih-Yao Ma at <cyma@gatech.edu>
 ----------------------------------------------------------------
 
 require 'torch'
@@ -25,11 +24,6 @@ local m = require 'model'
 local model = m.model
 local criterion = m.criterion
 
--- Sets Dropout layer to have a different behaviour during evaluation.
--- TODO: is it okay if we don't un-evaluate the model?
--- TODO: our of memory...
--- model:evaluate() 
-
 -- This matrix records the current confusion across classes
 local confusion = optim.ConfusionMatrix(classes) 
 
@@ -42,26 +36,28 @@ local targets = torch.Tensor(opt.batchSize)
 local labels = {}
 local prob = {}
 
-
-
-if opt.AveragePred == true then 
+if opt.averagePred == true then 
 	predsFrames = torch.Tensor(opt.batchSize, nClass, opt.rho-1)
 end
 
 if opt.cuda == true then
 	inputs = inputs:cuda()
 	targets = targets:cuda()
-	if opt.AveragePred == true then 
+	if opt.averagePred == true then 
 	   predsFrames = predsFrames:cuda()
 	end
 end
-
 
 -- test function
 function test(TestData, TestTarget)
 
 	-- local vars
 	local time = sys.clock() 
+
+	-- Sets Dropout layer to have a different behaviour during evaluation.
+	-- TODO: is it okay if we don't un-evaluate the model?
+	-- TODO: out of memory...
+	model:evaluate() 
 
 	-- test over test data
 	print(sys.COLORS.red .. '==> testing on test set:')
@@ -83,7 +79,7 @@ function test(TestData, TestTarget)
 			idx = idx + 1
 		end
 
-		if opt.AveragePred == true then 
+		if opt.averagePred == true then 
 			-- make prediction for each of the images frames, start from frame #2
 			idx = 1
 			for i = 2, opt.rho do
@@ -99,7 +95,6 @@ function test(TestData, TestTarget)
 			end
 			-- average all the prediction across all frames
 			preds = torch.mean(predsFrames, 3):squeeze()
-
 
 			-- Get the top N class indexes and probabilities
 			local N = 1
@@ -160,11 +155,3 @@ end
 -- Export:
 return test
 
---[[
-local answer
-repeat
-   io.write("continue with this operation (y/n)? ")
-   io.flush()
-   answer=io.read()
-until answer=="y" or answer=="n"
---]]
