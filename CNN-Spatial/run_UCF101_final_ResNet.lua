@@ -1,6 +1,5 @@
--- Georgia Institute of Technology 
--- CS8803DL Spring 2016 (Instructor: Zsolt Kira)
--- Final Project: Deep Learning for Video Classification
+-- Activity-Recognition-with-CNN-and-RNN
+-- https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN
 
 -- Load all the videos & Generate a feature matrix for each video
 -- Select all the videos which have the frame numbers at least "numFrameMin"
@@ -33,16 +32,13 @@
 --     [silent = boolean]       -- suppress output  [default = false]
 -- }
 
--- author: Min-Hung Chen
--- contact: cmhungsteve@gatech.edu
--- Last updated: 05/04/2016
-
---#!/usr/bin/env torch
+-- contact:
+-- Min-Hung (Steve) Chen at <cmhungsteve@gatech.edu>
+-- Chih-Yao Ma at <cyma@gatech.edu>
+-- Last updated: 7/2/2016
 
 require 'xlua'
 require 'torch'
---require 'imgraph'
---require 'nnx'
 require 'ffmpeg'
 require 'image'
 require 'nn'
@@ -54,9 +50,9 @@ t = require './transforms'
 -- 					Functions 				--
 ----------------------------------------------
 meanstd = {
-   mean = { 0.485, 0.456, 0.406 },
-   std = { 0.229, 0.224, 0.225 },
-  }
+   mean = { 0.392, 0.376, 0.348 },
+   std = { 0.241, 0.234, 0.231 },
+	}
 
 transform = t.Compose{
      t.Scale(256),
@@ -74,19 +70,14 @@ dimFeat = 2048
 ----------------------------------------------
 -- 				Data paths				    --
 ----------------------------------------------
-dirModel = './models/'
-dirDatabase = '/home/cmhung/Desktop/UCF-101/'
+dirModel = '/home/chih-yao/Downloads/'
+dirDatabase = '/home/chih-yao/Downloads/dataset/UCF-101/RGB/'
 
 ----------------------------------------------
 -- 			User-defined parameters			--
 ----------------------------------------------
 numFrameMin = 50
 numSplit = 1
-
--- -- Input text files --
--- textClass = 'classInd.txt'
--- trainList = 'trainlist01.txt'
--- testList = 'testlist01.txt'
 
 -- Train/Test split
 groupSplit = {}
@@ -116,8 +107,7 @@ end
 
 ------ model selection ------
 -- ResNet model (from Torch) ==> need cudnn
-modelName = 'resnet-101.t7'
---modelName = 'resnet-152.t7'
+modelName = 'model_best_Steve.t7'
 modelPath = dirModel..modelName
 
 ----------------
@@ -142,18 +132,18 @@ op:option{'-z', '--zoom', action='store', dest='zoom',
 op:option{'-fe', '--feat', action='store', dest='feat',
           help='option for generating features', default=true}
 op:option{'-pr', '--pred', action='store', dest='pred',
-          help='option for prediction', default=false}
+          help='option for prediction', default=flase}
 op:option{'-p', '--type', action='store', dest='type',
           help='option for CPU/GPU', default='cuda'}
 op:option{'-i', '--devid', action='store', dest='devid',
           help='device ID (if using CUDA)', default=1}      
 opt,args = op:parse()
 
-
 ----------------------------------------------
 -- 					Class		        	--
 ----------------------------------------------
 nameClass = paths.dir(dirDatabase) 
+table.sort(nameClass)
 numClassTotal = #nameClass -- 101 classes + "." + ".."
 
 ----------------------------------------------
@@ -164,6 +154,9 @@ print ' '
 print '==> Loading the model...'
 -- Torch model
 net = torch.load(modelPath):cuda()
+
+-- -- Evaluate mode
+net:evaluate()
 
 ------ model modification ------
 if opt.feat then
@@ -191,7 +184,8 @@ print(sys.COLORS.white ..  ' ')
 -- 			Loading ImageNet labels	  		--
 ----------------------------------------------
 if opt.pred then
-	imagenetLabel = require './imagenet'
+	-- imagenetLabel = require './imagenet'
+	ucf101Label = require './ucf-101'
 end
 print ' '
 
@@ -199,9 +193,6 @@ print ' '
 --                     Run all the videos in UCF-101                  --
 --====================================================================--
 print '==> Processing all the videos...'
-
--- featMats = torch.DoubleTensor(numVideo, dimFeat, numFrameMin):zero()
--- labels = torch.DoubleTensor(numVideo):zero()
 
 -- Load the intermediate feature data or generate a new one --
 for sp=1,numSplit do
@@ -248,9 +239,9 @@ for sp=1,numSplit do
 			  	local dirClass = dirDatabase..nameClass[c]..'/' 
 			  	local nameSubVideo = paths.dir(dirClass)
 			  	local numSubVideoTotal = #nameSubVideo -- videos + '.' + '..'
-			  	--
+			  	
 			  	local timerClass = torch.Timer() -- count the processing time for one class
-			  	--
+			  	
 			    for sv=1, numSubVideoTotal do
 			      	--------------------
 			      	-- Load the video --
@@ -258,43 +249,50 @@ for sp=1,numSplit do
 			      	if nameSubVideo[sv] ~= '.' and nameSubVideo[sv] ~= '..' then
 			        	local videoName = nameSubVideo[sv]
 			        	local videoPath = dirClass..videoName
-			        	--
+			        	
 			        	print('==> Loading the video: '..videoName)
 			        	-- TODO --
 			        	-- now:     fixed frame rate
 			        	-- future:  fixed frame #
-			        	--
+			        	
 			        	local video = ffmpeg.Video{path=videoPath, width=opt.width, height=opt.height, fps=opt.fps, length=opt.seconds, delete=true, destFolder='out_frames',silent=true}
-			        	--
+			        	
 			        	-- --video:play{} -- play the video
 			        	local vidTensor = video:totensor{} -- read the whole video & turn it into a 4D tensor
-				        --
+				        
 				        ------ Video prarmeters ------
 				        local numFrame = vidTensor:size(1)
-				        --
+				        
 				        if numFrame >= numFrameMin then
 				          	--countVideo = countVideo + 1 -- save this video only when frame# >= min. frame#
 				          	local featMatsVideo = torch.DoubleTensor(1,dimFeat,numFrameMin):zero()
 				          	----------------------------------------------
 				          	--           Process with the video         --
 				          	----------------------------------------------
-				          	-- if opt.pred then -- prediction (useless now)
-				           --  	print '==> Begin predicting......'
-				           --  	for f=1, numFrameTest do
-				           --    		local inFrame = vidTensor[f]
-				           --    		print('frame '..tostring(f)..': ')
-				           --    		classify_video(inFrame, net, synset_words)      
-				           --  	end
-				          	-- end
+				          	if opt.pred then -- prediction (useless now)
+				            	print '==> Begin predicting......'
+				            	for f=1, numFrameMin do
+				              		local inFrame = vidTensor[f]
+				              		print('frame '..tostring(f)..': ')
+				              		local I = transform(inFrame)
+				              		I = I:view(1, table.unpack(I:size():totable()))
+				              		local output = net:forward(I:cuda())
+
+				              		local N = 5
+									local probLog, predLabels = output:float():topk(N, true, true)
+				              		print(probLog)
+				              		print(probLog, ucf101Label[predLabels[1][1]])
+				              		print('=================================')
+				            	end
+				          	end
 				          	--
 				          	if opt.feat then -- feature extraction
 				            	--print '==> Generating the feature matrix......'
 				            	for f=1, numFrameMin do
 				              		local inFrame = vidTensor[f]
-				              		--  
+
 				              		--print('frame '..tostring(f)..'...')
 				              		--local feat = gen_feature(inFrame, net, opt)
-				              		--
 				              		
 				          			------ Image pre-processing ------
 				              		local I = transform(inFrame)
@@ -305,9 +303,10 @@ for sp=1,numSplit do
 				              		--
 				              		-- store the feature matrix for this video
 							  		feat:resize(1,torch.numel(feat),1)
+
 							  		featMatsVideo[{{},{},{f}}] = feat:double()
 				            	end
-				        		--
+
 				            	----------------------------------------------
 				          		--          Train/Test feature split        --
 				          		----------------------------------------------
