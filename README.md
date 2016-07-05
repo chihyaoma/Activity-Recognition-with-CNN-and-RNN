@@ -6,7 +6,12 @@
 
 ---
 ## Abstract
-We examine and implement several leading techniques for Activity Recognition (video classification), while proposing and investigating a novel convolution on temporally-constructed feature vectors.
+This is an ongoing project.
+
+We examine and implement several leading deep learning techniques for Human Activity Recognition (video classification), while proposing and investigating a novel convolution on temporally-constructed feature vectors.
+
+Our proposed model classify videos into different human activities and give confident scores for each prediction. Features extracted from both spatial and temporal network were integrated by RNN to make prediction for each image frame. Class predictions for each of the video are made by voting through several selected video frames. 
+
 
 #### How we tackle Activity Recognition problem?
 CNN as baseline, CNN + RNN [(LRCN)](http://jeffdonahue.com/lrcn/), Temporal CNN
