@@ -31,7 +31,7 @@ local confusion = optim.ConfusionMatrix(classes)
 local testLogger = optim.Logger(paths.concat(opt.save,'test.log'))
 
 -- Batch test:
-local inputs = torch.Tensor(opt.batchSize, TestData:size(2), TestData:size(3))
+local inputs = torch.Tensor(opt.batchSize, testData:size(2), testData:size(3))
 local targets = torch.Tensor(opt.batchSize)
 local labels = {}
 local prob = {}
@@ -49,33 +49,31 @@ if opt.cuda == true then
 end
 
 -- test function
-function test(TestData, TestTarget)
+function test(testData, testTarget)
 
 	-- local vars
 	local time = sys.clock() 
 
 	-- Sets Dropout layer to have a different behaviour during evaluation.
-	-- TODO: is it okay if we don't un-evaluate the model?
-	-- TODO: out of memory...
 	model:evaluate() 
 
 	-- test over test data
 	print(sys.COLORS.red .. '==> testing on test set:')
 
-	for t = 1,TestData:size(1),opt.batchSize do
+	for t = 1,testData:size(1),opt.batchSize do
 		-- disp progress
-		xlua.progress(t, TestData:size(1))
+		xlua.progress(t, testData:size(1))
 
 		-- batch fits?
-		if (t + opt.batchSize - 1) > TestData:size(1) then
+		if (t + opt.batchSize - 1) > testData:size(1) then
 			break
 		end
 
 		-- create mini batch
 		local idx = 1
 		for i = t,t+opt.batchSize-1 do
-			inputs[idx] = TestData[i]
-			targets[idx] = TestTarget[i]
+			inputs[idx] = testData[i]
+			targets[idx] = testTarget[i]
 			idx = idx + 1
 		end
 
@@ -128,18 +126,22 @@ function test(TestData, TestTarget)
 
 	-- timing
 	time = sys.clock() - time
-	time = time / TestData:size(1)
+	time = time / testData:size(1)
 	print("\n==> time to test 1 sample = " .. (time*1000) .. 'ms')
 
   	-- print confusion matrix
   	print(confusion)
 
   	-- if the performance is so far the best..
+  	local bestModel = false
 	if confusion.totalValid * 100 >= bestAcc then
+		bestModel = true
 		bestAcc = confusion.totalValid * 100
 		-- save the labels and probabilities into file
 		torch.save('labels.txt', labels,'ascii')
 		torch.save('prob.txt', prob,'ascii')
+
+		checkpoints.save(epoch, model, optimState, bestModel)
 	end
 	print(sys.COLORS.red .. '==> Best testing accuracy = ' .. bestAcc .. '%')
 
