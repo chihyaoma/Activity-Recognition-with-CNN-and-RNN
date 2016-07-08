@@ -35,9 +35,8 @@ function M.parse(arg)
    cmd:text()
    cmd:text('Options:')
     ------------ General options --------------------
-
-   cmd:option('-data',       '',         'Path to dataset')
-   cmd:option('-dataset',    'ucf101-flow', 'Options: ucf101 | ucf101-flow | imagenet | cifar10')
+   cmd:option('-data',       '/home/chih-yao/Downloads/dataset/UCF-101/FlowMap-Brox-frame/', 'Path to dataset')
+   cmd:option('-dataset',    'ucf101-flow-brox', 'Options: ucf101 | ucf101-flow | ucf101-flow-brox | imagenet | cifar10')
    cmd:option('-manualSeed', 0,          'Manually set RNG seed')
    cmd:option('-nGPU',       1,          'Number of GPUs to use by default')
    cmd:option('-backend',    'cudnn',    'Options: cudnn | cunn')
@@ -45,27 +44,28 @@ function M.parse(arg)
    cmd:option('-gen',        'gen',      'Path to save generated files')
    ------------- Data options ------------------------
    cmd:option('-nThreads',        2, 'number of data loading threads')
+   cmd:option('-nStacking',       10, 'number of stacks of optical flow images')
    ------------- Training options --------------------
    cmd:option('-nEpochs',         0,       'Number of total epochs to run')
    cmd:option('-epochNumber',     1,       'Manual epoch number (useful on restarts)')
-   cmd:option('-batchSize',       32,      'mini-batch size (1 = pure stochastic)')
+   cmd:option('-batchSize',       64,      'mini-batch size (1 = pure stochastic)')
    cmd:option('-testOnly',        'false', 'Run on validation set only')
    cmd:option('-tenCrop',         'false', 'Ten-crop testing')
-   cmd:option('-resume',          'none',  'Path to directory containing checkpoint')
+   cmd:option('-resume',          'false',  'Path to directory containing checkpoint')
    ---------- Optimization options ----------------------
-   cmd:option('-LR',              0.1,   'initial learning rate')
+   cmd:option('-LR',              0.01,   'initial learning rate')
    cmd:option('-momentum',        0.9,   'momentum')
    cmd:option('-weightDecay',     1e-4,  'weight decay')
    ---------- Model options ----------------------------------
    cmd:option('-netType',      'preresnet', 'Options: resnet | preresnet | wide-resnet')
-   cmd:option('-depth',        34,       'ResNet depth: 18 | 34 | 50 | 101 | ...', 'number')
+   cmd:option('-depth',        101,       'ResNet depth: 18 | 34 | 50 | 101 | ...', 'number')
    cmd:option('-shortcutType', '',       'Options: A | B | C')
    cmd:option('-retrain',      'none',   'Path to model to retrain with')
    cmd:option('-optimState',   'none',   'Path to an optimState to reload from')
    ---------- Model options ----------------------------------
-   cmd:option('-shareGradInput',  'false', 'Share gradInput tensors to reduce memory usage')
-   cmd:option('-resetClassifier', 'false', 'Reset the fully connected layer for fine-tuning')
-   cmd:option('-nClasses',         0,      'Number of classes in the dataset')
+   cmd:option('-shareGradInput',  'true', 'Share gradInput tensors to reduce memory usage')
+   cmd:option('-resetClassifier', 'true', 'Reset the fully connected layer for fine-tuning')
+   cmd:option('-nClasses',         101,      'Number of classes in the dataset')
    ---------- Wide ResNet options ----------------------------------
    -- cmd:option('-depth',         40,      'Depth of the Wide ResNet should be 6n+4')
    cmd:option('-widen_factor',  1,      'Widen factor of the Wide ResNet')
@@ -79,13 +79,14 @@ function M.parse(arg)
    opt.shareGradInput = opt.shareGradInput ~= 'false'
    opt.resetClassifier = opt.resetClassifier ~= 'false'
 
-   if opt.dataset == 'ucf101' or opt.dataset == 'ucf101-flow' or opt.dataset == 'imagenet' then
+   if opt.dataset == 'ucf101' or opt.dataset == 'ucf101-flow' 
+      or opt.dataset == 'ucf101-flow-brox' or opt.dataset == 'imagenet' then
       -- Handle the most common case of missing -data flag
       local trainDir = paths.concat(opt.data, 'train')
       if not paths.dirp(opt.data) then
-         cmd:error('error: missing ImageNet data directory')
+         cmd:error('error: missing dataset directory')
       elseif not paths.dirp(trainDir) then
-         cmd:error('error: ImageNet missing `train` directory: ' .. trainDir)
+         cmd:error('error: dataset missing `train` directory: ' .. trainDir)
       end
       -- Default shortcutType=B and nEpochs=90
       opt.shortcutType = opt.shortcutType == '' and 'B' or opt.shortcutType
@@ -103,6 +104,8 @@ function M.parse(arg)
          cmd:error('-nClasses required when resetClassifier is set')
       end
    end
+
+   if opt.nStacking == 'false' then opt.nStacking = 1 end
 
    return opt
 end

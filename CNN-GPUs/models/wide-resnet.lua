@@ -98,14 +98,19 @@ local function createModel(opt)
    end
 
    local model = nn.Sequential()
-   if opt.dataset == 'imagenet' or opt.dataset == 'ucf101' or opt.dataset == 'ucf101-flow' then
+   if opt.dataset == 'imagenet' or opt.dataset == 'ucf101' or opt.dataset == 'ucf101-flow' or opt.dataset == 'ucf101-flow-brox' then
       assert((depth - 4) % 6 == 0, 'depth should be 6n+4')
       local n = (depth - 4) / 6
 
       local k = opt.widen_factor
       local nStages = torch.Tensor{64, 64*k, 128*k, 256*k, 512*k}
+
+      local inputChannel = 3
+      if opt.nStacking ~= 'false' then
+         inputChannel = 3 * opt.nStacking
+      end
       
-      model:add(Convolution(3,nStages[1],7,7,2,2,3,3)) -- one conv at the beginning (spatial size: 112x112)
+      model:add(Convolution(inputChannel,nStages[1],7,7,2,2,3,3)) -- one conv at the beginning (spatial size: 112x112)
       model:add(layer(wide_basic, nStages[1], nStages[2], n, 1)) -- Stage 1 (spatial size: 112x112)
       model:add(layer(wide_basic, nStages[2], nStages[3], n, 2)) -- Stage 2 (spatial size: 56x56)
       model:add(layer(wide_basic, nStages[3], nStages[4], n, 4)) -- Stage 3 (spatial size: 14x14)
