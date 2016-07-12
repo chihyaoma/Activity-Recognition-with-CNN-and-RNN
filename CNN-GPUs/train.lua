@@ -49,7 +49,7 @@ function Trainer:train(epoch, dataloader)
    print('=> Training epoch # ' .. epoch)
    -- set the batch norm to training mode
    self.model:training()
-   for n, sample in dataloader:run() do
+   for n, sample in dataloader:run(self.opt) do
       local dataTime = dataTimer:time().real
 
       -- disp progress
@@ -98,7 +98,7 @@ function Trainer:test(epoch, dataloader)
    local N = 0
 
    self.model:evaluate()
-   for n, sample in dataloader:run() do
+   for n, sample in dataloader:run(self.opt) do
       local dataTime = dataTimer:time().real
 
       -- disp progress
@@ -178,7 +178,7 @@ function Trainer:learningRate(epoch)
       decay = math.floor((epoch - 1) / 30)
    elseif self.opt.dataset == 'cifar10' then
       decay = epoch >= 122 and 2 or epoch >= 81 and 1 or 0
-   elseif self.opt.dataset == 'ucf101-flow' then
+   elseif self.opt.dataset == 'ucf101-flow' or self.opt.dataset == 'ucf101-flow-brox' then
       decay = math.floor((epoch - 1) / 15)
    end
    return self.opt.LR * math.pow(0.1, decay)

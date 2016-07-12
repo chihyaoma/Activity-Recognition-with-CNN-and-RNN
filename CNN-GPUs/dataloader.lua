@@ -60,7 +60,7 @@ function DataLoader:size()
    return math.ceil(self.__size / self.batchSize)
 end
 
-function DataLoader:run()
+function DataLoader:run(opt)
    local threads = self.threads
    local size, batchSize = self.__size, self.batchSize
    local perm = torch.randperm(size)
@@ -75,7 +75,7 @@ function DataLoader:run()
                local batch, imageSize
                local target = torch.IntTensor(sz)
                for i, idx in ipairs(indices:totable()) do
-                  local sample = _G.dataset:get(idx)
+                  local sample = _G.dataset:get(idx, opt.nStacking)
                   local input = _G.preprocess(sample.input)
                   if not batch then
                      imageSize = input:size():totable()

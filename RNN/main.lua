@@ -22,15 +22,15 @@ cmd:text('Train a Model on video classification dataset using RNN with LSTM or G
 cmd:text('Example:')
 cmd:text("main.lua --cuda --useDevice 1 --progress --opt.rho 36")
 cmd:text('Options:')
-cmd:option('--learningRate', 5e-5, 'learning rate at t=0')
-cmd:option('--minLR', 5e-7, 'minimum learning rate')
+cmd:option('--learningRate', 1e-5, 'learning rate at t=0')
+cmd:option('--minLR', 1e-5, 'minimum learning rate')
 cmd:option('--learningRateDecay', 1e-7, 'learningRateDecay')
 cmd:option('--saturateEpoch', 400, 'epoch at which linear decayed LR will reach minLR')
 cmd:option('--momentum', 0.9, 'momentum')
 cmd:option('--weightDecay', 1e-5, 'weightDecay')
 cmd:option('--optimizer', 'adam', 'Use different optimizer, e.g. sgd, adam, adamax, rmsprop for now')
-cmd:option('--lrDecayEvery', 5, 'learning rate decay per epochs for optimizer adam')
-cmd:option('--lrDecayFactor', 0.75, 'learning rate decay factor for optimizer adam')
+cmd:option('--lrDecayEvery', 3, 'learning rate decay per epochs for optimizer adam')
+cmd:option('--lrDecayFactor', 0.8, 'learning rate decay factor for optimizer adam')
 cmd:option('--maxOutNorm', -1, 'max l2-norm of each layer\'s output neuron weights')
 cmd:option('--cutoffNorm', -1, 'max l2-norm of concatenation of all gradParam tensors')
 cmd:option('--batchSize', 128, 'number of examples per batch') -- how many examples per training 
@@ -47,7 +47,7 @@ cmd:option('--lstm', true, 'use Long Short Term Memory (nn.LSTM instead of nn.Re
 cmd:option('--gru', false, 'use Gated Recurrent Units (nn.GRU instead of nn.Recurrent)')
 cmd:option('--rho', 48, 'number of frames for each video')
 cmd:option('--inputSize', 2048, 'dimension of the feature vector from CNN')
-cmd:option('--hiddenSize', '{2048, 1024, 512}', 'number of hidden units used at output of each recurrent layer. When more than one is specified, RNN/LSTMs/GRUs are stacked')
+cmd:option('--hiddenSize', '{1024}', 'number of hidden units used at output of each recurrent layer. When more than one is specified, RNN/LSTMs/GRUs are stacked')
 cmd:option('--zeroFirst', false, 'first step will forward zero through recurrence (i.e. add bias of recurrence). As opposed to learning bias specifically for first step.')
 cmd:option('--dropout', true, 'apply dropout after each recurrent layer')
 cmd:option('--dropoutProb', 0.5, 'probability of zeroing a neuron (dropout probability)')
@@ -55,10 +55,14 @@ cmd:option('--dropoutProb', 0.5, 'probability of zeroing a neuron (dropout proba
 -- testing process
 cmd:option('--averagePred', true, 'average the predictions from each time step per video')
 
+-- checkpoint
+cmd:option('-resume', 'false',  'Path to directory containing checkpoint')
+
 -- data
 cmd:option('--trainEpochSize', -1, 'number of train examples seen between each epoch')
 cmd:option('--validEpochSize', -1, 'number of valid examples used for early stopping and cross-validation') 
-cmd:option('--featFile', '/home/chih-yao/Documents/CNN-Spatial/', 'directory of feature vectors')
+cmd:option('--spatFeatDir', '/home/chih-yao/Dropbox (GhassanGT)/COMMONS/Data/UCF-101/SpatialFeature/ResNet-101/retrain-all/Yao/', 'directory of spatial feature vectors')
+cmd:option('--tempFeatDir', 'false', 'directory of temporal feature vectors (from optical flow)')
 
 dname,fname = sys.fpath()
 cmd:option('--plot', true, 'Plot the training and testing accuracy')
@@ -73,21 +77,31 @@ cmd:log(opt.save .. '/log.txt', opt)
 
 opt.hiddenSize = dp.returnString(opt.hiddenSize)
 if not opt.silent then
-   table.print(opt)
+	table.print(opt)
 end
 
 -- type:
 if opt.cuda == true then
-   print(sys.COLORS.red ..  '==> switching to CUDA')
-   require 'cunn'
-   cutorch.setDevice(opt.useDevice)
-   print(sys.COLORS.red ..  '==> using GPU #' .. cutorch.getDevice())
+	print(sys.COLORS.red ..  '==> switching to CUDA')
+	require 'cunn'
+	cutorch.setDevice(opt.useDevice)
+	print(sys.COLORS.red ..  '==> using GPU #' .. cutorch.getDevice())
 end
+
+-- check if rgb or flow features wanted to be used
+opt.spatial = paths.dirp(opt.spatFeatDir) and true or false
+opt.temporal = paths.dirp(opt.tempFeatDir) and true or false
+assert(opt.spatial or opt.temporal, 'no spatial or temporal features found!')
 
 ------------------------------------------------------------
 print(sys.COLORS.red ..  '==> load modules')
 
-local data  = require 'data-ucf101'
+-- checkpoints
+checkpoints = require 'checkpoints'
+-- Load previous checkpoint, if it exists
+checkpoint, optimState = checkpoints.latest(opt)
+
+local data  = require 'data-ucf101-RGBF'
 local train = require 'train'
 local test  = require 'test'
 
@@ -98,13 +112,10 @@ local test  = require 'test'
 bestAcc = 0
 
 print(sys.COLORS.red .. '==> training!')
-
 for iteration = 1, opt.maxEpoch do
+	-- Begin training process
+	train(data.trainData, data.trainTarget)
 
-   -- Begin training process
-   train(data.TrainData, data.TrainTarget)
-
-   -- Begin testing with trained model
-   test(data.TestData, data.TestTarget)
-
+	-- Begin testing with trained model
+	test(data.testData, data.testTarget)
 end

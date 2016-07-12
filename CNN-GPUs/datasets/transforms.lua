@@ -25,9 +25,12 @@ end
 function M.ColorNormalize(meanstd)
    return function(img)
       img = img:clone()
-      for i=1,3 do
-         img[i]:add(-meanstd.mean[i])
-         img[i]:div(meanstd.std[i])
+
+      local channelInd = torch.range(1,3):repeatTensor(math.floor(img:size(1)/3))
+
+      for i=1,img:size(1) do
+         img[i]:add(-meanstd.mean[channelInd[i]])
+         img[i]:div(meanstd.std[channelInd[i]])
       end
       return img
    end

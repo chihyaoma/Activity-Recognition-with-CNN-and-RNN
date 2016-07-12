@@ -98,7 +98,7 @@ local function createModel(opt)
    end
 
    local model = nn.Sequential()
-   if opt.dataset == 'imagenet' or opt.dataset == 'ucf101' or opt.dataset == 'ucf101-flow' then
+   if opt.dataset == 'imagenet' or opt.dataset == 'ucf101' or opt.dataset == 'ucf101-flow' or opt.dataset == 'ucf101-flow-brox' then
       -- Configurations for ResNet:
       --  num. residual blocks, num features, residual block function
       local cfg = {
@@ -118,10 +118,18 @@ local function createModel(opt)
          print(' | ResNet-' .. depth .. ' UCF-101')
       elseif opt.dataset == 'ucf101-flow' then
          print(' | ResNet-' .. depth .. ' UCF-101 Flow Map')
+      elseif opt.dataset == 'ucf101-flow-brox' then
+         print(' | ResNet-' .. depth .. ' UCF-101 Brox Flow Map')
       end
 
       -- The ResNet ImageNet model
-      model:add(Convolution(3,64,7,7,2,2,3,3))
+
+      local inputChannel = 3
+      if opt.nStacking ~= 'false' then
+         inputChannel = 3 * opt.nStacking
+      end
+      
+      model:add(Convolution(inputChannel,64,7,7,2,2,3,3))
       model:add(SBatchNorm(64))
       model:add(ReLU(true))
       model:add(Max(3,3,2,2,1,1))

@@ -30,7 +30,7 @@ local confusion = optim.ConfusionMatrix(classes)
 local trainLogger = optim.Logger(paths.concat(opt.save,'train.log'))
 
 -- Batch test:
-local inputs = torch.Tensor(opt.batchSize, TrainData:size(2), TrainData:size(3))
+local inputs = torch.Tensor(opt.batchSize, trainData:size(2), trainData:size(3))
 local targets = torch.Tensor(opt.batchSize)
 
 if opt.cuda == true then
@@ -40,7 +40,7 @@ end
 
 print(sys.COLORS.red ..  '==> configuring optimizer')
 -- Pass learning rate from command line
-local optimState = {
+local optimState = optimState or {
    learningRate = opt.learningRate,
    momentum = opt.momentum,
    weightDecay = opt.weightDecay,
@@ -52,7 +52,7 @@ local optimState = {
 -- into a 1-dim vector
 local w,dE_dw = model:getParameters()
 
-function train(TrainData, TrainTarget)
+function train(trainData, trainTarget)
 
    -- epoch tracker
    epoch = epoch or 1
@@ -62,7 +62,7 @@ function train(TrainData, TrainTarget)
    model:training()
 
    -- shuffle at each epoch
-   local shuffle = torch.randperm(TrainData:size(1))
+   local shuffle = torch.randperm(trainData:size(1))
 
    print(sys.COLORS.green .. '==> doing epoch on training data:') 
    print("==> online epoch # " .. epoch .. ' [batchSize = ' .. opt.batchSize .. ']')
@@ -78,24 +78,24 @@ function train(TrainData, TrainTarget)
 
    print(sys.COLORS.yellow ..  '==> Learning rate is: ' .. optimState.learningRate .. '')
 
-   for t = 1,TrainData:size(1),opt.batchSize do
+   for t = 1,trainData:size(1),opt.batchSize do
 
       if opt.progress == true then
          -- disp progress
-         xlua.progress(t, TrainData:size(1))
+         xlua.progress(t, trainData:size(1))
       end
       collectgarbage()
 
       -- batch fits?
-      if (t + opt.batchSize - 1) > TrainData:size(1) then
+      if (t + opt.batchSize - 1) > trainData:size(1) then
          break
       end
 
       -- create mini batch
       local idx = 1
       for i = t,t+opt.batchSize-1 do
-         inputs[idx] = TrainData[shuffle[i]]
-         targets[idx] = TrainTarget[shuffle[i]]
+         inputs[idx] = trainData[shuffle[i]]
+         targets[idx] = trainTarget[shuffle[i]]
          idx = idx + 1
       end
 
@@ -142,7 +142,7 @@ function train(TrainData, TrainTarget)
 
    -- time taken
    time = sys.clock() - time
-   time = time / TrainData:size(1)
+   time = time / trainData:size(1)
    print("\n==> time to learn 1 sample = " .. (time*1000) .. 'ms')
 
    -- print confusion matrix
