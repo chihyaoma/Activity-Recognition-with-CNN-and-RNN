@@ -1,4 +1,4 @@
-//Generate the optical flow video
+//Generate optical flow videos
 //single video
 //
 //author: Min-Hung Chen
@@ -28,6 +28,12 @@ using namespace std;
 using namespace cv;
 using namespace cv::cuda;
 
+// user-defined parameters
+string type("CPU"); // 1: CPU; 2. GPU
+int numStep = 1; // step for calculating the optical flow
+int methodCoding = 2; // 1. Middlebury color coding; 2. 2 channels (0 for the 3rd channel)
+
+// Functions
 inline bool isFlowCorrect(Point2f u)
 {
     return !cvIsNaN(u.x) && !cvIsNaN(u.y) && fabs(u.x) < 1e9 && fabs(u.y) < 1e9;
@@ -111,7 +117,7 @@ static void drawOpticalFlow(const Mat_<float>& flowx, const Mat_<float>& flowy, 
     // determine motion range:
     float maxrad = maxmotion;
 
-    if (maxmotion <= 0)
+    if (maxmotion <= 0) // get the maximum from this frame
     {
         maxrad = 1;
         for (int y = 0; y < flowx.rows; ++y)
@@ -128,17 +134,62 @@ static void drawOpticalFlow(const Mat_<float>& flowx, const Mat_<float>& flowy, 
         }
     }
 
-    for (int y = 0; y < flowx.rows; ++y)
+    for (int y = 0; y < flowx.rows; ++y) // normalize using Middlebury color coding
     {
         for (int x = 0; x < flowx.cols; ++x)
         {
             Point2f u(flowx(y, x), flowy(y, x));
 
             if (isFlowCorrect(u))
-                dst.at<Vec3b>(y, x) = computeColor(u.x / maxrad, u.y / maxrad);
+            	dst.at<Vec3b>(y, x) = computeColor(u.x / maxrad, u.y / maxrad);
         }
     }
 }
+
+static void drawOpticalFlow2(const Mat_<float>& flowx, const Mat_<float>& flowy, Mat& dst)
+{
+    dst.create(flowx.size(), CV_8UC3);
+    dst.setTo(Scalar::all(0));
+
+    // determine motion range:
+    float maxX = 0;
+    float maxY = 0;
+    float minX = 10000;
+    float minY= 10000;
+
+    for (int y = 0; y < flowx.rows; ++y)
+    {
+    	for (int x = 0; x < flowx.cols; ++x)
+    	{
+    		Point2f u(flowx(y, x), flowy(y, x));
+
+    		if (!isFlowCorrect(u))
+    			continue;
+
+    		maxX = max(maxX, u.x);
+    		maxY = max(maxY, u.y);
+    		minX = min(minX, u.x);
+    		minY = min(minY, u.y);
+    	}
+    }
+
+
+    for (int y = 0; y < flowx.rows; ++y) // normalize using Middlebury color coding
+    {
+        for (int x = 0; x < flowx.cols; ++x)
+        {
+            Point2f u(flowx(y, x), flowy(y, x));
+
+            if (isFlowCorrect(u))
+            {
+            	float val_x = 255.0 * (u.x - minX) / (maxX - minX);
+            	float val_y = 255.0 * (u.y - minY) / (maxY - minY);
+            	dst.at<Vec3b>(y, x) = Vec3b(static_cast<uchar>(val_x),static_cast<uchar>(val_y),0);
+            }
+        }
+    }
+}
+
 
 static void showFlow(string name, const GpuMat& d_flow, Mat& out)
 {
@@ -148,8 +199,10 @@ static void showFlow(string name, const GpuMat& d_flow, Mat& out)
     Mat flowx(planes[0]);
     Mat flowy(planes[1]);
 
-    drawOpticalFlow(flowx, flowy, out, 10);
-
+    if (methodCoding==1)
+    	drawOpticalFlow(flowx, flowy, out, 10);
+    else if (methodCoding==2)
+    	drawOpticalFlow2(flowx, flowy, out);
     //imshow(name, out);
 
 
@@ -158,14 +211,15 @@ static void showFlow(string name, const GpuMat& d_flow, Mat& out)
 int main(int argc, const char* argv[])
 {
     string nameVideo;
-    string type("CPU"); // 1: CPU; 2. GPU
-    int numStep = 1; // step for calculating the optical flow
 
     // check the arguments
     if (argc != 2)
     {
     	cerr << "Usage : " << argv[0] << " <video name> " << endl;
-    	nameVideo = "v_HorseRiding_g01_c01";
+//    	nameVideo = "v_HorseRiding_g01_c01";
+    	nameVideo = "v_Archery_g01_c06";
+//    	nameVideo = "v_IceDancing_g06_c02";
+
     }
     else
     {
@@ -256,8 +310,9 @@ int main(int argc, const char* argv[])
 
    	        	imshow(nameFlow + " (Brox)", imgDisplay);
 
-   	        	if (waitKey(3) > 0)
-   	        		break;
+   	        	waitKey(1);
+//   	        	if (waitKey(3) > 0)
+//   	        		break;
 
    	        	// save video
    	        	writer.write(flow_out);
@@ -310,8 +365,9 @@ int main(int argc, const char* argv[])
 
        	    Mat flow_out;
        	    showFlow("Brox", g_flow, flow_out);
-        	if (cv::waitKey(3) > 0)
-        		break;
+       	    waitKey(3);
+//        	if (waitKey(3) > 0)
+//        		break;
 
         	g_framePrvs = g_frameNext;
 

@@ -33,6 +33,16 @@ using namespace cv;
 using namespace cv::cuda;
 using namespace boost;
 
+/* user-defined parameters */
+string type("CPU"); // 1: CPU; 2. GPU
+int numStep = 1; // step for calculating the optical flow
+int methodCoding = 2; // 1. Middlebury color coding; 2. 2 channels (0 for the 3rd channel)
+
+/* Data Path */
+string dirDatabase("/home/cmhung/Code/Dataset/UCF-101/");
+string inDir(dirDatabase + "RGB/");
+string outDir(dirDatabase + "FlowMap-Brox/");
+
 inline bool isFlowCorrect(Point2f u)
 {
     return !cvIsNaN(u.x) && !cvIsNaN(u.y) && fabs(u.x) < 1e9 && fabs(u.y) < 1e9;
@@ -145,6 +155,50 @@ static void drawOpticalFlow(const Mat_<float>& flowx, const Mat_<float>& flowy, 
     }
 }
 
+static void drawOpticalFlow2(const Mat_<float>& flowx, const Mat_<float>& flowy, Mat& dst)
+{
+    dst.create(flowx.size(), CV_8UC3);
+    dst.setTo(Scalar::all(0));
+
+    // determine motion range:
+    float maxX = 0;
+    float maxY = 0;
+    float minX = 10000;
+    float minY= 10000;
+
+    for (int y = 0; y < flowx.rows; ++y)
+    {
+    	for (int x = 0; x < flowx.cols; ++x)
+    	{
+    		Point2f u(flowx(y, x), flowy(y, x));
+
+    		if (!isFlowCorrect(u))
+    			continue;
+
+    		maxX = max(maxX, u.x);
+    		maxY = max(maxY, u.y);
+    		minX = min(minX, u.x);
+    		minY = min(minY, u.y);
+    	}
+    }
+
+
+    for (int y = 0; y < flowx.rows; ++y) // normalize using Middlebury color coding
+    {
+        for (int x = 0; x < flowx.cols; ++x)
+        {
+            Point2f u(flowx(y, x), flowy(y, x));
+
+            if (isFlowCorrect(u))
+            {
+            	float val_x = 255.0 * (u.x - minX) / (maxX - minX);
+            	float val_y = 255.0 * (u.y - minY) / (maxY - minY);
+            	dst.at<Vec3b>(y, x) = Vec3b(static_cast<uchar>(val_x),static_cast<uchar>(val_y),0);
+            }
+        }
+    }
+}
+
 static void showFlow(string name, const GpuMat& d_flow, Mat& out)
 {
     GpuMat planes[2];
@@ -153,7 +207,10 @@ static void showFlow(string name, const GpuMat& d_flow, Mat& out)
     Mat flowx(planes[0]);
     Mat flowy(planes[1]);
 
-    drawOpticalFlow(flowx, flowy, out, 10);
+    if (methodCoding==1)
+    	drawOpticalFlow(flowx, flowy, out, 10);
+    else if (methodCoding==2)
+    	drawOpticalFlow2(flowx, flowy, out);
 
     //imshow(name, out);
 
@@ -164,17 +221,8 @@ int main(int argc, const char* argv[])
 {
 	cv::cuda::printShortCudaDeviceInfo(cv::cuda::getDevice());
 
-	/* User-defined parameters */
-	int numStep = 1; // step for calculating the optical flow
-	string type("CPU"); // 1: CPU; 2. GPU
-
 	/* Initialize the optical flow algorithm */
 	Ptr<cuda::BroxOpticalFlow> brox = cuda::BroxOpticalFlow::create(0.197f, 50.0f, 0.8f, 10, 77, 10);
-
-	/* Data Path */
-	string dirDatabase("/home/cmhung/Code/Dataset/UCF-101/");
-	string inDir(dirDatabase + "RGB/");
-	string outDir(dirDatabase + "FlowMap-Brox/");
 
 	// create the output folder
 	if (!opendir(outDir.c_str())) // create the folder if not existed
@@ -209,7 +257,7 @@ int main(int argc, const char* argv[])
 	/* Process all the classes */
 	for (int c=0; c<numClassTotal; c++)
 	{
-		cout << "Current class: " << nameClasses[c] << endl;
+		cout << "Current class: " << c << ". " << nameClasses[c] << endl;
 
 		const int64 startClass = getTickCount(); // computation time of one class
 
@@ -329,8 +377,10 @@ int main(int argc, const char* argv[])
 						hconcat(imgDisplay, flow_out, imgDisplay);
 
 						imshow(nameFlow + " (Brox)", imgDisplay);
-						if (waitKey(3) > 0)
-							break;
+
+						waitKey(3);
+//						if (waitKey(3) > 0)
+//							break;
 
 						// save video
 						writer.write(flow_out);
@@ -389,7 +439,8 @@ int main(int argc, const char* argv[])
 //
 //       	    Mat flow_out;
 //       	    showFlow("Brox", g_flow, flow_out);
-//        	if (cv::waitKey(3) > 0)
+//	waitKey(3);
+//        	if (waitKey(3) > 0)
 //        		break;
 //
 //        	g_framePrvs = g_frameNext;
