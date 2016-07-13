@@ -48,6 +48,8 @@ cv2.namedWindow('Previous, current frames and flow map')
 idxClassAll = range(numClassTotal - class_finished)
 
 for c in idxClassAll[::-1]:  # c = 0 ~ 100 (start from the last one)
+    tStart = time()  # calculate the time difference
+
     dirClass = inDir + nameClass[c] + '/'
     nameSubVideo = os.listdir(dirClass)
     nameSubVideo.sort()
@@ -156,7 +158,7 @@ for c in idxClassAll[::-1]:  # c = 0 ~ 100 (start from the last one)
                         out.write(img)
 
                         cv2.imshow(
-                            videoName, imgDisplay)
+                            'Previous, current frames and flow map', imgDisplay)
                         if cv2.waitKey(1) & 0xFF == ord('q'):
                             break
 
@@ -188,5 +190,10 @@ for c in idxClassAll[::-1]:  # c = 0 ~ 100 (start from the last one)
             #     #     break
 
             out.release()
+
+    # calculate the computation time
+    tEnd = time()
+    tElapsed = tEnd - tStart
+    print("time elapsed of " + nameClass[c] + " = %.2f seconds " % tElapsed)
 
 cv2.destroyAllWindows()
