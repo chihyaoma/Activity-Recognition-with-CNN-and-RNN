@@ -45,7 +45,7 @@ function DataLoader:__init(dataset, opt, split)
       end
       torch.setnumthreads(1)
       _G.dataset = dataset
-      _G.preprocess = dataset:preprocess()
+      _G.preprocess = dataset:preprocess(opt)
       return dataset:size()
    end
 
@@ -75,7 +75,7 @@ function DataLoader:run(opt)
                local batch, imageSize
                local target = torch.IntTensor(sz)
                for i, idx in ipairs(indices:totable()) do
-                  local sample = _G.dataset:get(idx, opt.nStacking)
+                  local sample = _G.dataset:get(idx, opt.nChannel, opt.nStacking)
                   local input = _G.preprocess(sample.input)
                   if not batch then
                      imageSize = input:size():totable()

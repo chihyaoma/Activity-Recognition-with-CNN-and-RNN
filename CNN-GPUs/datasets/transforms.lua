@@ -22,11 +22,11 @@ function M.Compose(transforms)
    end
 end
 
-function M.ColorNormalize(meanstd)
+function M.ColorNormalize(meanstd,nChannel)
    return function(img)
       img = img:clone()
-
-      local channelInd = torch.range(1,3):repeatTensor(math.floor(img:size(1)/3))
+      --local nChannel = 2
+      local channelInd = torch.range(1,nChannel):repeatTensor(math.floor(img:size(1)/nChannel))
 
       for i=1,img:size(1) do
          img[i]:add(-meanstd.mean[channelInd[i]])

@@ -27,9 +27,10 @@ TODO:
 - [x] Adapt Wide ResNet for multiple GPUs (architecture of Wide ResNet is now only for CIFAR-10)
 - [x] Architecture of wide ResNet for Imagenet
 - [x] Calculating mean and std for different datasets, e.g. Imagenet or UCF-101
+- [x] Prepare UCF-101 dataset for training
+- [x] train 2- or 3-channel optical flows
 - [ ] Train CNN with Imagenet for better initialization (~1 week with GPUs) or wait for pre-trained model to be released
 - [ ] Train CNN on both RGB and flow maps for generating feature representations
-- [x] Prepare UCF-101 dataset for training
 
 
 ---
@@ -38,3 +39,5 @@ TODO:
 [Chih-Yao Ma](http://shallowdown.wix.com/chih-yao-ma) at <cyma@gatech.edu>
 
 [Min-Hung Chen](https://www.linkedin.com/in/chensteven) at <cmhungsteve@gatech.edu>
+
+Last updated: 07/24/2016

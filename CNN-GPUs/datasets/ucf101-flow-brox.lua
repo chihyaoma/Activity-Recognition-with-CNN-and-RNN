@@ -28,35 +28,35 @@ local M = {}
 local UCF101Dataset = torch.class('resnet.UCF101Dataset', M)
 
 function UCF101Dataset:__init(imageInfo, opt, split)
-   self.imageInfo = imageInfo[split]
+   self.imageInfo = imageInfo[split] -- imagePath & imageClass
    self.opt = opt
    self.split = split
    self.dir = paths.concat(opt.data, split)
    assert(paths.dirp(self.dir), 'directory does not exist: ' .. self.dir)
 end
 
-function UCF101Dataset:get(i, nStacking)
-   local path = ffi.string(self.imageInfo.imagePath[i]:data())
+function UCF101Dataset:get(i, nChannel, nStacking)
+   local path = ffi.string(self.imageInfo.imagePath[i]:data()) -- e.g. Nunchucks/v_Nunchucks_g16_c03_flow_50.png
    local image
 
    -- extract frame number
-   local afterPath = path:match("^.+flow(.+)$")
-   local prePath = path:match("^.-flow")
-   local frameStr = afterPath:match("%d+")
-   local fileExten = afterPath:match("%a+")
+   local afterPath = path:match("^.+flow(.+)$") -- e.g. _50.png
+   local prePath = path:match("^.-flow")        -- e.g. Nunchucks/v_Nunchucks_g16_c03_flow
+   local frameStr = afterPath:match("%d+")      -- e.g. 50
+   local fileExten = afterPath:match("%a+")     -- e.g. png
 
    -- which frames will be stacked
-   local frameStack = torch.range(frameStr-(nStacking-1), frameStr)
-   local imageStack
+   local frameStack = torch.range(frameStr-(nStacking-1), frameStr) -- e.g. 41~50
 
    -- read and stack images
    for i=1,frameStack:size(1) do
       path = prePath .. '_' .. frameStack[i] .. '.' .. fileExten
       local imageTmp = self:_loadImage(paths.concat(self.dir, path))
+      imageTmp2 = imageTmp[{{3-(nChannel-1),3}}] -- the first channel is R
       if not image then
-         image = imageTmp
+         image = imageTmp2
       else
-         image = torch.cat(image, imageTmp, 1)
+         image = torch.cat(image, imageTmp2, 1) -- final dimension = 2*nStacking
       end
    end
 
@@ -71,7 +71,7 @@ end
 
 function UCF101Dataset:_loadImage(path)
    local ok, input = pcall(function()
-      return image.load(path, 3, 'float')
+      return image.load(path, 3, 'float') -- RGB (R is 0)
    end)
 
    -- Sometimes image.load fails because the file extension does not match the
@@ -97,11 +97,16 @@ end
 
 -- Computed from random subset of UCF-101 training Brox flow maps
 local meanstd = {
-   mean = { 0.951, 0.918, 0.955 },
-   std = { 0.043, 0.052, 0.044 },
+   -- -- Middlebury
+   -- mean = { 0.951, 0.918, 0.955 },
+   -- std = { 0.043, 0.052, 0.044 },
+   
+   -- x, y displacement (2-channel)
+   mean = { 0.009, 0.492, 0.498 },
+   std = { 0.006, 0.071, 0.081 },
 }
 
-function UCF101Dataset:preprocess()
+function UCF101Dataset:preprocess(opt)
    if self.split == 'train' then
       return t.Compose{
          t.RandomSizedCrop(224),
@@ -110,14 +115,14 @@ function UCF101Dataset:preprocess()
          --    contrast = 0.4,
          --    saturation = 0.4,
          -- }),
-         t.ColorNormalize(meanstd),
+         t.ColorNormalize(meanstd,opt.nChannel),
          t.HorizontalFlip(1),
       }
    elseif self.split == 'val' then
       local Crop = self.opt.tenCrop and t.TenCrop or t.CenterCrop
       return t.Compose{
          t.Scale(256),
-         t.ColorNormalize(meanstd),
+         t.ColorNormalize(meanstd,opt.nChannel),
          Crop(224),
       }
    else

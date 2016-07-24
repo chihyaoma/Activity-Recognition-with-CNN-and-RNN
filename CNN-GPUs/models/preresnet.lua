@@ -152,9 +152,9 @@ local function createModel(opt)
 
       -- The ResNet ImageNet model
 
-      local inputChannel = 3
+      local inputChannel = opt.nChannel
       if opt.nStacking ~= 'false' then
-         inputChannel = 3 * opt.nStacking
+         inputChannel = opt.nChannel * opt.nStacking
       end
 
       model:add(Convolution(inputChannel,64,7,7,2,2,3,3))
