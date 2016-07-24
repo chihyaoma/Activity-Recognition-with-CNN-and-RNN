@@ -73,6 +73,8 @@ end
 --    mean = { 0.485, 0.456, 0.406 },
 --    std = { 0.229, 0.224, 0.225 },
 -- }
+
+-- RGB
 local meanstd = {
    mean = { 0.392, 0.376, 0.348 },
    std = { 0.241, 0.234, 0.231 },
@@ -97,14 +99,14 @@ function ImagenetDataset:preprocess()
             saturation = 0.4,
          }),
          -- t.Lighting(0.1, pca.eigval, pca.eigvec),
-         t.ColorNormalize(meanstd),
+         t.ColorNormalize(meanstd,opt.nChannel),
          t.HorizontalFlip(0.5),
       }
    elseif self.split == 'val' then
       local Crop = self.opt.tenCrop and t.TenCrop or t.CenterCrop
       return t.Compose{
          t.Scale(256),
-         t.ColorNormalize(meanstd),
+         t.ColorNormalize(meanstd,opt.nChannel),
          Crop(224),
       }
    else

@@ -75,6 +75,7 @@ end
 
 -- Computed from random subset of UCF-101 training flow maps
 local meanstd = {
+   -- FlowNet-M
    mean = { 0.877, 0.795, 0.881 },
    std = { 0.087, 0.105, 0.091 },
 }
@@ -88,14 +89,14 @@ function UCF101Dataset:preprocess()
             contrast = 0.4,
             saturation = 0.4,
          }),
-         t.ColorNormalize(meanstd),
+         t.ColorNormalize(meanstd,opt.nChannel),
          t.HorizontalFlip(0.5),
       }
    elseif self.split == 'val' then
       local Crop = self.opt.tenCrop and t.TenCrop or t.CenterCrop
       return t.Compose{
          t.Scale(256),
-         t.ColorNormalize(meanstd),
+         t.ColorNormalize(meanstd,opt.nChannel),
          Crop(224),
       }
    else
