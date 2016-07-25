@@ -32,6 +32,7 @@ function M.setup(opt, checkpoint)
       model = require('models/' .. opt.netType)(opt)
    end
 
+   print(model)
    -- First remove any DataParallelTable
    if torch.type(model) == 'nn.DataParallelTable' then
       model = model:get(1)
