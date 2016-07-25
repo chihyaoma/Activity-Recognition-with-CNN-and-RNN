@@ -55,8 +55,8 @@ function M.parse(arg)
    cmd:option('-resume',          'none',  'Path to directory containing checkpoint')
    --cmd:option('-resume',          '',  'Path to directory containing checkpoint')
    ---------- Optimization options ----------------------
-   cmd:option('-LR',              1e-4,   'initial learning rate')
-   cmd:option('-momentum',        0.1,   'momentum')
+   cmd:option('-LR',              1e-3,   'initial learning rate')
+   cmd:option('-momentum',        0.9,   'momentum')
    cmd:option('-weightDecay',     1e-4,  'weight decay')
    ---------- Model options ----------------------------------
    cmd:option('-netType',      'preresnet', 'Options: resnet | preresnet | wide-resnet')

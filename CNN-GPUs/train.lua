@@ -27,6 +27,7 @@ function Trainer:__init(model, criterion, opt, optimState)
       dampening = 0.0,
       weightDecay = opt.weightDecay,
    }
+   print(self.optimState)
    self.opt = opt
    self.params, self.gradParams = model:getParameters()
 end
