@@ -102,8 +102,8 @@ local meanstd = {
    -- std = { 0.043, 0.052, 0.044 },
    
    -- x, y displacement (2-channel)
-   mean = { 0.009, 0.492, 0.498 },
-   std = { 0.006, 0.071, 0.081 },
+   mean = { 0.009, 0.510, 0.515 },
+   std = { 0.007, 0.122, 0.124 },
 }
 
 function UCF101Dataset:preprocess(opt)
