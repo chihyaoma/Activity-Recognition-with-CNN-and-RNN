@@ -59,7 +59,7 @@ function M.parse(arg)
    cmd:option('-momentum',        0.9,   'momentum')
    cmd:option('-weightDecay',     1e-4,  'weight decay')
    ---------- Model options ----------------------------------
-   cmd:option('-netType',      'preresnet', 'Options: resnet | preresnet | wide-resnet')
+   cmd:option('-netType',      'preresnet', 'Options: vgg | vggbn | resnet | preresnet | wide-resnet')
    cmd:option('-depth',        101,       'ResNet depth: 18 | 34 | 50 | 101 | ...', 'number')
    cmd:option('-shortcutType', '',       'Options: A | B | C')
    cmd:option('-retrain',      'none',   'Path to model to retrain with')
