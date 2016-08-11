@@ -116,7 +116,7 @@ function UCF101Dataset:preprocess(opt)
          --    saturation = 0.4,
          -- }),
          t.ColorNormalize(meanstd,opt.nChannel),
-         t.HorizontalFlip(1),
+         t.HorizontalFlip(0.5),
       }
    elseif self.split == 'val' then
       local Crop = self.opt.tenCrop and t.TenCrop or t.CenterCrop
