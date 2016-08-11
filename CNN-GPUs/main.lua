@@ -45,12 +45,21 @@ end
 local startEpoch = checkpoint and checkpoint.epoch + 1 or opt.epochNumber
 local bestTop1 = math.huge
 local bestTop5 = math.huge
+local diffTop1 = 0
+
+if checkpoint ~= nil then
+   bestTop1 = checkpoint.bestTop1
+   bestTop5 = checkpoint.bestTop5
+   print(bestTop1, bestTop5)
+end
+
 for epoch = startEpoch, opt.nEpochs do
    -- Train for a single epoch
-   local trainTop1, trainTop5, trainLoss = trainer:train(epoch, trainLoader)
+   local trainTop1, trainTop5, trainLoss = trainer:train(epoch, trainLoader, diffTop1)
 
    -- Run model on validation set
    local testTop1, testTop5 = trainer:test(epoch, valLoader)
+   diffTop1 = (bestTop1-testTop1)/bestTop1
 
    local bestModel = false
    if testTop1 < bestTop1 then

@@ -48,6 +48,21 @@ function checkpoint.save(epoch, model, optimState, bestModel, bestTop1, bestTop5
    --    optimFile = optimFile,require
    -- })
 
+   local modelFile = 'model_current.t7'
+   local optimFile = 'optimState_current.t7'
+
+   torch.save(modelFile, model)
+   torch.save(optimFile, optimState)
+
+   torch.save('latest.t7', {
+      epoch = epoch,
+      bestTop1 = bestTop1,
+      bestTop5 = bestTop5,
+      modelFile = modelFile,
+      optimFile = optimFile,
+   })
+
+
    if bestModel then
       torch.save('model_best.t7', model)
       torch.save('optimState_best.t7', optimState)

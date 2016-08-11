@@ -27,15 +27,15 @@ function Trainer:__init(model, criterion, opt, optimState)
       dampening = 0.0,
       weightDecay = opt.weightDecay,
    }
-   print(self.optimState)
+   --print(self.optimState)
    self.opt = opt
    self.params, self.gradParams = model:getParameters()
 end
 
-function Trainer:train(epoch, dataloader)
+function Trainer:train(epoch, dataloader, diffTop1)
    -- Trains the model for a single epoch
-   self.optimState.learningRate = self:learningRate(epoch)
-
+   self.optimState.learningRate = self:learningRate(epoch, diffTop1)
+   print(self.optimState)
    local timer = torch.Timer()
    local dataTimer = torch.Timer()
 
@@ -58,8 +58,11 @@ function Trainer:train(epoch, dataloader)
 
       -- Copy input and target to the GPU
       self:copyInputs(sample)
-
+	
+      --print(self.input:size())
       local output = self.model:forward(self.input):float()
+      --print(output:size())
+
       local batchSize = output:size(1)
       local loss = self.criterion:forward(self.model.output, self.target)
 
@@ -175,17 +178,25 @@ function Trainer:copyInputs(sample)
    self.target:resize(sample.target:size()):copy(sample.target)
 end
 
-function Trainer:learningRate(epoch)
+function Trainer:learningRate(epoch, diffTop1)
    -- Training schedule
    local decay = 0
    if self.opt.dataset == 'imagenet' or self.opt.dataset == 'ucf101' then
       decay = math.floor((epoch - 1) / 30)
+      return self.opt.LR * math.pow(0.1, decay)
    elseif self.opt.dataset == 'cifar10' then
       decay = epoch >= 122 and 2 or epoch >= 81 and 1 or 0
+      return self.opt.LR * math.pow(0.1, decay)
    elseif self.opt.dataset == 'ucf101-flow' or self.opt.dataset == 'ucf101-flow-brox' then
-      decay = math.floor((epoch - 1) / 10)
+      --decay = math.floor((epoch - 1) / 10)
+      return self.opt.LR * math.pow(0.1, decay)
+      
+      --if epoch > 1 and diffTop1 < 5e-3 then
+      --   decay = decay + 1
+      --end
+      --return self.opt.LR * math.pow(0.5, decay)
    end
-   return self.opt.LR * math.pow(0.1, decay)
+   --return self.opt.LR * math.pow(0.1, decay)
 end
 
 return M.Trainer
