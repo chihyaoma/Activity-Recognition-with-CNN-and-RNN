@@ -95,21 +95,27 @@ function UCF101Dataset:size()
    return self.imageInfo.imageClass:size(1)
 end
 
--- Computed from random subset of UCF-101 training Brox flow maps
-local meanstd = {
-   -- -- Middlebury
-   -- mean = { 0.951, 0.918, 0.955 },
-   -- std = { 0.043, 0.052, 0.044 },
-   
-   -- x, y displacement (2-channel)
-   mean = { 0.009, 0.492, 0.498 },
-   std = { 0.006, 0.071, 0.081 },
-}
 
 function UCF101Dataset:preprocess(opt)
+   -- Computed from random subset of UCF-101 training Brox flow maps
+   local dataFolder = paths.basename(self.opt.data)
+
+   local meanstd = {}
+
+   if dataFolder == 'FlowMap-Brox-frame' then
+      meanstd = {mean = { 0.009, 0.492, 0.498 },
+                  std = { 0.006, 0.071, 0.081 }}
+   elseif dataFolder == 'FlowMap-Brox-crop-frame' then
+      meanstd = {mean = { 0.009, 0.492, 0.498 },
+                  std = { 0.006, 0.071, 0.082 }}
+   elseif dataFolder == 'FlowMap-Brox-M-frame' then
+      meanstd = {mean = { 0.951, 0.918, 0.955 },
+                  std = { 0.043, 0.052, 0.044 }}
+   end
+
    if self.split == 'train' then
       return t.Compose{
-         t.RandomSizedCrop(224),
+         t.RandomSizedCrop(112),
          -- t.ColorJitter({
          --    brightness = 0.4,
          --    contrast = 0.4,
@@ -121,9 +127,9 @@ function UCF101Dataset:preprocess(opt)
    elseif self.split == 'val' then
       local Crop = self.opt.tenCrop and t.TenCrop or t.CenterCrop
       return t.Compose{
-         t.Scale(256),
+         t.Scale(128),
          t.ColorNormalize(meanstd,opt.nChannel),
-         Crop(224),
+         Crop(112),
       }
    else
       error('invalid split: ' .. self.split)
