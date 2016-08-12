@@ -10,7 +10,7 @@ This is an ongoing project.
 
 We examine and implement several leading deep learning techniques for Human Activity Recognition (video classification), while proposing and investigating a novel convolution on temporally-constructed feature vectors.
 
-Our proposed model classify videos into different human activities and give confident scores for each prediction. Features extracted from both spatial and temporal network were integrated by RNN to make prediction for each image frame. Class predictions for each of the video are made by voting through several selected video frames. 
+Our proposed model classify videos into different human activities and give confident scores for each prediction. Features extracted from both spatial and temporal network were integrated by RNN to make prediction for each image frame. Class predictions for each of the video are made by voting through several selected video frames.
 
 
 #### How we tackle Activity Recognition problem?
@@ -87,6 +87,27 @@ $ luarocks install xlua
 $ luarocks install optim
 ```
 If you would like to use CUDA on your NVIDIA graphic card, you will need to install [CUDA toolkit](https://developer.nvidia.com/cuda-toolkit) and some additional packages.
+For installing CUDA 7.5 on Ubuntu:
+```bash
+# cd to where the downloaded file located, and then
+$ sudo dpkg -i cuda-repo-ubuntu1404_7.5-18_amd64.deb
+$ sudo apt-get update
+# install cuda using apt-get
+$ sudo apt-get install cuda
+```
+add the following lines to your ~/.bashrc file
+```bash
+export CUDA_HOME=/usr/local/cuda-7.5
+export LD_LIBRARY_PATH=${CUDA_HOME}/lib64
+
+PATH=${CUDA_HOME}/bin:${PATH}
+export PATH
+```
+Remember to source your bashrc file afterwards.
+```bash
+$ source ~/.bashrc
+```
+In order to use CUDA with Torch, you will need to install some additional packages.
 ```bash
 $ luarocks install cutorch
 $ luarocks install cunn
@@ -95,13 +116,13 @@ You **need to** install the CUDNN package properly since we use the pre-trained 
 
 Then, follow this instruction:
 ```bash
-$ tar -xzvf cudnn-7.0-linux-x64-v4.0-prod.tgz
+# cd to where the downloaded file located, and then
+$ tar -xzvf cudnn-7.5-linux-x64-v5.0-ga.tgz
 $ cd cuda
-$ sudo cp lib* /usr/local/cuda/lib64/
-$ sudo cp cudnn.h /usr/local/cuda/include/
+$ sudo cp lib64* /usr/local/cuda/lib64/
+$ sudo cp include/cudnn.h /usr/local/cuda/include/
 $ luarocks install cudnn
 ```
-(note: There may be problems if you use CUDNN v5 since currently Torch can only detect CUDNN v4.)
 
 ---
 ## Usage
