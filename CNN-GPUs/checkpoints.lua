@@ -14,7 +14,9 @@ function checkpoint.latest(opt)
       return nil
    end
 
-   local latestPath = paths.concat(opt.resume, 'latest.t7')
+   local latestFile = opt.resumeFile .. '.t7'
+   local latestPath = paths.concat(opt.resume, latestFile)
+
    if not paths.filep(latestPath) then
       return nil
    end
@@ -54,8 +56,10 @@ function checkpoint.save(epoch, model, optimState, bestModel, bestTop1, bestTop5
    torch.save(modelFile, model)
    torch.save(optimFile, optimState)
 
-   torch.save('latest.t7', {
+   torch.save('latest_current.t7', {
       epoch = epoch,
+      testTop1 = testTop1, 
+      testTop5 = testTop5,
       bestTop1 = bestTop1,
       bestTop5 = bestTop5,
       modelFile = modelFile,
@@ -66,7 +70,7 @@ function checkpoint.save(epoch, model, optimState, bestModel, bestTop1, bestTop5
    if bestModel then
       torch.save('model_best.t7', model)
       torch.save('optimState_best.t7', optimState)
-      torch.save('latest.t7', {
+      torch.save('latest_best.t7', {
       epoch = epoch,
       bestTop1 = bestTop1,
       bestTop5 = bestTop5,

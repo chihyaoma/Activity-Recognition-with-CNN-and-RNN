@@ -20,8 +20,12 @@ function Trainer:__init(model, criterion, opt, optimState)
    self.model = model
    self.criterion = criterion
    self.optimState = optimState or {
+      optMethod = opt.optMethod,
+      lrMethod = opt.lrMethod,
+      epochUpdateLR = opt.epochUpdateLR,
       learningRate = opt.LR,
-      learningRateDecay = 0.0,
+      learningRateDecay = opt.LRD,
+      lrDecayFactor = opt.lrDecayFactor,
       momentum = opt.momentum,
       nesterov = true,
       dampening = 0.0,
@@ -70,8 +74,11 @@ function Trainer:train(epoch, dataloader, diffTop1)
       self.criterion:backward(self.model.output, self.target)
       self.model:backward(self.input, self.criterion.gradInput)
 
-      -- optim.sgd(feval, self.params, self.optimState)
-      optim.adam(feval, self.params, self.optimState)
+      if self.optimState.optMethod == 'sgd' then
+      	optim.sgd(feval, self.params, self.optimState)
+      elseif self.optimState.optMethod == 'adam' then
+      	optim.adam(feval, self.params, self.optimState)
+      end
 
       local top1, top5 = self:computeScore(output, sample.target, 1)
       top1Sum = top1Sum + top1*batchSize
@@ -180,23 +187,27 @@ end
 
 function Trainer:learningRate(epoch, diffTop1)
    -- Training schedule
-   local decay = 0
+   local decayPower = 0
    if self.opt.dataset == 'imagenet' or self.opt.dataset == 'ucf101' then
-      decay = math.floor((epoch - 1) / 30)
-      return self.opt.LR * math.pow(0.1, decay)
+      decayPower = math.floor((epoch - 1) / 30)
+      return self.opt.LR * math.pow(self.optimState.lrDecayFactor, decayPower)
    elseif self.opt.dataset == 'cifar10' then
-      decay = epoch >= 122 and 2 or epoch >= 81 and 1 or 0
-      return self.opt.LR * math.pow(0.1, decay)
+      decayPower = epoch >= 122 and 2 or epoch >= 81 and 1 or 0
+      return self.opt.LR * math.pow(self.optimState.lrDecayFactor, decayPower)
    elseif self.opt.dataset == 'ucf101-flow' or self.opt.dataset == 'ucf101-flow-brox' then
-      --decay = math.floor((epoch - 1) / 10)
-      return self.opt.LR * math.pow(0.1, decay)
-      
-      --if epoch > 1 and diffTop1 < 5e-3 then
-      --   decay = decay + 1
-      --end
-      --return self.opt.LR * math.pow(0.5, decay)
+      if self.optimState.lrMethod == 'manual' then
+      	decayPower = decayPower
+      elseif self.optimState.lrMethod == 'fixed' then
+      	decayPower = math.floor((epoch - 1) / self.optimState.epochUpdateLR)
+      elseif self.optimState.lrMethod == 'adaptive' then
+      	if epoch > 1 and diffTop1 < 5e-3 then
+      		decayPower = decayPower + 0.1
+      	end
+      end	
+
+      return self.opt.LR * math.pow(self.optimState.lrDecayFactor, decayPower)
    end
-   --return self.opt.LR * math.pow(0.1, decay)
+   --return self.opt.LR * math.pow(0.1, decayPower)
 end
 
 return M.Trainer
