@@ -103,11 +103,14 @@ function UCF101Dataset:preprocess(opt)
    local meanstd = {}
 
    if dataFolder == 'FlowMap-Brox-frame' then
-      meanstd = {mean = { 0.009, 0.492, 0.498 },
-                  std = { 0.006, 0.071, 0.081 }}
-   elseif dataFolder == 'FlowMap-Brox-crop-frame' then
-      meanstd = {mean = { 0.009, 0.492, 0.498 },
-                  std = { 0.006, 0.071, 0.082 }}
+      meanstd = {mean = { 0.0091950063390791, 0.4922446721625, 0.49853131534726},
+                  std = { 0.0056229398806939, 0.070845543666524, 0.081589332546496}}
+   elseif dataFolder == 'FlowMap-Brox-crop40-frame' then
+      meanstd = {mean = { 0.0091936888040752, 0.49204453841557, 0.49857498097595},
+                  std = { 0.0056320802048129, 0.070939325098903, 0.081698516724234}}
+   elseif dataFolder == 'FlowMap-Brox-crop20-frame' then
+      meanstd = {mean = { 0.0092002901164412, 0.49243926742539, 0.49851170257907},
+                  std = { 0.0056614266189997, 0.070921186231261, 0.081781848181796}}
    elseif dataFolder == 'FlowMap-Brox-M-frame' then
       meanstd = {mean = { 0.951, 0.918, 0.955 },
                   std = { 0.043, 0.052, 0.044 }}
