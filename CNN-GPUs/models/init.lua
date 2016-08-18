@@ -1,3 +1,11 @@
+---------------------------------------------------------------
+--  Activity-Recognition-with-CNN-and-RNN
+--  https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN
+-- 
+-- 
+--  Contact: Chih-Yao Ma at <cyma@gatech.edu>
+---------------------------------------------------------------
+
 --
 --  Copyright (c) 2016, Facebook, Inc.
 --  All rights reserved.
@@ -27,6 +35,39 @@ function M.setup(opt, checkpoint)
       assert(paths.filep(opt.retrain), 'File not found: ' .. opt.retrain)
       print('Loading model from file: ' .. opt.retrain)
       model = torch.load(opt.retrain)
+
+      if opt.preTemporal ~= 'false' then
+
+         model:double()
+
+         print('fine-tuning the temporal network from file: ' .. opt.retrain)
+         local inputChannel = opt.nChannel
+         if opt.nStacking ~= 'false' then
+            inputChannel = opt.nChannel * opt.nStacking
+         end
+
+         -- duplicate the first spatial convolution layer to the # of stacking frames
+         local layerDim = model:get(1).weight:size()
+         local old_weight = model:get(1).weight
+         -- average the channels in the first layer
+         local avgWeight = torch.mean(old_weight, 2)
+
+         -- replace the first spatial convolution layer
+         model:remove(1)
+         model:insert(cudnn.SpatialConvolution(
+            inputChannel,layerDim[1],layerDim[3],layerDim[4],2,2,3,3),1)
+
+         -- change the number of layers to the # of input channel, and expand
+         layerDim[2] = inputChannel
+         avgWeight = torch.expand(avgWeight, layerDim)
+
+         -- update with the new weight
+         model:get(1).weight = avgWeight:float()
+
+         -- convert back to cuda
+         model:cuda()
+      end
+
    else
       print('=> Creating model from file: models/' .. opt.netType .. '.lua')
       model = require('models/' .. opt.netType)(opt)
