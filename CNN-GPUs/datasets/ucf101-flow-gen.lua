@@ -45,7 +45,7 @@ local function findClasses(dir)
    return classList, classToIdx
 end
 
-local function findImages(dir, classToIdx)
+local function findImages(dir, classToIdx, nStacking)
    local imagePath = torch.CharTensor()
    local imageClass = torch.LongTensor()
 
@@ -69,17 +69,22 @@ local function findImages(dir, classToIdx)
       local line = f:read('*line')
       if not line then break end
 
-      local className = paths.basename(paths.dirname(line))
-      local filename = paths.basename(line)
-      local path = className .. '/' .. filename
+      
+      local frameStr = string.match(line, "^.+_(.+)$")
+      if tonumber(frameStr:match("%d+")) >= nStacking then
+      
+         local className = paths.basename(paths.dirname(line))
+         local filename = paths.basename(line)
+         local path = className .. '/' .. filename
 
-      local classId = classToIdx[className]
-      assert(classId, 'class not found: ' .. className)
+         local classId = classToIdx[className]
+         assert(classId, 'class not found: ' .. className)
 
-      table.insert(imagePaths, path)
-      table.insert(imageClasses, classId)
+         table.insert(imagePaths, path)
+         table.insert(imageClasses, classId)
 
-      maxLength = math.max(maxLength, #path + 1)
+         maxLength = math.max(maxLength, #path + 1)
+      end
    end
 
    f:close()
@@ -109,10 +114,10 @@ function M.exec(opt, cacheFile)
    local classList, classToIdx = findClasses(trainDir)
 
    print(" | finding all validation images")
-   local valImagePath, valImageClass = findImages(valDir, classToIdx)
+   local valImagePath, valImageClass = findImages(valDir, classToIdx, opt.nStacking)
 
    print(" | finding all training images")
-   local trainImagePath, trainImageClass = findImages(trainDir, classToIdx)
+   local trainImagePath, trainImageClass = findImages(trainDir, classToIdx, opt.nStacking)
 
    local info = {
       basedir = opt.data,

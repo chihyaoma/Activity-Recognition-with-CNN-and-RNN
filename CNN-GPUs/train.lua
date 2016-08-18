@@ -194,7 +194,7 @@ function Trainer:learningRate(epoch, diffTop1)
    elseif self.opt.dataset == 'cifar10' then
       decayPower = epoch >= 122 and 2 or epoch >= 81 and 1 or 0
       return self.opt.LR * math.pow(self.optimState.lrDecayFactor, decayPower)
-   elseif self.opt.dataset == 'ucf101-flow' or self.opt.dataset == 'ucf101-flow-brox' then
+   elseif self.opt.dataset == 'ucf101-flow' then
       if self.optimState.lrMethod == 'manual' then
       	decayPower = decayPower
       elseif self.optimState.lrMethod == 'fixed' then

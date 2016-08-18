@@ -35,21 +35,21 @@ function M.parse(arg)
    cmd:text()
    cmd:text('Options:')
     ------------ General options --------------------
-   cmd:option('-data',       '/media/chih-yao/SSD/dataset/UCF-101/FlowMap-Brox-crop20-frame/', 'Path to dataset')
-   cmd:option('-dataset',    'ucf101-flow-brox', 'Options: ucf101 | ucf101-flow | ucf101-flow-brox | imagenet | cifar10')
+   cmd:option('-data',       '/media/chih-yao/SSD/dataset/UCF-101/FlowMap-Brox-frame/', 'Path to dataset')
+   cmd:option('-dataset',    'ucf101-flow', 'Options: ucf101 | ucf101-flow | imagenet | cifar10')
    cmd:option('-manualSeed', 0,          'Manually set RNG seed')
    cmd:option('-nGPU',       1,          'Number of GPUs to use by default')
    cmd:option('-backend',    'cudnn',    'Options: cudnn | cunn')
    cmd:option('-cudnn',      'fastest',  'Options: fastest | default | deterministic')
    cmd:option('-gen',        'gen',      'Path to save generated files')
    ------------- Data options ------------------------
-   cmd:option('-nThreads',        4, 'number of data loading threads')
-   cmd:option('-nStacking',       10, 'number of stacks of optical flow images')
+   cmd:option('-nThreads',       4, 'number of data loading threads')
+   cmd:option('-nStacking',      10, 'number of stacks of optical flow images')
    cmd:option('-nChannel',       2, 'number of channels in one image: 2 | 3')
    ------------- Training options --------------------
    cmd:option('-nEpochs',         0,       'Number of total epochs to run')
    cmd:option('-epochNumber',     1,       'Manual epoch number (useful on restarts)')
-   cmd:option('-batchSize',       32,      'mini-batch size (1 = pure stochastic)')
+   cmd:option('-batchSize',       64,      'mini-batch size (1 = pure stochastic)')
    cmd:option('-testOnly',        'false', 'Run on validation set only')
    cmd:option('-tenCrop',         'false', 'Ten-crop testing')
    cmd:option('-resume',          'none',  'Path to directory containing checkpoint')
@@ -89,7 +89,7 @@ function M.parse(arg)
    opt.resetClassifier = opt.resetClassifier ~= 'false'
 
    if opt.dataset == 'ucf101' or opt.dataset == 'ucf101-flow' 
-      or opt.dataset == 'ucf101-flow-brox' or opt.dataset == 'imagenet' then
+      or opt.dataset == 'imagenet' then
       -- Handle the most common case of missing -data flag
       local trainDir = paths.concat(opt.data, 'train')
       if not paths.dirp(opt.data) then

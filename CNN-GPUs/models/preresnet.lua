@@ -125,8 +125,7 @@ local function createModel(opt)
    end
 
    local model = nn.Sequential()
-   if opt.dataset == 'imagenet' or opt.dataset == 'ucf101' or opt.dataset == 'ucf101-flow' 
-      or opt.dataset == 'ucf101-flow-flownet' or opt.dataset == 'ucf101-flow-brox' then
+   if opt.dataset == 'imagenet' or opt.dataset == 'ucf101' or opt.dataset == 'ucf101-flow' then
       -- Configurations for ResNet:
       -- num. residual blocks, num features, residual block function
       local cfg = {
@@ -141,17 +140,6 @@ local function createModel(opt)
       assert(cfg[depth], 'Invalid depth: ' .. tostring(depth))
       local def, nFeatures, block = table.unpack(cfg[depth])
       iChannels = 64
-      if opt.dataset == 'imagenet' then
-         print(' | ResNet-' .. depth .. ' ImageNet')
-      elseif opt.dataset == 'ucf101' then
-         print(' | ResNet-' .. depth .. ' UCF-101')
-      elseif opt.dataset == 'ucf101-flow' then
-         print(' | ResNet-' .. depth .. ' UCF-101 Flow Map')
-      elseif opt.dataset == 'ucf101-flow-brox' then
-         print(' | ResNet-' .. depth .. ' UCF-101 Brox Flow Map')
-      elseif opt.dataset == 'ucf101-flow-flownet' then 
-         print(' | ResNet-' .. depth .. ' UCF-101 FlowNet Flow Map')
-      end
 
       -- The ResNet ImageNet model
 
