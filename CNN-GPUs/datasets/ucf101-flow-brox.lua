@@ -116,9 +116,15 @@ function UCF101Dataset:preprocess(opt)
                   std = { 0.043, 0.052, 0.044 }}
    end
 
+   local scaleSize, imageSize = 256, 224
+   if opt.downsample ~='false' then -- downsample to half
+      scaleSize = scaleSize / 2
+      imageSize = imageSize / 2
+   end
+
    if self.split == 'train' then
       return t.Compose{
-         t.RandomSizedCrop(224),
+         t.RandomSizedCrop(imageSize),
          -- t.ColorJitter({
          --    brightness = 0.4,
          --    contrast = 0.4,
@@ -130,9 +136,9 @@ function UCF101Dataset:preprocess(opt)
    elseif self.split == 'val' then
       local Crop = self.opt.tenCrop and t.TenCrop or t.CenterCrop
       return t.Compose{
-         t.Scale(256),
+         t.Scale(scaleSize),
          t.ColorNormalize(meanstd,opt.nChannel),
-         Crop(224),
+         Crop(imageSize),
       }
    else
       error('invalid split: ' .. self.split)

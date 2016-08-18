@@ -170,7 +170,12 @@ local function createModel(opt)
       model:add(layer(block, 512, def[4], 2))
       model:add(ShareGradInput(SBatchNorm(iChannels), 'last'))
       model:add(ReLU(true))
-      model:add(Avg(7, 7, 1, 1))
+      -- If downsample the image is required, adjust the kernel of pooling layer
+      if opt.downsample ~='false' then
+         model:add(Avg(4, 4, 1, 1))
+      else
+         model:add(Avg(7, 7, 1, 1))
+      end
       model:add(nn.View(nFeatures):setNumInputDims(3))
       model:add(nn.Linear(nFeatures, 1000))
    elseif opt.dataset == 'cifar10' then

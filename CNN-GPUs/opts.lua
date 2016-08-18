@@ -54,6 +54,7 @@ function M.parse(arg)
    cmd:option('-tenCrop',         'false', 'Ten-crop testing')
    cmd:option('-resume',          'none',  'Path to directory containing checkpoint')
    cmd:option('-resumeFile',      'latest_best',  'file for resuming training: latest_best | latest_current')
+   cmd:option('-downsample',      'true',  'Downsample to half of theimage size to achieve faster training for hyper-parameter optimization, only for prereset for now')
    ---------- Optimization options ----------------------
    cmd:option('-optMethod',      'sgd',   'optimization methods: sgd | adam')
    cmd:option('-lrMethod',      'manual',   'methods for tuning the learning rate: manual | fixed | adaptive')

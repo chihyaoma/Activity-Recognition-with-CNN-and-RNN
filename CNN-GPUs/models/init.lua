@@ -38,8 +38,6 @@ function M.setup(opt, checkpoint)
 
       if opt.preTemporal ~= 'false' then
 
-         model:double()
-
          print('fine-tuning the temporal network from file: ' .. opt.retrain)
          local inputChannel = opt.nChannel
          if opt.nStacking ~= 'false' then
@@ -63,6 +61,14 @@ function M.setup(opt, checkpoint)
 
          -- update with the new weight
          model:get(1).weight = avgWeight:float()
+
+         -- replace the spatial pooling layer, if downsample the image is required
+         if opt.downsample ~='false' then
+            assert(torch.type(model:get(#model.modules-2)) == 'cudnn.SpatialAveragePooling',
+             'unknown network structure, please use ResNet')
+            model:remove(#model.modules-2)
+            model:insert(cudnn.SpatialAveragePooling(4, 4, 1, 1), #model.modules-1)
+         end
 
          -- convert back to cuda
          model:cuda()
