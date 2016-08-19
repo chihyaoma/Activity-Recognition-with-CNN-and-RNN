@@ -120,6 +120,11 @@ function UCF101Dataset:preprocess(opt)
    elseif dataFolder == 'FlowMap-FlowNet-M-frame' then
       meanstd = {mean = { 0.951, 0.918, 0.955 },
                   std = { 0.043, 0.052, 0.044 }}
+   elseif dataFolder == 'FlowMap-TVL1-crop20-frame' then
+      meanstd = {mean = { 0.0078286737613148, 0.49277467447062, 0.42283539438139 },
+                  std = { 0.0049402251681559, 0.060421647049655, 0.058913364961995 }}
+   else
+      error('no mean and std defined ... ')
    end
 
    local scaleSize, imageSize = 256, 224
