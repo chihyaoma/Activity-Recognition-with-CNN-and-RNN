@@ -10,6 +10,7 @@
 --
 local xlua = require 'xlua'
 local optim = require 'optim'
+local pastalog = require 'pastalog'
 
 local M = {}
 local Trainer = torch.class('resnet.Trainer', M)
@@ -89,6 +90,10 @@ function Trainer:train(epoch, dataloader, diffTop1)
       print((' | Epoch: [%d][%d/%d]    Time %.3f  Data %.3f  Err %1.4f  top1 %7.3f  top5 %7.3f'):format(
          epoch, n, trainSize, timer:time().real, dataTime, loss, top1, top5))
 
+      local modelName = self.opt.netType .. '-' .. self.opt.depth .. '-' .. 'LR=' .. self.optimState.learningRate
+         .. '-' .. 'WD=' .. self.optimState.weightDecay
+      pastalog(modelName, 'train-top1', top1, (epoch-1)*trainSize + n, 'http://ct5250-12.ece.gatech.edu:8120/data')
+
       -- check that the storage didn't get changed do to an unfortunate getParameters call
       assert(self.params:storage() == self.model:parameters()[1]:storage())
 
@@ -132,6 +137,10 @@ function Trainer:test(epoch, dataloader)
       print((' | Test: [%d][%d/%d]    Time %.3f  Data %.3f  top1 %7.3f (%7.3f)  top5 %7.3f (%7.3f)'):format(
          epoch, n, size, timer:time().real, dataTime, top1, top1Sum / N, top5, top5Sum / N))
 
+      local modelName = self.opt.netType .. '-' .. self.opt.depth .. '-' .. 'LR=' .. self.optimState.learningRate
+         .. '-' .. 'WD=' .. self.optimState.weightDecay
+      pastalog(modelName, 'test-top1', top1, (epoch-1)*size + n, 'http://ct5250-12.ece.gatech.edu:8120/data')
+
       timer:reset()
       dataTimer:reset()
    end
@@ -139,6 +148,11 @@ function Trainer:test(epoch, dataloader)
 
    print((' * Finished epoch # %d     top1: %7.3f  top5: %7.3f\n'):format(
       epoch, top1Sum / N, top5Sum / N))
+
+
+   local modelName = self.opt.netType .. '-' .. self.opt.depth .. '-' .. 'LR=' .. self.optimState.learningRate
+      .. '-' .. 'WD=' .. self.optimState.weightDecay
+   pastalog(modelName, 'epoch-top1', top1Sum / N, epoch, 'http://ct5250-12.ece.gatech.edu:8120/data')
 
    -- update log
    testLogger:add{['epoch'] = epoch, ['top-1 error'] = top1Sum / N, ['top-5 error'] = top5Sum / N}
