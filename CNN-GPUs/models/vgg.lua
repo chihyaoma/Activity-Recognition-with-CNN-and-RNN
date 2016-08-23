@@ -12,7 +12,7 @@ local nn = require 'nn'
 require 'cunn'
 
 local function createModel(opt)
-   local modelType = 'A' -- on a titan black, B/D/E run out of memory even for batch-size 32
+   local modelType = 'D' -- on a titan black, B/D/E run out of memory even for batch-size 32
 
    -- Create tables describing VGG configurations A, B, D, E
    local cfg = {}
@@ -47,13 +47,23 @@ local function createModel(opt)
       end
    end
 
-   model:add(nn.View(512*7*7))
-   model:add(nn.Linear(512*7*7, 4096))
+
+   -- If downsample the image is required, adjust the kernel of pooling layer
+   if opt.downsample ~='false' then
+      assert(torch.type(model:get(#model.modules)) == 'nn.SpatialMaxPooling',
+             'unknown network structure, is this vgg network?')
+      model:add(nn.View(512*3*3))
+      model:add(nn.Linear(512*3*3, 4096))
+   else
+      model:add(nn.View(512*7*7))
+      model:add(nn.Linear(512*7*7, 4096))
+   end
+    
    model:add(nn.Threshold(0, 1e-6))
-   model:add(nn.Dropout(0.5))
+   model:add(nn.Dropout(0.9))
    model:add(nn.Linear(4096, 4096))
    model:add(nn.Threshold(0, 1e-6))
-   model:add(nn.Dropout(0.5))
+   model:add(nn.Dropout(0.8))
    model:add(nn.Linear(4096, 1000))
 
    model:cuda()
