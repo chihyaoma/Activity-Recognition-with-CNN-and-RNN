@@ -66,7 +66,6 @@ function Trainer:train(epoch, dataloader, diffTop1)
 	
       --print(self.input:size())
       local output = self.model:forward(self.input):float()
-      --print(output:size())
 
       local batchSize = output:size(1)
       local loss = self.criterion:forward(self.model.output, self.target)

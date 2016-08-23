@@ -112,6 +112,47 @@ function M.TenCrop(size)
    end
 end
 
+-- Pick only one image from Four corner patches and center crop from image and its horizontal reflection
+function M.CenterCornerCrop(size)
+   local centerCrop = M.CenterCrop(size)
+
+   return function(input)
+      local w, h = input:size(3), input:size(2)
+      local minSize, maxSize
+      if w > h then 
+         minSize, maxSize = w*0.5, h
+      else
+         minSize, maxSize = h*0.5, w
+      end
+      
+      local targetSz = torch.random(minSize, maxSize)
+      local targetW, targetH = targetSz, targetSz
+      if w < h then
+         targetH = torch.round(h / w * targetW)
+      else
+         targetW = torch.round(w / h * targetH)
+      end
+
+      local output = {}
+
+      local i = math.random(5)
+      -- local i = 1
+      if i == 1 then
+         output = centerCrop(input)
+      elseif i == 2 then 
+         output = image.crop(input, 0, 0, targetW, targetH)
+      elseif i == 3 then 
+         output = image.crop(input, w-targetW, 0, w, targetH)
+      elseif i == 4 then 
+         output = image.crop(input, 0, h-targetH, targetW, h)
+      else
+         output = image.crop(input, w-targetW, h-targetH, w, h)
+      end
+
+      return image.scale(output, size, size, 'bicubic')
+   end
+end
+
 -- Resized with shorter side randomly sampled from [minSize, maxSize] (ResNet-style)
 function M.RandomScale(minSize, maxSize)
    return function(input)
