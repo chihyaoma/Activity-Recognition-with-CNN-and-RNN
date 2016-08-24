@@ -57,37 +57,13 @@ numTopN = 5
 nChannel = 2
 
 ----------------------------------------------
--- 					Functions 				--
-----------------------------------------------
--- -- Brox-M
--- meanstd = {
---    mean = { 0.951, 0.918, 0.955 },
---    std = { 0.043, 0.052, 0.044 },
--- 	}
-
--- Brox-2
-meanstd = {
-   mean = { 0.009, 0.492, 0.498 },
-   std = { 0.006, 0.071, 0.081 },
-	}
-
--- -- Flownet-M
--- meanstd = {
---    mean = { 0.877, 0.795, 0.881 },
---    std = { 0.087, 0.105, 0.091 },
--- }
-
-transform = t.Compose{
-     t.Scale(256),
-     t.ColorNormalize(meanstd,nChannel),
-     t.CenterCrop(224),
-  }
-
-----------------------------------------------
 -- 				Data paths				    --
 ----------------------------------------------
-dirModel = '/home/chih-yao/Documents/CNN-GPUs-Brox-2/'
-dirDatabase = '/home/chih-yao/Downloads/dataset/UCF-101/FlowMap-Brox/'
+-- dirModel = '/home/chih-yao/Documents/CNN-GPUs-Brox-2/results_adam/LR_1e-4_WD_1e-3_full/'
+-- dirDatabase = '/home/chih-yao/Downloads/dataset/UCF-101/FlowMap-Brox/'
+
+dirModel = '/home/cmhung/Code/Models/ResNet-Brox-sgd/'
+dirDatabase = '/home/cmhung/Code/Dataset/UCF-101/FlowMap-Brox/'
 
 ----------------------------------------------
 -- 			User-defined parameters			--
@@ -122,6 +98,27 @@ end
 -- ResNet model (from Torch) ==> need cudnn
 modelName = 'model_best.t7'
 modelPath = dirModel..modelName
+
+----------------------------------------------
+-- 					Functions 				--
+----------------------------------------------
+-- -- Brox-M
+-- meanstd = {
+--    mean = { 0.951, 0.918, 0.955 },
+--    std = { 0.043, 0.052, 0.044 },
+-- 	}
+
+-- Brox-2
+meanstd = {
+   mean = { 0.009, 0.492, 0.498 },
+   std = { 0.006, 0.071, 0.081 },
+	}
+
+transform = t.Compose{
+     t.Scale(256),
+     t.ColorNormalize(meanstd, nChannel),
+     t.CenterCrop(224),
+  }
 
 ----------------
 -- parse args --
@@ -179,7 +176,7 @@ elseif opt.mode == 'pred' then
     net:add(softMaxLayer)
 end
 
-print(net)
+-- print(net)
 print ' '
 
 ----------------------------------------------
@@ -232,6 +229,12 @@ for sp=1,numSplit do
 		Te.accClass = {}
 		Te.accAll = 0
 		Te.c_finished = 0 -- different from countClass since there are also "." and ".."
+
+		Te.hitTestClass = 0		
+		Te.numTestVideoClass = 0
+		Te.hitTestAll = 0
+		Te.numTestVideoAll = 0
+
 	else
 		Te = torch.load(outTest[sp].name) -- output
 	end
@@ -242,13 +245,13 @@ for sp=1,numSplit do
 	if Tr.countClass == numClass and Te.countClass == numClass then
 		print('The feature data of split '..sp..' is already in your folder!!!!!!')
 	else
-		hitTestAll = 0
-		numTestVideoAll = 0
+		hitTestAll = Te.hitTestAll
+		numTestVideoAll = Te.numTestVideoAll
 		for c=Tr.c_finished+1, numClassTotal do
 			if nameClass[c] ~= '.' and nameClass[c] ~= '..' then
 
-				local hitTestClass = 0
-				local numTestVideoClass = 0
+				local hitTestClass = Te.hitTestClass
+				local numTestVideoClass = Te.numTestVideoClass
 
 				print('Current Class: '..c..'. '..nameClass[c])
 
@@ -280,10 +283,11 @@ for sp=1,numSplit do
 
 			        	-- --video:play{} -- play the video
 			        	local vidTensor = video:totensor{} -- read the whole video & turn it into a 4D tensor
-				        --print(vidTensor:size())
+				        local vidTensor2 = vidTensor[{{},{3-(nChannel-1),3},{},{}}] -- nx3x240x320 --> nx2x240x320
+				        -- print(vidTensor:size())
 
 				        ------ Video prarmeters ------
-				        local numFrame = vidTensor:size(1)
+				        local numFrame = vidTensor2:size(1)
 				        
 				        if numFrame >= numFrameMin then
 				          	--countVideo = countVideo + 1 -- save this video only when frame# >= min. frame#
@@ -302,12 +306,15 @@ for sp=1,numSplit do
 					            	-- print '==> Begin predicting......'
 					            	for f=1, numFrameMin-numStack+1 do
 					              		
-					              		local inFrames = vidTensor[{{f,f+numStack-1}}]
-					              		local I = torch.Tensor(inFrames:size(1)*3,224,224):zero()
+					              		local inFrames = vidTensor2[{{f,f+numStack-1}}]
+					              		local netInput = torch.Tensor(inFrames:size(1)*nChannel,opt.height,opt.width):zero()
 					              		for x=0,numStack-1 do
-					              			I[{{x*3+1,(x+1)*3}}] = transform(inFrames[x+1])
+					              			netInput[{{x*nChannel+1,(x+1)*nChannel}}] = inFrames[{{x+1},{},{},{}}]
 					              		end
-					         
+					         			
+					         			local I = transform(netInput)
+					              		
+
 					              		-- local I = transform(inFrames)
 					              		I = I:view(1, table.unpack(I:size():totable()))
 					              		local output = net:forward(I:cuda())
@@ -409,16 +416,22 @@ for sp=1,numSplit do
 			    
 				-- Tr.c_finished = c -- save the index
 				Te.c_finished = c -- save the index
-				print('Split: '..sp)
-				print('Finished class#: '..Te.countClass)
+				-- print('Split: '..sp)
+				-- print('Finished class#: '..Te.countClass)
 
 				if opt.mode == 'pred' then 
 					numTestVideoAll = numTestVideoAll + numTestVideoClass
 					hitTestAll = hitTestAll + hitTestClass
 					print('Class accuracy: '..hitTestClass/numTestVideoClass)
 					print('Accumulated accuracy: '..hitTestAll/numTestVideoAll)
+					
 					Te.accClass[Te.countClass] = hitTestClass/numTestVideoClass
 					Te.accAll = hitTestAll/numTestVideoAll
+					Te.numTestVideoAll = numTestVideoAll
+					Te.numTestVideoClass = numTestVideoClass			
+					Te.hitTestAll = hitTestAll
+					Te.hitTestClass = hitTestClass
+
 				elseif opt.mode == 'feat' then
 					print('Generated training data#: '..Tr.countVideo)
 					print('Generated testing data#: '..Te.countVideo)
