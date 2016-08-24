@@ -91,7 +91,8 @@ function Trainer:train(epoch, dataloader, diffTop1)
 
       local modelName = self.opt.netType .. '-' .. self.opt.depth .. '-' .. 'LR=' .. self.optimState.learningRate
          .. '-' .. 'WD=' .. self.optimState.weightDecay
-      pastalog(modelName, 'train-top1', top1, (epoch-1)*trainSize + n, 'http://ct5250-12.ece.gatech.edu:8120/data')
+      local trainSeriesName = 'train-top1-' .. self.opt.pastalogName
+      pastalog(modelName, trainSeriesName, top1, (epoch-1)*trainSize + n, 'http://ct5250-12.ece.gatech.edu:8120/data')
 
       -- check that the storage didn't get changed do to an unfortunate getParameters call
       assert(self.params:storage() == self.model:parameters()[1]:storage())
@@ -138,7 +139,8 @@ function Trainer:test(epoch, dataloader)
 
       local modelName = self.opt.netType .. '-' .. self.opt.depth .. '-' .. 'LR=' .. self.optimState.learningRate
          .. '-' .. 'WD=' .. self.optimState.weightDecay
-      pastalog(modelName, 'test-top1', top1, (epoch-1)*size + n, 'http://ct5250-12.ece.gatech.edu:8120/data')
+      local testSeriesName = 'test-top1-' .. self.opt.pastalogName
+      pastalog(modelName, testSeriesName, top1, (epoch-1)*size + n, 'http://ct5250-12.ece.gatech.edu:8120/data')
 
       timer:reset()
       dataTimer:reset()
@@ -151,7 +153,8 @@ function Trainer:test(epoch, dataloader)
 
    local modelName = self.opt.netType .. '-' .. self.opt.depth .. '-' .. 'LR=' .. self.optimState.learningRate
       .. '-' .. 'WD=' .. self.optimState.weightDecay
-   pastalog(modelName, 'epoch-top1', top1Sum / N, epoch, 'http://ct5250-12.ece.gatech.edu:8120/data')
+   local epochSeriesName = 'epoch-top1-' .. self.opt.pastalogName
+   pastalog(modelName, epochSeriesName, top1Sum / N, epoch, 'http://ct5250-12.ece.gatech.edu:8120/data')
 
    -- update log
    testLogger:add{['epoch'] = epoch, ['top-1 error'] = top1Sum / N, ['top-5 error'] = top5Sum / N}
