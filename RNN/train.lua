@@ -30,7 +30,8 @@ local confusion = optim.ConfusionMatrix(classes)
 local trainLogger = optim.Logger(paths.concat(opt.save,'train.log'))
 
 -- Batch test:
-local inputs = torch.Tensor(opt.batchSize, trainData:size(2), trainData:size(3))
+local inputs = torch.Tensor(opt.batchSize, opt.inputSize, opt.rho)
+
 local targets = torch.Tensor(opt.batchSize)
 
 if opt.cuda == true then
@@ -44,7 +45,9 @@ local optimState = optimState or {
    learningRate = opt.learningRate,
    momentum = opt.momentum,
    weightDecay = opt.weightDecay,
-   learningRateDecay = opt.learningRateDecay
+   learningRateDecay = opt.learningRateDecay,
+   nesterov = true, 
+   dampening = 0.0
 }
 
 -- Retrieve parameters and gradients:
@@ -158,6 +161,9 @@ function train(trainData, trainTarget)
    confusion:zero()
    epoch = epoch + 1
 end
+
+-- TODO: Learning Rate function 
+-- function learningRate(epoch)
 
 -- Export:
 return train
