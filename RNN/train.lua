@@ -12,9 +12,9 @@
 --  Contact: Chih-Yao Ma at <cyma@gatech.edu>
 ----------------------------------------------------------------
 require 'torch'
-require 'sys'
-require 'xlua'    -- xlua provides useful tools, like progress bars
-require 'optim'
+local sys = require 'sys'
+local xlua = require 'xlua'    -- xlua provides useful tools, like progress bars
+local optim = require 'optim'
 
 print(sys.COLORS.red .. '==> defining some tools')
 
@@ -45,7 +45,10 @@ local optimState = optimState or {
    learningRate = opt.learningRate,
    momentum = opt.momentum,
    weightDecay = opt.weightDecay,
+   lrMethod = opt.lrMethod,
+   epochUpdateLR = opt.epochUpdateLR,
    learningRateDecay = opt.learningRateDecay,
+   lrDecayFactor = opt.lrDecayFactor,
    nesterov = true, 
    dampening = 0.0
 }
@@ -70,14 +73,15 @@ function train(trainData, trainTarget)
    print(sys.COLORS.green .. '==> doing epoch on training data:') 
    print("==> online epoch # " .. epoch .. ' [batchSize = ' .. opt.batchSize .. ']')
 
-   if opt.optimizer == 'adam' or 'adamax' or 'rmsprop' then
-         -- Maybe decay learning rate
-      if epoch % opt.lrDecayEvery == 0 then
-         print(sys.COLORS.yellow ..  '==> Updating learning rate .. ')
-         local old_learningRate = optimState.learningRate
-         optimState = {learningRate = old_learningRate * opt.lrDecayFactor}
-      end
-   end
+   -- Maybe decay learning rate
+   -- if epoch % opt.lrDecayEvery == 0 then
+   --    print(sys.COLORS.yellow ..  '==> Updating learning rate .. ')
+   --    local old_learningRate = optimState.learningRate
+   --    optimState = {learningRate = old_learningRate * opt.lrDecayFactor}
+   -- end
+
+   optimState.learningRate = adjustLR(optimState.learningRate, epoch)
+
 
    print(sys.COLORS.yellow ..  '==> Learning rate is: ' .. optimState.learningRate .. '')
 
@@ -163,7 +167,15 @@ function train(trainData, trainTarget)
 end
 
 -- TODO: Learning Rate function 
--- function learningRate(epoch)
-
+function adjustLR(learningRate, epoch)
+   local decayPower = 0
+   if optimState.lrMethod == 'manual' then
+      decayPower = decayPower
+   elseif optimState.lrMethod == 'fixed' then
+      decayPower = math.floor((epoch - 1) / optimState.epochUpdateLR)
+   end
+   
+   return learningRate * math.pow(optimState.lrDecayFactor, decayPower)
+end
 -- Export:
 return train
