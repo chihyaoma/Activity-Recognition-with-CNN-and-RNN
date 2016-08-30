@@ -100,79 +100,92 @@ function crossValidation(dataset, target, nFolds)
    return trainData, trainTarget, testData, testTarget
 end
 
-
 print(sys.COLORS.green .. '==> Reading UCF101 external feature vector and target file ...')
 
 ----------------------------------------------
 -- spatial feature matrix from CNN model
 ----------------------------------------------
--- training and testing data from UCF101 website
-assert(paths.filep(paths.concat(opt.spatFeatDir, 'data_UCF101_spa_train_1.t7')), 'no spatial training feature file found.')
-local spaTrainFeatureLabels = torch.load(paths.concat(opt.spatFeatDir, 'data_UCF101_spa_train_1.t7'))
-local spaTrainData = spaTrainFeatureLabels.featMats
+local spaTrainData, spaTestData, spaTrainTarget, spaTestTarget
 
--- check if there are enough frames to extract and extract
-if spaTrainData:size(3) >= opt.rho then
-   -- extract #rho of frames
-   spaTrainData = extractFrames(spaTrainData, opt.rho)  
-else
-   error('total number of frames lower than the extracting frames')
-end
-local spaTrainTarget = spaTrainFeatureLabels.labels
+if opt.spatial == true then
+   -- training and testing data from UCF101 website
+   assert(paths.filep(paths.concat(opt.spatFeatDir, 'data_UCF101_spa_train_1.t7')), 'no spatial training feature file found.')
+   local spaTrainFeatureLabels = torch.load(paths.concat(opt.spatFeatDir, 'data_UCF101_spa_train_1.t7'))
+   spaTrainData = spaTrainFeatureLabels.featMats
 
-assert(paths.filep(paths.concat(opt.spatFeatDir, 'data_UCF101_spa_test_1.t7')), 'no spatial testing feature file found.')
-local spaTestFeatureLabels = torch.load(paths.concat(opt.spatFeatDir, 'data_UCF101_spa_test_1.t7'))
-local spaTestData = spaTestFeatureLabels.featMats
-
-if opt.averagePred == false then 
-   if spaTestData:size(3) >= opt.rho then
+   -- check if there are enough frames to extract and extract
+   if spaTrainData:size(3) >= opt.rho then
       -- extract #rho of frames
-      spaTestData = extractFrames(spaTestData, opt.rho)  
+      spaTrainData = extractFrames(spaTrainData, opt.rho)  
    else
       error('total number of frames lower than the extracting frames')
    end
+   spaTrainTarget = spaTrainFeatureLabels.labels
+
+   assert(paths.filep(paths.concat(opt.spatFeatDir, 'data_UCF101_spa_test_1.t7')), 'no spatial testing feature file found.')
+   local spaTestFeatureLabels = torch.load(paths.concat(opt.spatFeatDir, 'data_UCF101_spa_test_1.t7'))
+   spaTestData = spaTestFeatureLabels.featMats
+
+   if opt.averagePred == false then 
+      if spaTestData:size(3) >= opt.rho then
+         -- extract #rho of frames
+         spaTestData = extractFrames(spaTestData, opt.rho)  
+      else
+         error('total number of frames lower than the extracting frames')
+      end
+   end
+   spaTestTarget = spaTestFeatureLabels.labels
 end
-local spaTestTarget = spaTestFeatureLabels.labels
 
 ----------------------------------------------
 -- temporal feature matrix from CNN model
 ----------------------------------------------
--- training and testing data from UCF101 website
-assert(paths.filep(paths.concat(opt.tempFeatDir, 'data_UCF101_temp_train_1.t7')), 'no temporal training feature file found.')
-local tempTrainFeatureLabels = torch.load(paths.concat(opt.tempFeatDir, 'data_UCF101_temp_train_1.t7'))
-local tempTrainData = tempTrainFeatureLabels.featMats
+local tempTrainData, tempTestData, tempTrainTarget, tempTestTarget
 
--- check if there are enough frames to extract and extract
-if tempTrainData:size(3) >= opt.rho then
-   -- extract #rho of frames
-   tempTrainData = extractFrames(tempTrainData, opt.rho)  
-else
-   error('total number of frames lower than the extracting frames')
-end
+if opt.temporal == true then
+   -- training and testing data from UCF101 website
+   assert(paths.filep(paths.concat(opt.tempFeatDir, 'data_UCF101_temp_train_1.t7')), 'no temporal training feature file found.')
+   local tempTrainFeatureLabels = torch.load(paths.concat(opt.tempFeatDir, 'data_UCF101_temp_train_1.t7'))
+   tempTrainData = tempTrainFeatureLabels.featMats
 
-local tempTrainTarget = tempTrainFeatureLabels.labels
-
-assert(paths.filep(paths.concat(opt.tempFeatDir, 'data_UCF101_temp_test_1.t7')), 'no temporal testing feature file found.')
-local tempTestFeatureLabels = torch.load(paths.concat(opt.spatFeatDir, 'data_UCF101_temp_test_1.t7'))
-local tempTestData = tempTestFeatureLabels.featMats
-
-if opt.averagePred == false then 
-   if tempTestData:size(3) >= opt.rho then
+   -- check if there are enough frames to extract and extract
+   if tempTrainData:size(3) >= opt.rho then
       -- extract #rho of frames
-      tempTestData = extractFrames(tempTestData, opt.rho)  
+      tempTrainData = extractFrames(tempTrainData, opt.rho)  
    else
       error('total number of frames lower than the extracting frames')
    end
+
+   tempTrainTarget = tempTrainFeatureLabels.labels
+
+   assert(paths.filep(paths.concat(opt.tempFeatDir, 'data_UCF101_temp_test_1.t7')), 'no temporal testing feature file found.')
+   local tempTestFeatureLabels = torch.load(paths.concat(opt.spatFeatDir, 'data_UCF101_temp_test_1.t7'))
+   tempTestData = tempTestFeatureLabels.featMats
+
+   if opt.averagePred == false then 
+      if tempTestData:size(3) >= opt.rho then
+         -- extract #rho of frames
+         tempTestData = extractFrames(tempTestData, opt.rho)  
+      else
+         error('total number of frames lower than the extracting frames')
+      end
+   end
+   tempTestTarget = tempTestFeatureLabels.labels
 end
-local tempTestTarget = tempTestFeatureLabels.labels
 
--- spatial and temporal feature concatenation 
-local trainData = torch.cat(spaTrainData, tempTrainData, 2)
-local testData = torch.cat(spaTestData, tempTestData, 2)
+local trainData, testData
+if opt.spatial and opt.temporal then 
+   -- spatial and temporal feature concatenation 
+   trainData = torch.cat(spaTrainData, tempTrainData, 2)
+   testData = torch.cat(spaTestData, tempTestData, 2)
 
--- check if training & testing target are the same for spatial and temporal network
-assert(spaTrainTarget:equal(tempTrainTarget), 'training target of spatial and temporal features don`t match')
-assert(spaTestTarget:equal(tempTestTarget), 'testing target of spatial and temporal features don`t match')
+   -- check if training & testing target are the same for spatial and temporal network
+   assert(spaTrainTarget:equal(tempTrainTarget), 'training target of spatial and temporal features don`t match')
+   assert(spaTestTarget:equal(tempTestTarget), 'testing target of spatial and temporal features don`t match')
+else
+   trainData = spaTrainData or tempTrainData
+   testData = spaTestData or tempTestData
+end
 
 local trainTarget = spaTrainTarget or tempTrainTarget
 local testTarget = spaTestTarget or tempTestTarget
