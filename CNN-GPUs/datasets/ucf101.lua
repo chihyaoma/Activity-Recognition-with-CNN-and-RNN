@@ -10,6 +10,7 @@
 --
 
 -- modified by: 
+-- Chih-Yao Ma at cyma@gatech.edu
 -- Min-Hung (Steve) Chen at <cmhungsteve@gatech.edu>
 
 -- Last updated: 06/04/2016
@@ -20,9 +21,9 @@ local t = require 'datasets/transforms'
 local ffi = require 'ffi'
 
 local M = {}
-local ImagenetDataset = torch.class('resnet.ImagenetDataset', M)
+local UCF101Dataset = torch.class('resnet.UCF101Dataset', M)
 
-function ImagenetDataset:__init(imageInfo, opt, split)
+function UCF101Dataset:__init(imageInfo, opt, split)
    self.imageInfo = imageInfo[split]
    self.opt = opt
    self.split = split
@@ -30,7 +31,7 @@ function ImagenetDataset:__init(imageInfo, opt, split)
    assert(paths.dirp(self.dir), 'directory does not exist: ' .. self.dir)
 end
 
-function ImagenetDataset:get(i)
+function UCF101Dataset:get(i)
    local path = ffi.string(self.imageInfo.imagePath[i]:data())
 
    local image = self:_loadImage(paths.concat(self.dir, path))
@@ -42,7 +43,7 @@ function ImagenetDataset:get(i)
    }
 end
 
-function ImagenetDataset:_loadImage(path)
+function UCF101Dataset:_loadImage(path)
    local ok, input = pcall(function()
       return image.load(path, 3, 'float')
    end)
@@ -64,54 +65,52 @@ function ImagenetDataset:_loadImage(path)
    return input
 end
 
-function ImagenetDataset:size()
+function UCF101Dataset:size()
    return self.imageInfo.imageClass:size(1)
 end
 
--- Computed from random subset of ImageNet training images
--- local meanstd = {
---    mean = { 0.485, 0.456, 0.406 },
---    std = { 0.229, 0.224, 0.225 },
--- }
+function UCF101Dataset:preprocess(opt)
 
--- RGB
-local meanstd = {
-   mean = { 0.392, 0.376, 0.348 },
-   std = { 0.241, 0.234, 0.231 },
-}
+   -- Computed from random subset of ImageNet training images
+   -- local meanstd = {
+   --    mean = { 0.485, 0.456, 0.406 },
+   --    std = { 0.229, 0.224, 0.225 },
+   -- }
 
--- local pca = {
---    eigval = torch.Tensor{ 0.2175, 0.0188, 0.0045 },
---    eigvec = torch.Tensor{
---       { -0.5675,  0.7192,  0.4009 },
---       { -0.5808, -0.0045, -0.8140 },
---       { -0.5836, -0.6948,  0.4203 },
---    },
--- }
+   -- RGB
+   local meanstd = {
+      mean = { 0.392, 0.376, 0.348 },
+      std = { 0.241, 0.234, 0.231 },
+   }
 
-function ImagenetDataset:preprocess()
+   local scaleSize, imageSize = 256, 224
+   if opt.downsample ~='false' then -- downsample to half
+      scaleSize = scaleSize / 2
+      imageSize = imageSize / 2
+   end
+
+   
    if self.split == 'train' then
       return t.Compose{
-         t.RandomSizedCrop(224),
+         t.RandomSizedCrop(imageSize),
          t.ColorJitter({
             brightness = 0.4,
             contrast = 0.4,
             saturation = 0.4,
          }),
-         -- t.Lighting(0.1, pca.eigval, pca.eigvec),
          t.ColorNormalize(meanstd,opt.nChannel),
          t.HorizontalFlip(0.5),
       }
    elseif self.split == 'val' then
       local Crop = self.opt.tenCrop and t.TenCrop or t.CenterCrop
       return t.Compose{
-         t.Scale(256),
+         t.Scale(scaleSize),
          t.ColorNormalize(meanstd,opt.nChannel),
-         Crop(224),
+         Crop(imageSize),
       }
    else
       error('invalid split: ' .. self.split)
    end
 end
 
-return M.ImagenetDataset
+return M.UCF101Dataset

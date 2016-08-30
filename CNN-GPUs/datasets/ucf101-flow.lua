@@ -135,8 +135,8 @@ function UCF101Dataset:preprocess(opt)
 
    if self.split == 'train' then
       return t.Compose{
-         t.CenterCornerCrop(imageSize),
-         -- t.RandomSizedCrop(imageSize),
+         -- t.CenterCornerCrop(imageSize),
+         t.RandomSizedCrop(imageSize),
          t.ColorNormalize(meanstd,opt.nChannel),
          t.HorizontalFlip(0.5),
       }
