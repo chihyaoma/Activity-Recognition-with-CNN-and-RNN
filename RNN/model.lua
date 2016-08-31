@@ -13,10 +13,9 @@
 -- Contact: Chih-Yao Ma at <cyma@gatech.edu>
 ----------------------------------------------------------------
 
-require 'torch'   -- torch
-require 'nn'
-require 'rnn'
-require 'sys'
+local nn = require 'nn'
+local rnn = require 'rnn'
+local sys = require 'sys'
 
 print(sys.COLORS.red ..  '==> construct RNN')
 
@@ -29,8 +28,13 @@ else
    -- Video Classification model
    model = nn.Sequential()
 
-   -- local inputSize = opt.hiddenSize[1]
+   -- add fully connected layers
+   -- model:add(nn.Linear(opt.inputSize, opt.inputSize))
+   -- model:add(nn.Linear(opt.inputSize/2, opt.inputSize/2))
+
    local inputSize = opt.inputSize
+
+   -- local inputSize = opt.inputSize/2
 
    for i,hiddenSize in ipairs(opt.hiddenSize) do 
 
@@ -45,6 +49,9 @@ else
          rnn = nn.Sequencer(nn.GRU(inputSize, hiddenSize))
       elseif opt.lstm then
          -- Long Short Term Memory
+         require 'nngraph'
+         nn.FastLSTM.usenngraph = true -- faster
+         nn.FastLSTM.bn = opt.bn
          rnn = nn.Sequencer(nn.FastLSTM(inputSize, hiddenSize))
       else
          -- simple recurrent neural network
@@ -75,9 +82,9 @@ else
    -- input layer 
    model:insert(nn.SplitTable(3,1), 1) -- tensor to table of tensors
 
-   if opt.dropout then
-      model:insert(nn.Dropout(opt.dropoutProb), 1)
-   end
+   -- if opt.dropout then
+   --    model:insert(nn.Dropout(opt.dropoutProb), 1)
+   -- end
 
    -- output layer
    model:add(nn.SelectTable(-1)) -- this selects the last time-step of the rnn output sequence

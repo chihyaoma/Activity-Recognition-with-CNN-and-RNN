@@ -12,8 +12,7 @@
 --  Contact: Chih-Yao Ma at <cyma@gatech.edu>
 ----------------------------------------------------------------
 
-require 'dp'
-require 'sys'
+local sys = require 'sys'
 
 --[[command line arguments]]--
 cmd = torch.CmdLine()
@@ -44,10 +43,11 @@ cmd:option('--silent', false, 'don`t print anything to stdout')
 cmd:option('--uniform', 0.1, 'initialize parameters using uniform distribution between -uniform and uniform. -1 means default initialization')
 -- recurrent layer 
 cmd:option('--lstm', true, 'use Long Short Term Memory (nn.LSTM instead of nn.Recurrent)')
+cmd:option('--bn', true, 'use batch normalization. Only supported with --lstm')
 cmd:option('--gru', false, 'use Gated Recurrent Units (nn.GRU instead of nn.Recurrent)')
 cmd:option('--rho', 50, 'number of frames for each video')
 -- cmd:option('--inputSize', 2048, 'dimension of the feature vector from CNN')
-cmd:option('--hiddenSize', '{1024}', 'number of hidden units used at output of each recurrent layer. When more than one is specified, RNN/LSTMs/GRUs are stacked')
+cmd:option('--hiddenSize', '{512, 256}', 'number of hidden units used at output of each recurrent layer. When more than one is specified, RNN/LSTMs/GRUs are stacked')
 cmd:option('--zeroFirst', false, 'first step will forward zero through recurrence (i.e. add bias of recurrence). As opposed to learning bias specifically for first step.')
 cmd:option('--dropout', true, 'apply dropout after each recurrent layer')
 cmd:option('--dropoutProb', 0.5, 'probability of zeroing a neuron (dropout probability)')
@@ -59,7 +59,7 @@ cmd:option('-resume', 'false',  'Path to directory containing checkpoint')
 cmd:option('--trainEpochSize', -1, 'number of train examples seen between each epoch')
 cmd:option('--validEpochSize', -1, 'number of valid examples used for early stopping and cross-validation') 
 cmd:option('--spatFeatDir', '/home/chih-yao/Downloads/', 'directory of spatial feature vectors')
-cmd:option('--tempFeatDir', 'false', 'directory of temporal feature vectors (from optical flow)')
+cmd:option('--tempFeatDir', 'none', 'directory of temporal feature vectors (from optical flow)')
 
 dname,fname = sys.fpath()
 cmd:option('--plot', true, 'Plot the training and testing accuracy')
@@ -72,11 +72,7 @@ paths.mkdir(opt.save)
 -- create log file
 cmd:log(opt.save .. '/log.txt', opt)
 
-opt.hiddenSize = dp.returnString(opt.hiddenSize)
-
-if not opt.silent then
-	table.print(opt)
-end
+opt.hiddenSize = loadstring(" return "..opt.hiddenSize)()
 
 -- type:
 if opt.cuda == true then

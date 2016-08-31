@@ -11,7 +11,7 @@
 -- 
 --  Contact: Chih-Yao Ma at <cyma@gatech.edu>
 ----------------------------------------------------------------
-require 'torch'
+
 local sys = require 'sys'
 local xlua = require 'xlua'    -- xlua provides useful tools, like progress bars
 local optim = require 'optim'
@@ -73,15 +73,8 @@ function train(trainData, trainTarget)
    print(sys.COLORS.green .. '==> doing epoch on training data:') 
    print("==> online epoch # " .. epoch .. ' [batchSize = ' .. opt.batchSize .. ']')
 
-   -- Maybe decay learning rate
-   -- if epoch % opt.lrDecayEvery == 0 then
-   --    print(sys.COLORS.yellow ..  '==> Updating learning rate .. ')
-   --    local old_learningRate = optimState.learningRate
-   --    optimState = {learningRate = old_learningRate * opt.lrDecayFactor}
-   -- end
-
+   -- adjust learning rate
    optimState.learningRate = adjustLR(optimState.learningRate, epoch)
-
 
    print(sys.COLORS.yellow ..  '==> Learning rate is: ' .. optimState.learningRate .. '')
 
