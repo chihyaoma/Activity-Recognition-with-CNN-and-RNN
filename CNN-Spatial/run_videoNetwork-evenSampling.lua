@@ -35,7 +35,7 @@
 -- contact:
 -- Min-Hung (Steve) Chen at <cmhungsteve@gatech.edu>
 -- Chih-Yao Ma at <cyma@gatech.edu>
--- Last updated: 7/20/2016
+-- Last updated: 8/31/2016
 
 require 'xlua'
 require 'torch'
@@ -44,7 +44,56 @@ require 'image'
 require 'nn'
 require 'cudnn' 
 require 'cunn'
+require 'cutorch'
 t = require './transforms'
+
+----------------------------------------------
+-- 				Data paths				    --
+----------------------------------------------
+---- Temporal ----
+-- dirModel = '/home/cmhung/Code/Models/ResNet-Brox-sgd/'
+-- dirDatabase = '/home/cmhung/Code/Dataset/UCF-101/FlowMap-Brox/'
+
+-- dirModel = '/home/chih-yao/Documents/CNN-GPUs-Brox-224/'
+-- dirDatabase = '/home/chih-yao/Downloads/dataset/UCF-101/FlowMap-Brox/'
+
+---- Spatial ----
+dirModel = '/home/cmhung/Code/Models/ResNet-RGB-sgd/'
+dirDatabase = '/home/cmhung/Code/Dataset/UCF-101/RGB/'
+
+-- dirModel = '/home/chih-yao/Downloads/Models/ResNet-RGB-sgd/'
+-- dirDatabase = '/home/chih-yao/Downloads/dataset/UCF-101/RGB/'
+
+dataFolder = paths.basename(dirDatabase)
+
+----------------
+-- parse args --
+----------------
+op = xlua.OptionParser('%prog [options]')
+op:option{'-f', '--fps', action='store', dest='fps',
+          help='number of frames per second', default=25}
+op:option{'-t', '--time', action='store', dest='seconds',
+          help='length to process (in seconds)', default=2}
+op:option{'-w', '--width', action='store', dest='width',
+          help='resize video, width', default=320}
+op:option{'-h', '--height', action='store', dest='height',
+          help='resize video, height', default=240}
+op:option{'-z', '--zoom', action='store', dest='zoom',
+          help='display zoom', default=1}
+op:option{'-m', '--mode', action='store', dest='mode',
+          help='option for generating features (pred|feat)', default='feat'}
+op:option{'-p', '--type', action='store', dest='type',
+          help='option for CPU/GPU', default='cuda'}
+op:option{'-i', '--devid', action='store', dest='devid',
+          help='device ID (if using CUDA)', default=1}      
+opt,args = op:parse()
+
+----------------------------------------------
+--  		       GPU option	 	        --
+----------------------------------------------
+cutorch.setDevice(opt.devid)
+print(sys.COLORS.red ..  '==> using GPU #' .. cutorch.getDevice())
+print(sys.COLORS.white ..  ' ')
 
 ----------------------------------------------
 --         Input/Output information         --
@@ -53,23 +102,34 @@ t = require './transforms'
 numClass = 101
 dimFeat = 2048
 numStack = 10
-numTopN = 5
 nChannel = 2
+numTopN = 5
 
-----------------------------------------------
--- 				Data paths				    --
-----------------------------------------------
--- dirModel = '/home/chih-yao/Documents/CNN-GPUs-Brox-2/results_adam/LR_1e-4_WD_1e-3_full/'
--- dirDatabase = '/home/chih-yao/Downloads/dataset/UCF-101/FlowMap-Brox/'
-
-dirModel = '/home/cmhung/Code/Models/ResNet-Brox-sgd/'
-dirDatabase = '/home/cmhung/Code/Dataset/UCF-101/FlowMap-Brox/'
+if dataFolder == 'RGB' then
+	numStack = 1
+	nChannel = 3
+end
 
 ----------------------------------------------
 -- 			User-defined parameters			--
 ----------------------------------------------
-numFrameMin = 50
+-- will combine to 'parse args' later
+numFrameSample = 25
+sampleAll = false -- use all the frames or not
 numSplit = 1
+saveData = true
+tenCrop = false -- true: tenCrop | false: CenterCrop
+softMax = false
+nCrops = tenCrop and 10 or 1
+methodPred = 'scoreMean' -- classVoting | scoreMean
+print('')
+print('method for video prediction: ' .. methodPred)
+if softMax then
+	print('Using SoftMax layer')
+end
+if tenCrop then
+	print('Using TenCrop')
+end
 
 -- Train/Test split
 groupSplit = {}
@@ -86,12 +146,12 @@ end
 -- Output information --
 outTrain = {}
 for sp=1,numSplit do
-	table.insert(outTrain, {name = 'data_UCF101_train_'..sp..'.t7'})
+	table.insert(outTrain, {name = 'data_train_'..dataFolder..'_sp'..sp..'.t7'})
 end
 
 outTest = {}
 for sp=1,numSplit do
-	table.insert(outTest, {name = 'data_UCF101_test_'..sp..'.t7'})
+	table.insert(outTest, {name = 'data_test_'..dataFolder..'_sp'..sp..'.t7'})
 end
 
 ------ model selection ------
@@ -102,50 +162,40 @@ modelPath = dirModel..modelName
 ----------------------------------------------
 -- 					Functions 				--
 ----------------------------------------------
--- -- Brox-M
--- meanstd = {
---    mean = { 0.951, 0.918, 0.955 },
---    std = { 0.043, 0.052, 0.044 },
--- 	}
+if dataFolder == 'RGB' then
+	meanstd = {mean = { 0.392, 0.376, 0.348 },
+   				std = { 0.241, 0.234, 0.231 }}
+elseif dataFolder == 'FlowMap-Brox' then
+	meanstd = {mean = { 0.0091950063390791, 0.4922446721625, 0.49853131534726}, 
+				std = { 0.0056229398806939, 0.070845543666524, 0.081589332546496}}
+elseif dataFolder == 'FlowMap-Brox-crop40' then
+    meanstd = {mean = { 0.0091936888040752, 0.49204453841557, 0.49857498097595},
+      			std = { 0.0056320802048129, 0.070939325098903, 0.081698516724234}}
+   elseif dataFolder == 'FlowMap-Brox-crop20' then
+    meanstd = {mean = { 0.0092002901164412, 0.49243926742539, 0.49851170257907},
+                std = { 0.0056614266189997, 0.070921186231261, 0.081781848181796}}
+elseif dataFolder == 'FlowMap-Brox-M' then
+    meanstd = {mean = { 0.951, 0.918, 0.955 },
+                std = { 0.043, 0.052, 0.044 }}
+elseif dataFolder == 'FlowMap-FlowNet' then
+    meanstd = {mean = { 0.009, 0.510, 0.515 },
+                std = { 0.007, 0.122, 0.124 }}
+elseif dataFolder == 'FlowMap-FlowNet-M' then
+    meanstd = {mean = { 0.951, 0.918, 0.955 },
+                std = { 0.043, 0.052, 0.044 }}
+elseif dataFolder == 'FlowMap-TVL1-crop20' then
+    meanstd = {mean = { 0.0078286737613148, 0.49277467447062, 0.42283539438139 },
+                std = { 0.0049402251681559, 0.060421647049655, 0.058913364961995 }}
+else
+    error('no mean and std defined ... ')
+end
 
--- Brox-2
-meanstd = {
-   mean = { 0.009, 0.492, 0.498 },
-   std = { 0.006, 0.071, 0.081 },
-	}
-
+Crop = tenCrop and t.TenCrop or t.CenterCrop
 transform = t.Compose{
      t.Scale(256),
      t.ColorNormalize(meanstd, nChannel),
-     t.CenterCrop(224),
+     Crop(224),
   }
-
-----------------
--- parse args --
-----------------
-op = xlua.OptionParser('%prog [options]')
--- op:option{'-c', '--camera', action='store', dest='camidx',
---           help='camera index: /dev/videoIDX (if no video given)', 
---           default=0}
--- op:option{'-v', '--video', action='store', dest='video',
---           help='video file to process', default=videoPath}
-op:option{'-f', '--fps', action='store', dest='fps',
-          help='number of frames per second', default=25}
-op:option{'-t', '--time', action='store', dest='seconds',
-          help='length to process (in seconds)', default=2}
-op:option{'-w', '--width', action='store', dest='width',
-          help='resize video, width', default=320}
-op:option{'-h', '--height', action='store', dest='height',
-          help='resize video, height', default=240}
-op:option{'-z', '--zoom', action='store', dest='zoom',
-          help='display zoom', default=1}
-op:option{'-m', '--mode', action='store', dest='mode',
-          help='option for generating features (pred|feat)', default='pred'}
-op:option{'-p', '--type', action='store', dest='type',
-          help='option for CPU/GPU', default='cuda'}
-op:option{'-i', '--devid', action='store', dest='devid',
-          help='device ID (if using CUDA)', default=1}      
-opt,args = op:parse()
 
 ----------------------------------------------
 -- 					Class		        	--
@@ -172,19 +222,14 @@ if opt.mode == 'feat' then
     assert(torch.type(net:get(#net.modules)) == 'nn.Linear')
     net:remove(#net.modules)
 elseif opt.mode == 'pred' then
-	softMaxLayer = cudnn.SoftMax():cuda()
-    net:add(softMaxLayer)
+	if softMax then
+		softMaxLayer = cudnn.SoftMax():cuda()
+	    net:add(softMaxLayer)
+	end
 end
 
 -- print(net)
 print ' '
-
-----------------------------------------------
---  		       GPU option	 	        --
-----------------------------------------------
-cutorch.setDevice(opt.devid)
-print(sys.COLORS.red ..  '==> using GPU #' .. cutorch.getDevice())
-print(sys.COLORS.white ..  ' ')
 
 ----------------------------------------------
 -- 			Loading ImageNet labels	  		--
@@ -230,8 +275,6 @@ for sp=1,numSplit do
 		Te.accAll = 0
 		Te.c_finished = 0 -- different from countClass since there are also "." and ".."
 
-		Te.hitTestClass = 0		
-		Te.numTestVideoClass = 0
 		Te.hitTestAll = 0
 		Te.numTestVideoAll = 0
 
@@ -247,11 +290,14 @@ for sp=1,numSplit do
 	else
 		hitTestAll = Te.hitTestAll
 		numTestVideoAll = Te.numTestVideoAll
-		for c=Tr.c_finished+1, numClassTotal do
-			if nameClass[c] ~= '.' and nameClass[c] ~= '..' then
 
-				local hitTestClass = Te.hitTestClass
-				local numTestVideoClass = Te.numTestVideoClass
+		-- for c=50, 50 do		
+		for c=Te.c_finished+1, numClassTotal do
+		
+	if nameClass[c] ~= '.' and nameClass[c] ~= '..' then
+
+				local hitTestClass = 0
+				local numTestVideoClass = 0
 
 				print('Current Class: '..c..'. '..nameClass[c])
 
@@ -274,12 +320,9 @@ for sp=1,numSplit do
 			        	local videoPath = dirClass..videoName
 			        	
 			        	-- print('==> Loading the video: '..videoName)
-			        	-- TODO --
-			        	-- now:     fixed frame rate
-			        	-- future:  fixed frame #
 			        	
-			        	-- local video = ffmpeg.Video{path=videoPath, width=opt.width, height=opt.height, fps=opt.fps, length=opt.seconds, delete=true, destFolder='out_frames',silent=true}
-			        	local video = ffmpeg.Video{path=videoPath, delete=true, destFolder='out_frames', silent=true}
+			        	--local video = ffmpeg.Video{path=videoPath, width=opt.width, height=opt.height, fps=opt.fps, length=opt.seconds, delete=true, destFolder='out_frames',silent=true}
+			        	local video = ffmpeg.Video{path=videoPath, fps=opt.fps, delete=true, destFolder='out_frames', silent=true}
 
 			        	-- --video:play{} -- play the video
 			        	local vidTensor = video:totensor{} -- read the whole video & turn it into a 4D tensor
@@ -288,10 +331,12 @@ for sp=1,numSplit do
 
 				        ------ Video prarmeters ------
 				        local numFrame = vidTensor2:size(1)
-				        
-				        if numFrame >= numFrameMin then
-				          	--countVideo = countVideo + 1 -- save this video only when frame# >= min. frame#
-				          	
+
+				        -- print(numFrame)		          	
+				        local numFrameAvailable = numFrame - numStack + 1 -- for 10-stacking
+				        local numFrameInterval = sampleAll and 1 or torch.floor(numFrameAvailable/numFrameSample)
+				        local numFrameUsed = sampleAll and numFrameAvailable or numFrameSample -- choose frame # for one video
+
 			            	-- extract the group name
 			            	local i,j = string.find(videoName,'_g') -- find the location of the group info in the string
 			            	local videoGroup = tonumber(string.sub(videoName,j+1,j+2)) -- get the group#
@@ -302,49 +347,47 @@ for sp=1,numSplit do
 				          	----------------------------------------------
 				          	if opt.mode == 'pred' then 
 				          		if groupSplit[sp].setTe:eq(videoGroup):sum() == 1 then -- testing data
-					          		local predFrames = torch.Tensor(numFrameMin-numStack+1):zero()
+					          		local predFrames = torch.Tensor(numFrameUsed):zero() -- 25
+					          		local probFrames = torch.Tensor(numFrameUsed,numClass):zero() -- 25x101
 					            	-- print '==> Begin predicting......'
-					            	for f=1, numFrameMin-numStack+1 do
-					              		
-					              		local inFrames = vidTensor2[{{f,f+numStack-1}}]
-					              		local netInput = torch.Tensor(inFrames:size(1)*nChannel,opt.height,opt.width):zero()
+					            	
+					            	for i=1, numFrameUsed do
+					              		local f = (i-1)*numFrameInterval+1 -- current frame sample
+					              		-- print(f)
+					              		local inFrames = vidTensor2[{{f,f+numStack-1}}] -- 10x2x240x320
+					              		local netInput = torch.Tensor(inFrames:size(1)*nChannel,opt.height,opt.width):zero() -- 20x240x320
 					              		for x=0,numStack-1 do
 					              			netInput[{{x*nChannel+1,(x+1)*nChannel}}] = inFrames[{{x+1},{},{},{}}]
 					              		end
-					         			
-					         			local I = transform(netInput)
+					         			local I = transform(netInput) -- 20x224x224 or 10x20x224x224 (tenCrop)
 					              		
-
-					              		-- local I = transform(inFrames)
-					              		I = I:view(1, table.unpack(I:size():totable()))
-					              		local output = net:forward(I:cuda())
-
-										local probLog, predLabels = output:float():topk(numTopN, true, true)
-						              	predFrames[f] = predLabels[1][1]
-					              							              		
-					     --          		local inFrame = vidTensor[f]
-					     --          		-- print('frame '..tostring(f)..': ')
-					     --          		local I = transform(inFrame)
-					     --          		I = I:view(1, table.unpack(I:size():totable()))
-					     --          		local output = net:forward(I:cuda())
-
-					     --          		local N = 5
-										-- local probLog, predLabels = output:float():topk(N, true, true)
-					     --          		predFrames[f] = predLabels[1][1]
-					     --          		-- print(probLog)
-					     --          		--print(probLog, ucf101Label[predLabels[1][1]])
-					     --          		-- print('=================================')
+										local probFrame_now = torch.Tensor(1,numClass):zero()
+					              		if tenCrop then
+						              		local outputTen = net:forward(I:cuda()):float() -- 10x101
+					              			probFrame_now = torch.mean(outputTen,1) -- 1x101
+									
+					              		else
+					              			I = I:view(1, table.unpack(I:size():totable())) -- 1x20x224x224
+					              			local output = net:forward(I:cuda()) -- 1x101
+					              			probFrame_now = output:float()
+					              		end
+										probFrames[i] = probFrame_now
+										local probLog, predLabels = probFrame_now:topk(numTopN, true, true) -- 5 (probabilities + labels)        
+										predFrames[i] = predLabels[1][1]					              		
 					            	end
 
-					            	-- Voting for the prediction of this video
-					            	local predVideo = torch.mode(predFrames)
-					            	predVideo = predVideo[1] -- extract only the number, not the Tensor
-					            	local labelVideo = ucf101Label[predVideo]
+					            	-- prediction of this video
+					            	local predVideo
+					            	if methodPred == 'classVoting' then 
+					            		local predVideoTensor = torch.mode(predFrames)
+					            		predVideo = predVideoTensor[1]
+									elseif methodPred == 'scoreMean' then
+										local scoreMean = torch.mean(probFrames,1)
+										local probLog, predLabels = scoreMean:topk(numTopN, true, true) -- 5 (probabilities + labels)
+						              	predVideo = predLabels[1][1]
+									end
 
-					            	-- print(predFrames)
-					            	-- print('predVideo: '..predVideo)
-					            	-- print('predLabel: '..labelVideo)
-					            	-- print('nameClass[c]: '..nameClass[c])
+					            	local labelVideo = ucf101Label[predVideo]
 
 					            	-- accumulate the score
 					            	numTestVideoClass = numTestVideoClass + 1
@@ -352,31 +395,36 @@ for sp=1,numSplit do
 					            		hitTestClass = hitTestClass  + 1
 					            	end
 
-					            	-- print('hitTestClass: '..hitTestClass)
-					            	-- print('numTestVideoClass: '..numTestVideoClass)
-					            	-- print('=================================')
+					            	-- print(hitTestClass, numTestVideoClass)
 
 				            	end
 				          	elseif opt.mode == 'feat' then -- feature extraction
-				          		local featMatsVideo = torch.DoubleTensor(1,dimFeat,numFrameMin):zero()
+				          		local featMatsVideo = torch.DoubleTensor(1,dimFeat,numFrameUsed):zero() -- 1x2048x25
 				            	--print '==> Generating the feature matrix......'
-				            	for f=1, numFrameMin do
-				              		local inFrame = vidTensor[f]
+				            	for i=1, numFrameUsed do
+					              	local f = (i-1)*numFrameInterval+1 -- current frame sample
+					              	-- print(f)
+					              	local inFrames = vidTensor2[{{f,f+numStack-1}}] -- 10x2x240x320
+					              	local netInput = torch.Tensor(inFrames:size(1)*nChannel,opt.height,opt.width):zero() -- 20x240x320
+					              	for x=0,numStack-1 do
+					              		netInput[{{x*nChannel+1,(x+1)*nChannel}}] = inFrames[{{x+1},{},{},{}}]
+					              	end
+					         		local I = transform(netInput) -- 20x224x224 or 10x20x224x224 (tenCrop)
 
-				              		--print('frame '..tostring(f)..'...')
-				              		--local feat = gen_feature(inFrame, net, opt)
-				              		
-				          			------ Image pre-processing ------
-				              		local I = transform(inFrame)
-				              		-- View as mini-batch of size 1
-    								I = I:view(1, table.unpack(I:size():totable()))
-								    -- Get the output of the layer before the (removed) fully connected layer
-								    local feat = net:forward(I:cuda()):squeeze(1)
-				              		--
+									local feat_now = torch.Tensor(1,dimFeat):zero()
+					              	if tenCrop then
+						            	local outputTen = net:forward(I:cuda()):float() -- 10x2048
+					              		feat_now = torch.mean(outputTen,1) -- 1x2048
+									else
+					              		I = I:view(1, table.unpack(I:size():totable())) -- 1x20x224x224
+					              		local output = net:forward(I:cuda()) -- 1x2048
+					              		feat_now = output:float()
+					              	end
+
 				              		-- store the feature matrix for this video
-							  		feat:resize(1,torch.numel(feat),1)
+							  		feat_now:resize(1,torch.numel(feat_now),1)
+							  		featMatsVideo[{{},{},{i}}] = feat_now:double()
 
-							  		featMatsVideo[{{},{},{f}}] = feat:double()
 				            	end
 
 				            	----------------------------------------------
@@ -407,17 +455,12 @@ for sp=1,numSplit do
 				            			Te.labels = torch.cat(Te.labels,torch.DoubleTensor(1):fill(Te.countClass),1)
 				            		end			            	
 				            	end
-				            	
 				          	end
-				        end
 			      	end
 			      	collectgarbage()
 			    end
 			    
-				-- Tr.c_finished = c -- save the index
 				Te.c_finished = c -- save the index
-				-- print('Split: '..sp)
-				-- print('Finished class#: '..Te.countClass)
 
 				if opt.mode == 'pred' then 
 					numTestVideoAll = numTestVideoAll + numTestVideoClass
@@ -427,10 +470,8 @@ for sp=1,numSplit do
 					
 					Te.accClass[Te.countClass] = hitTestClass/numTestVideoClass
 					Te.accAll = hitTestAll/numTestVideoAll
-					Te.numTestVideoAll = numTestVideoAll
-					Te.numTestVideoClass = numTestVideoClass			
+					Te.numTestVideoAll = numTestVideoAll			
 					Te.hitTestAll = hitTestAll
-					Te.hitTestClass = hitTestClass
 
 				elseif opt.mode == 'feat' then
 					print('Generated training data#: '..Tr.countVideo)
@@ -439,7 +480,10 @@ for sp=1,numSplit do
 
 			  	print('The elapsed time for the class '..nameClass[c]..': ' .. timerClass:time().real .. ' seconds')
 			  	-- torch.save(outTrain[sp].name, Tr)
-			  	torch.save(outTest[sp].name, Te)
+			  	
+			  	if saveData then
+			  		torch.save(outTest[sp].name, Te)
+				end
 
 			  	collectgarbage()
 			  	print(' ')
