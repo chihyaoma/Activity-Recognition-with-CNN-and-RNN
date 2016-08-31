@@ -23,12 +23,6 @@ local m = require 'model'
 local model = m.model
 local criterion = m.criterion
 
--- This matrix records the current confusion across classes
-local confusion = optim.ConfusionMatrix(classes) 
-
--- Logger:
-local trainLogger = optim.Logger(paths.concat(opt.save,'train.log'))
-
 -- Batch test:
 local inputs = torch.Tensor(opt.batchSize, opt.inputSize, opt.rho)
 
@@ -63,7 +57,8 @@ function train(trainData, trainTarget)
    -- epoch tracker
    epoch = epoch or 1
 
-   local time = sys.clock()
+   local timer = torch.Timer()
+   local dataTimer = torch.Timer()
 
    model:training()
 
@@ -78,7 +73,11 @@ function train(trainData, trainTarget)
 
    print(sys.COLORS.yellow ..  '==> Learning rate is: ' .. optimState.learningRate .. '')
 
+   local top1Sum, top3Sum, lossSum = 0.0, 0.0, 0.0
+   local N = 0
+
    for t = 1,trainData:size(1),opt.batchSize do
+      local dataTime = dataTimer:time().real
 
       if opt.progress == true then
          -- disp progress
@@ -99,28 +98,33 @@ function train(trainData, trainTarget)
          idx = idx + 1
       end
 
+      -- Copy input and target to the GPU
+      inputs, targets = copyInputs(inputs, targets)
+
       --------------------------------------------------------
       -- Using optim package for training
       --------------------------------------------------------
+      local loss, top1, top3
       local eval_E = function(w)
          -- reset gradients
          dE_dw:zero()
 
          -- evaluate function for complete mini batch
          local outputs = model:forward(inputs)
-         local E = criterion:forward(outputs,targets)
+         loss = criterion:forward(outputs,targets)
 
          -- estimate df/dW
          local dE_dy = criterion:backward(outputs,targets)   
          model:backward(inputs,dE_dy)
 
-         -- update confusion
-         for i = 1,opt.batchSize do
-            confusion:add(outputs[i],targets[i])
-         end
+         top1, top3 = computeScore(outputs, targets, 1)
+         top1Sum = top1Sum + top1*opt.batchSize
+         top3Sum = top3Sum + top3*opt.batchSize
+         lossSum = lossSum + loss*opt.batchSize
+         N = N + opt.batchSize
 
          -- return f and df/dX
-         return E,dE_dw
+         return loss,dE_dw
       end
 
       -- optimize on current mini-batch
@@ -136,26 +140,16 @@ function train(trainData, trainTarget)
       elseif opt.optimizer == 'rmsprop' then
          -- use RMSProp
          optim.rmsprop(eval_E, w, optimState)
-      end
+      end    
+
+      print((' | Epoch: [%d][%d/%d]    Time %.3f  Data %.3f  Err %1.4f  top1 %7.3f  top3 %7.3f'):format(
+         epoch, t, trainData:size(1), timer:time().real, dataTime, loss, top1, top3))
+
+      timer:reset()
+      dataTimer:reset()
 
    end
 
-   -- time taken
-   time = sys.clock() - time
-   time = time / trainData:size(1)
-   print("\n==> time to learn 1 sample = " .. (time*1000) .. 'ms')
-
-   -- print confusion matrix
-   print(confusion)
-
-   -- update logger/plot
-   trainLogger:add{['% mean class accuracy (train set)'] = confusion.totalValid * 100}
-   if opt.plot then
-      trainLogger:style{['% mean class accuracy (train set)'] = '-'}
-      trainLogger:plot()
-   end
-   -- next epoch
-   confusion:zero()
    epoch = epoch + 1
 end
 
@@ -170,5 +164,41 @@ function adjustLR(learningRate, epoch)
    
    return learningRate * math.pow(optimState.lrDecayFactor, decayPower)
 end
+
+function copyInputs(input, target)
+   -- Copies the input to a CUDA tensor, if using 1 GPU, or to pinned memory,
+   -- if using DataParallelTable. The target is always copied to a CUDA tensor
+   local inputGPU = input or (opt.nGPU == 1
+      and torch.CudaTensor()
+      or cutorch.createCudaHostTensor())
+   local targetGPU = target or torch.CudaTensor()
+
+   inputGPU:resize(input:size()):copy(input)
+   targetGPU:resize(target:size()):copy(target)
+
+   return inputGPU, targetGPU
+end
+
+function computeScore(output, target)
+
+   -- Coputes the top1 and top3 error rate
+   local batchSize = output:size(1)
+
+   local _ , predictions = output:float():sort(2, true) -- descending
+
+   -- Find which predictions match the target
+   local correct = predictions:eq(
+      target:long():view(batchSize, 1):expandAs(output))
+
+   -- Top-1 score
+   local top1 = 1.0 - (correct:narrow(2, 1, 1):sum() / batchSize)
+
+   -- Top-3 score, if there are at least 3 classes
+   local len = math.min(3, correct:size(2))
+   local top3 = 1.0 - (correct:narrow(2, 1, len):sum() / batchSize)
+
+   return top1 * 100, top3 * 100
+end
+
 -- Export:
 return train

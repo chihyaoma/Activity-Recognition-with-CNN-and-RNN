@@ -78,6 +78,9 @@ function test(testData, testTarget)
 			idx = idx + 1
 		end
 
+		-- Copy input and target to the GPU
+		inputs, targets = copyInputs(inputs, targets)
+
 		if opt.averagePred == true then 
 			-- make prediction for each of the images frames, start from frame #2
 			idx = 1
@@ -142,7 +145,9 @@ function test(testData, testTarget)
 		torch.save('labels.txt', labels,'ascii')
 		torch.save('prob.txt', prob,'ascii')
 
-		checkpoints.save(epoch, model, optimState, bestModel)
+		if opt.saveModel == true then
+			checkpoints.save(epoch, model, optimState, bestModel)
+		end
 	end
 	print(sys.COLORS.red .. '==> Best testing accuracy = ' .. bestAcc .. '%')
 
@@ -153,6 +158,20 @@ function test(testData, testTarget)
 		testLogger:plot()
 	end
 	confusion:zero()
+end
+
+function copyInputs(input, target)
+   -- Copies the input to a CUDA tensor, if using 1 GPU, or to pinned memory,
+   -- if using DataParallelTable. The target is always copied to a CUDA tensor
+   local inputGPU = input or (opt.nGPU == 1
+      and torch.CudaTensor()
+      or cutorch.createCudaHostTensor())
+   local targetGPU = target or torch.CudaTensor()
+
+   inputGPU:resize(input:size()):copy(input)
+   targetGPU:resize(target:size()):copy(target)
+
+   return inputGPU, targetGPU
 end
 
 -- Export:
