@@ -28,13 +28,12 @@ else
    -- Video Classification model
    model = nn.Sequential()
 
-   -- add fully connected layers
-   -- model:add(nn.Linear(opt.inputSize, opt.inputSize))
-   -- model:add(nn.Linear(opt.inputSize/2, opt.inputSize/2))
-
    local inputSize = opt.inputSize
-
-   -- local inputSize = opt.inputSize/2
+   for i,fcSize in ipairs(opt.fcSize) do 
+      -- add fully connected layers to fuse spatial and temporal features
+      model:add(nn.Sequencer(nn.Linear(inputSize, fcSize)))
+      inputSize = fcSize
+   end
 
    for i,hiddenSize in ipairs(opt.hiddenSize) do 
 
@@ -72,7 +71,7 @@ else
       
       model:add(rnn)
 
-      if opt.dropout then -- dropout it applied between recurrent layers
+      if opt.dropout > 0 then -- dropout it applied between recurrent layers
          model:add(nn.Sequencer(nn.Dropout(opt.dropoutProb)))
       end
       
@@ -82,7 +81,7 @@ else
    -- input layer 
    model:insert(nn.SplitTable(3,1), 1) -- tensor to table of tensors
 
-   -- if opt.dropout then
+   -- if opt.dropout > 0 then
    --    model:insert(nn.Dropout(opt.dropoutProb), 1)
    -- end
 

@@ -29,7 +29,7 @@ cmd:option('--momentum', 0.9, 'momentum')
 cmd:option('--weightDecay', 1e-4, 'weightDecay')
 cmd:option('--optimizer', 'sgd', 'Use different optimizer, e.g. sgd, adam, adamax, rmsprop for now')
 cmd:option('--lrMethod',  'fixed',   'methods for tuning the learning rate: manual | fixed ')
-cmd:option('--epochUpdateLR', 2, 'learning rate decay per epochs for optimizer adam')
+cmd:option('--epochUpdateLR', 10, 'learning rate decay per epochs for optimizer adam')
 cmd:option('--lrDecayFactor', 0.1, 'learning rate decay factor for optimizer adam')
 cmd:option('--maxOutNorm', -1, 'max l2-norm of each layer`s output neuron weights')
 cmd:option('--cutoffNorm', -1, 'max l2-norm of concatenation of all gradParam tensors')
@@ -43,14 +43,13 @@ cmd:option('--silent', false, 'don`t print anything to stdout')
 cmd:option('--uniform', 0.1, 'initialize parameters using uniform distribution between -uniform and uniform. -1 means default initialization')
 -- recurrent layer 
 cmd:option('--lstm', true, 'use Long Short Term Memory (nn.LSTM instead of nn.Recurrent)')
-cmd:option('--bn', true, 'use batch normalization. Only supported with --lstm')
+cmd:option('--bn', false, 'use batch normalization. Only supported with --lstm')
 cmd:option('--gru', false, 'use Gated Recurrent Units (nn.GRU instead of nn.Recurrent)')
 cmd:option('--rho', 50, 'number of frames for each video')
--- cmd:option('--inputSize', 2048, 'dimension of the feature vector from CNN')
-cmd:option('--hiddenSize', '{512, 256}', 'number of hidden units used at output of each recurrent layer. When more than one is specified, RNN/LSTMs/GRUs are stacked')
+cmd:option('--fcSize', '{2048, 1024}', 'umber of hidden units used at output of each fully recurrent connected layer. When more than one is specified, fully-connected layers are stacked')
+cmd:option('--hiddenSize', '{1024}', 'number of hidden units used at output of each recurrent layer. When more than one is specified, RNN/LSTMs/GRUs are stacked')
 cmd:option('--zeroFirst', false, 'first step will forward zero through recurrence (i.e. add bias of recurrence). As opposed to learning bias specifically for first step.')
-cmd:option('--dropout', true, 'apply dropout after each recurrent layer')
-cmd:option('--dropoutProb', 0.5, 'probability of zeroing a neuron (dropout probability)')
+cmd:option('--dropout', 0.5, 'apply dropout after each recurrent layer')
 -- testing process
 cmd:option('--averagePred', true, 'average the predictions from each time step per video')
 -- checkpoint
@@ -72,6 +71,7 @@ paths.mkdir(opt.save)
 -- create log file
 cmd:log(opt.save .. '/log.txt', opt)
 
+opt.fcSize = loadstring(" return "..opt.fcSize)()
 opt.hiddenSize = loadstring(" return "..opt.hiddenSize)()
 
 -- type:
