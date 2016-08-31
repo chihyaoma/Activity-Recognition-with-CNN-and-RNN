@@ -31,7 +31,8 @@ local confusion = optim.ConfusionMatrix(classes)
 local testLogger = optim.Logger(paths.concat(opt.save,'test.log'))
 
 -- Batch test:
-local inputs = torch.Tensor(opt.batchSize, testData:size(2), testData:size(3))
+local inputs = torch.Tensor(opt.batchSize, opt.inputSize, opt.rho)
+
 local targets = torch.Tensor(opt.batchSize)
 local labels = {}
 local prob = {}

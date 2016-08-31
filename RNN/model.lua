@@ -13,10 +13,9 @@
 -- Contact: Chih-Yao Ma at <cyma@gatech.edu>
 ----------------------------------------------------------------
 
-require 'torch'   -- torch
-require 'nn'
-require 'rnn'
-require 'sys'
+local nn = require 'nn'
+local rnn = require 'rnn'
+local sys = require 'sys'
 
 print(sys.COLORS.red ..  '==> construct RNN')
 
@@ -29,8 +28,12 @@ else
    -- Video Classification model
    model = nn.Sequential()
 
-   -- local inputSize = opt.hiddenSize[1]
    local inputSize = opt.inputSize
+   for i,fcSize in ipairs(opt.fcSize) do 
+      -- add fully connected layers to fuse spatial and temporal features
+      model:add(nn.Sequencer(nn.Linear(inputSize, fcSize)))
+      inputSize = fcSize
+   end
 
    for i,hiddenSize in ipairs(opt.hiddenSize) do 
 
@@ -45,6 +48,9 @@ else
          rnn = nn.Sequencer(nn.GRU(inputSize, hiddenSize))
       elseif opt.lstm then
          -- Long Short Term Memory
+         require 'nngraph'
+         nn.FastLSTM.usenngraph = true -- faster
+         nn.FastLSTM.bn = opt.bn
          rnn = nn.Sequencer(nn.FastLSTM(inputSize, hiddenSize))
       else
          -- simple recurrent neural network
@@ -65,7 +71,7 @@ else
       
       model:add(rnn)
 
-      if opt.dropout then -- dropout it applied between recurrent layers
+      if opt.dropout > 0 then -- dropout it applied between recurrent layers
          model:add(nn.Sequencer(nn.Dropout(opt.dropoutProb)))
       end
       
@@ -75,9 +81,9 @@ else
    -- input layer 
    model:insert(nn.SplitTable(3,1), 1) -- tensor to table of tensors
 
-   if opt.dropout then
-      model:insert(nn.Dropout(opt.dropoutProb), 1)
-   end
+   -- if opt.dropout > 0 then
+   --    model:insert(nn.Dropout(opt.dropoutProb), 1)
+   -- end
 
    -- output layer
    model:add(nn.SelectTable(-1)) -- this selects the last time-step of the rnn output sequence
