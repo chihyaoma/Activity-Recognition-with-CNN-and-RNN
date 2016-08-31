@@ -35,6 +35,10 @@ else
       inputSize = fcSize
    end
 
+   if opt.dropout > 0 then
+      model:add(nn.Sequencer(nn.Dropout(opt.dropoutProb), 1))
+   end
+
    for i,hiddenSize in ipairs(opt.hiddenSize) do 
 
       if i~= 1 and (not opt.lstm) and (not opt.gru) then
@@ -105,6 +109,21 @@ criterion = nn.ClassNLLCriterion()
 
 print(sys.COLORS.red ..  '==> here is the network:')
 print(model)
+
+-- Wrap the model with DataParallelTable, if using more than one GPU
+if opt.nGPU > 1 then
+   local gpus = torch.range(1, opt.nGPU):totable()
+
+   local dpt = nn.DataParallelTable(1, true, true)
+      :add(model, gpus)
+      :threads(function()
+         local rnn = require 'rnn'
+         require 'nngraph'        
+      end)
+   dpt.gradInput = nil
+
+   model = dpt:cuda()
+end
 
 if opt.cuda == true then
    model:cuda()

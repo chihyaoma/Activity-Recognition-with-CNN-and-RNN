@@ -35,7 +35,7 @@ cmd:option('--maxOutNorm', -1, 'max l2-norm of each layer`s output neuron weight
 cmd:option('--cutoffNorm', -1, 'max l2-norm of concatenation of all gradParam tensors')
 cmd:option('--batchSize', 128, 'number of examples per batch') -- how many examples per training 
 cmd:option('--cuda', true, 'use CUDA')
-cmd:option('--useDevice', 1, 'sets the device (GPU) to use')
+cmd:option('--nGPU', 1,    'Number of GPUs to use by default')
 cmd:option('--maxEpoch', 1000, 'maximum number of epochs to run')
 cmd:option('--maxTries', 50, 'maximum number of epochs to try to find a better local minima for early-stopping')
 cmd:option('--progress', true, 'print progress bar')
@@ -47,21 +47,21 @@ cmd:option('--bn', false, 'use batch normalization. Only supported with --lstm')
 cmd:option('--gru', false, 'use Gated Recurrent Units (nn.GRU instead of nn.Recurrent)')
 cmd:option('--rho', 50, 'number of frames for each video')
 cmd:option('--fcSize', '{2048, 1024}', 'umber of hidden units used at output of each fully recurrent connected layer. When more than one is specified, fully-connected layers are stacked')
-cmd:option('--hiddenSize', '{1024}', 'number of hidden units used at output of each recurrent layer. When more than one is specified, RNN/LSTMs/GRUs are stacked')
+cmd:option('--hiddenSize', '{1024, 1024, 1024}', 'number of hidden units used at output of each recurrent layer. When more than one is specified, RNN/LSTMs/GRUs are stacked')
 cmd:option('--zeroFirst', false, 'first step will forward zero through recurrence (i.e. add bias of recurrence). As opposed to learning bias specifically for first step.')
-cmd:option('--dropout', 0.5, 'apply dropout after each recurrent layer')
+cmd:option('--dropout', 0, 'apply dropout after each recurrent layer')
 -- testing process
 cmd:option('--averagePred', true, 'average the predictions from each time step per video')
 -- checkpoint
-cmd:option('-resume', 'false',  'Path to directory containing checkpoint')
+cmd:option('-resume', 'none',  'Path to directory containing checkpoint')
+cmd:option('-saveModel', false,  'Save the model and optimState for resume later')
 -- data
 cmd:option('--trainEpochSize', -1, 'number of train examples seen between each epoch')
 cmd:option('--validEpochSize', -1, 'number of valid examples used for early stopping and cross-validation') 
 cmd:option('--spatFeatDir', '/home/chih-yao/Downloads/', 'directory of spatial feature vectors')
 cmd:option('--tempFeatDir', 'none', 'directory of temporal feature vectors (from optical flow)')
-
+cmd:option('--plot', false, 'Plot the training and testing accuracy')
 dname,fname = sys.fpath()
-cmd:option('--plot', true, 'Plot the training and testing accuracy')
 
 cmd:text()
 opt = cmd:parse(arg or {})
@@ -78,8 +78,6 @@ opt.hiddenSize = loadstring(" return "..opt.hiddenSize)()
 if opt.cuda == true then
 	print(sys.COLORS.red ..  '==> switching to CUDA')
 	require 'cunn'
-	cutorch.setDevice(opt.useDevice)
-	print(sys.COLORS.red ..  '==> using GPU #' .. cutorch.getDevice())
 end
 
 -- check if rgb or flow features wanted to be used
