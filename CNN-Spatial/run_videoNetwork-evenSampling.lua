@@ -50,19 +50,25 @@ t = require './transforms'
 ----------------------------------------------
 -- 				Data paths				    --
 ----------------------------------------------
----- Temporal ----
--- dirModel = '/home/cmhung/Code/Models/ResNet-Brox-sgd/'
--- dirDatabase = '/home/cmhung/Code/Dataset/UCF-101/FlowMap-Brox/'
+source = 'local' -- local | workstation
+if source == 'local' then
+	dirSource = '/home/cmhung/Code/'
+elseif source == 'workstation' then	
+	dirSource = '/home/chih-yao/Downloads/'
+end
 
--- dirModel = '/home/chih-yao/Documents/CNN-GPUs-Brox-224/'
--- dirDatabase = '/home/chih-yao/Downloads/dataset/UCF-101/FlowMap-Brox/'
+---- Temporal ----
+-- Brox --
+-- dirModel = dirSource..'Models/ResNet-Brox-sgd/'
+-- dirDatabase = dirSource..'dataset/UCF-101/FlowMap-Brox/'
+
+-- TVL1 --
+dirModel = dirSource..'Models/ResNet-TVL1-sgd/'
+dirDatabase = dirSource..'dataset/UCF-101/FlowMap-TVL1-crop20/'
 
 ---- Spatial ----
-dirModel = '/home/cmhung/Code/Models/ResNet-RGB-sgd/'
-dirDatabase = '/home/cmhung/Code/Dataset/UCF-101/RGB/'
-
--- dirModel = '/home/chih-yao/Downloads/Models/ResNet-RGB-sgd/'
--- dirDatabase = '/home/chih-yao/Downloads/dataset/UCF-101/RGB/'
+-- dirModel = dirSource..'Models/ResNet-RGB-sgd/'
+-- dirDatabase = dirSource..'dataset/UCF-101/RGB/'
 
 dataFolder = paths.basename(dirDatabase)
 
@@ -81,7 +87,7 @@ op:option{'-h', '--height', action='store', dest='height',
 op:option{'-z', '--zoom', action='store', dest='zoom',
           help='display zoom', default=1}
 op:option{'-m', '--mode', action='store', dest='mode',
-          help='option for generating features (pred|feat)', default='feat'}
+          help='option for generating features (pred|feat)', default='pred'}
 op:option{'-p', '--type', action='store', dest='type',
           help='option for CPU/GPU', default='cuda'}
 op:option{'-i', '--devid', action='store', dest='devid',
@@ -115,21 +121,19 @@ end
 ----------------------------------------------
 -- will combine to 'parse args' later
 numFrameSample = 25
-sampleAll = false -- use all the frames or not
+sampleAll = true -- use all the frames or not
 numSplit = 1
-saveData = true
-tenCrop = false -- true: tenCrop | false: CenterCrop
+saveData = false
+methodCrop = 'tenCrop' -- tenCrop | centerCrop
 softMax = false
-nCrops = tenCrop and 10 or 1
+nCrops = (methodCrop == 'tenCrop') and 10 or 1
 methodPred = 'scoreMean' -- classVoting | scoreMean
 print('')
 print('method for video prediction: ' .. methodPred)
 if softMax then
 	print('Using SoftMax layer')
 end
-if tenCrop then
-	print('Using TenCrop')
-end
+print('Using '..methodCrop)
 
 -- Train/Test split
 groupSplit = {}
@@ -146,12 +150,12 @@ end
 -- Output information --
 outTrain = {}
 for sp=1,numSplit do
-	table.insert(outTrain, {name = 'data_train_'..dataFolder..'_sp'..sp..'.t7'})
+	table.insert(outTrain, {name = 'data_'..opt.mode..'_train_'..dataFolder..'_'..methodCrop..'_sp'..sp..'.t7'})
 end
 
 outTest = {}
 for sp=1,numSplit do
-	table.insert(outTest, {name = 'data_test_'..dataFolder..'_sp'..sp..'.t7'})
+	table.insert(outTest, {name = 'data_'..opt.mode..'_test_'..dataFolder..'_'..methodCrop..'_sp'..sp..'.t7'})
 end
 
 ------ model selection ------
@@ -190,7 +194,7 @@ else
     error('no mean and std defined ... ')
 end
 
-Crop = tenCrop and t.TenCrop or t.CenterCrop
+Crop = (methodCrop == 'tenCrop') and t.TenCrop or t.CenterCrop
 transform = t.Compose{
      t.Scale(256),
      t.ColorNormalize(meanstd, nChannel),
@@ -269,14 +273,17 @@ for sp=1,numSplit do
 		Te.path = {}
 		Te.featMats = torch.DoubleTensor()
 		Te.labels = torch.DoubleTensor()
+		Te.countFrame = 0
 		Te.countVideo = 0
 		Te.countClass = 0
-		Te.accClass = {}
-		Te.accAll = 0
+		Te.accFrameClass = {}
+		Te.accFrameAll = 0
+		Te.accVideoClass = {}
+		Te.accVideoAll = 0
 		Te.c_finished = 0 -- different from countClass since there are also "." and ".."
 
-		Te.hitTestAll = 0
-		Te.numTestVideoAll = 0
+		Te.hitTestFrameAll = 0
+		Te.hitTestVideoAll = 0
 
 	else
 		Te = torch.load(outTest[sp].name) -- output
@@ -288,20 +295,19 @@ for sp=1,numSplit do
 	if Tr.countClass == numClass and Te.countClass == numClass then
 		print('The feature data of split '..sp..' is already in your folder!!!!!!')
 	else
-		hitTestAll = Te.hitTestAll
-		numTestVideoAll = Te.numTestVideoAll
 
 		-- for c=50, 50 do		
 		for c=Te.c_finished+1, numClassTotal do
-		
-	if nameClass[c] ~= '.' and nameClass[c] ~= '..' then
+			if nameClass[c] ~= '.' and nameClass[c] ~= '..' then
 
-				local hitTestClass = 0
+				local hitTestFrameClass = 0
+				local numTestFrameClass = 0
+				local hitTestVideoClass = 0
 				local numTestVideoClass = 0
 
 				print('Current Class: '..c..'. '..nameClass[c])
 
-				-- Tr.countClass = Tr.countClass + 1
+				Tr.countClass = Tr.countClass + 1
 				Te.countClass = Te.countClass + 1
 			  	------ Data paths ------
 			  	local dirClass = dirDatabase..nameClass[c]..'/' 
@@ -347,6 +353,7 @@ for sp=1,numSplit do
 				          	----------------------------------------------
 				          	if opt.mode == 'pred' then 
 				          		if groupSplit[sp].setTe:eq(videoGroup):sum() == 1 then -- testing data
+				          			Te.countVideo = Te.countVideo + 1
 					          		local predFrames = torch.Tensor(numFrameUsed):zero() -- 25
 					          		local probFrames = torch.Tensor(numFrameUsed,numClass):zero() -- 25x101
 					            	-- print '==> Begin predicting......'
@@ -362,7 +369,7 @@ for sp=1,numSplit do
 					         			local I = transform(netInput) -- 20x224x224 or 10x20x224x224 (tenCrop)
 					              		
 										local probFrame_now = torch.Tensor(1,numClass):zero()
-					              		if tenCrop then
+					              		if (methodCrop == 'tenCrop') then
 						              		local outputTen = net:forward(I:cuda()):float() -- 10x101
 					              			probFrame_now = torch.mean(outputTen,1) -- 1x101
 									
@@ -371,9 +378,21 @@ for sp=1,numSplit do
 					              			local output = net:forward(I:cuda()) -- 1x101
 					              			probFrame_now = output:float()
 					              		end
-										probFrames[i] = probFrame_now
+										probFrames[i] = probFrame_now -- 101 probabilities of the frame
 										local probLog, predLabels = probFrame_now:topk(numTopN, true, true) -- 5 (probabilities + labels)        
-										predFrames[i] = predLabels[1][1]					              		
+										local predFrame = predLabels[1][1] -- predicted label of the frame
+
+										-- frame prediction
+					            		local labelFrame = ucf101Label[predFrame]
+					            		Te.countFrame = Te.countFrame + 1
+
+					            		-- accumulate the score for frame prediction
+					            		numTestFrameClass = numTestFrameClass + 1
+					            		if labelFrame == nameClass[c] then
+					            			hitTestFrameClass = hitTestFrameClass  + 1
+					            		end
+
+										predFrames[i] = predFrame					              		
 					            	end
 
 					            	-- prediction of this video
@@ -389,13 +408,14 @@ for sp=1,numSplit do
 
 					            	local labelVideo = ucf101Label[predVideo]
 
-					            	-- accumulate the score
+					            	-- accumulate the score for video prediction
 					            	numTestVideoClass = numTestVideoClass + 1
 					            	if labelVideo == nameClass[c] then
-					            		hitTestClass = hitTestClass  + 1
+					            		hitTestVideoClass = hitTestVideoClass  + 1
 					            	end
 
-					            	-- print(hitTestClass, numTestVideoClass)
+					            	-- print(hitTestFrameClass, numTestFrameClass)
+					            	-- print(hitTestVideoClass, numTestVideoClass)
 
 				            	end
 				          	elseif opt.mode == 'feat' then -- feature extraction
@@ -459,19 +479,21 @@ for sp=1,numSplit do
 			      	end
 			      	collectgarbage()
 			    end
-			    
 				Te.c_finished = c -- save the index
 
 				if opt.mode == 'pred' then 
-					numTestVideoAll = numTestVideoAll + numTestVideoClass
-					hitTestAll = hitTestAll + hitTestClass
-					print('Class accuracy: '..hitTestClass/numTestVideoClass)
-					print('Accumulated accuracy: '..hitTestAll/numTestVideoAll)
-					
-					Te.accClass[Te.countClass] = hitTestClass/numTestVideoClass
-					Te.accAll = hitTestAll/numTestVideoAll
-					Te.numTestVideoAll = numTestVideoAll			
-					Te.hitTestAll = hitTestAll
+					Te.hitTestFrameAll = Te.hitTestFrameAll + hitTestFrameClass
+					print('Class frame accuracy: '..hitTestFrameClass/numTestFrameClass)
+					print('Accumulated frame accuracy: '..Te.hitTestFrameAll/Te.countFrame)
+					Te.accFrameClass[Te.countClass] = hitTestFrameClass/numTestFrameClass
+					Te.accFrameAll = Te.hitTestFrameAll/Te.countFrame
+
+					-- video prediction
+					Te.hitTestVideoAll = Te.hitTestVideoAll + hitTestVideoClass
+					print('Class video accuracy: '..hitTestVideoClass/numTestVideoClass)
+					print('Accumulated video accuracy: '..Te.hitTestVideoAll/Te.countVideo)
+					Te.accVideoClass[Te.countClass] = hitTestVideoClass/numTestVideoClass
+					Te.accVideoAll = Te.hitTestVideoAll/Te.countVideo
 
 				elseif opt.mode == 'feat' then
 					print('Generated training data#: '..Tr.countVideo)
@@ -482,6 +504,7 @@ for sp=1,numSplit do
 			  	-- torch.save(outTrain[sp].name, Tr)
 			  	
 			  	if saveData then
+					torch.save(outTrain[sp].name, Tr)
 			  		torch.save(outTest[sp].name, Te)
 				end
 
@@ -494,7 +517,7 @@ for sp=1,numSplit do
 	print('The total elapsed time in the split '..sp..': ' .. timerAll:time().real .. ' seconds')
 
 	if opt.mode == 'pred' then 
-		print('Total accuracy for the whole dataset: '..hitTestAll/numTestVideoAll)
+		print('Total accuracy for the whole dataset: '..hitTestVideoAll/Te.countVideo)
 	elseif opt.mode == 'feat' then
 		print('The total training class numbers in the split'..sp..': ' .. Tr.countClass)
 		print('The total training video numbers in the split'..sp..': ' .. Tr.countVideo)
