@@ -109,7 +109,7 @@ numClass = 101
 dimFeat = 2048
 numStack = 10
 nChannel = 2
-numTopN = 5
+numTopN = 101
 
 if dataFolder == 'RGB' then
 	numStack = 1
@@ -121,10 +121,10 @@ end
 ----------------------------------------------
 -- will combine to 'parse args' later
 numFrameSample = 25
-sampleAll = true -- use all the frames or not
+sampleAll = false -- use all the frames or not
 numSplit = 1
 saveData = false
-methodCrop = 'tenCrop' -- tenCrop | centerCrop
+methodCrop = 'centerCrop' -- tenCrop | centerCrop
 softMax = false
 nCrops = (methodCrop == 'tenCrop') and 10 or 1
 methodPred = 'scoreMean' -- classVoting | scoreMean
@@ -217,9 +217,6 @@ print '==> Loading the model...'
 -- Torch model
 net = torch.load(modelPath):cuda()
 
--- -- Evaluate mode
-net:evaluate()
-
 ------ model modification ------
 if opt.mode == 'feat' then
 	-- Remove the fully connected layer
@@ -231,6 +228,10 @@ elseif opt.mode == 'pred' then
 	    net:add(softMaxLayer)
 	end
 end
+
+-- -- Evaluate mode
+net:evaluate()
+
 
 -- print(net)
 print ' '
@@ -296,7 +297,6 @@ for sp=1,numSplit do
 		print('The feature data of split '..sp..' is already in your folder!!!!!!')
 	else
 
-		-- for c=50, 50 do		
 		for c=Te.c_finished+1, numClassTotal do
 			if nameClass[c] ~= '.' and nameClass[c] ~= '..' then
 
@@ -317,7 +317,7 @@ for sp=1,numSplit do
 
 			  	local timerClass = torch.Timer() -- count the processing time for one class
 			  	
-			    for sv=1, numSubVideoTotal do
+			  	for sv=1, numSubVideoTotal do
 			      	--------------------
 			      	-- Load the video --
 			      	--------------------  
@@ -328,17 +328,17 @@ for sp=1,numSplit do
 			        	-- print('==> Loading the video: '..videoName)
 			        	
 			        	--local video = ffmpeg.Video{path=videoPath, width=opt.width, height=opt.height, fps=opt.fps, length=opt.seconds, delete=true, destFolder='out_frames',silent=true}
-			        	local video = ffmpeg.Video{path=videoPath, fps=opt.fps, delete=true, destFolder='out_frames', silent=true}
+			        	local video = ffmpeg.Video{path=videoPath, delete=true, destFolder='out_frames', silent=true}
 
 			        	-- --video:play{} -- play the video
 			        	local vidTensor = video:totensor{} -- read the whole video & turn it into a 4D tensor
 				        local vidTensor2 = vidTensor[{{},{3-(nChannel-1),3},{},{}}] -- nx3x240x320 --> nx2x240x320
-				        -- print(vidTensor:size())
 
 				        ------ Video prarmeters ------
 				        local numFrame = vidTensor2:size(1)
 
-				        -- print(numFrame)		          	
+				        -- print(numFrame)
+
 				        local numFrameAvailable = numFrame - numStack + 1 -- for 10-stacking
 				        local numFrameInterval = sampleAll and 1 or torch.floor(numFrameAvailable/numFrameSample)
 				        local numFrameUsed = sampleAll and numFrameAvailable or numFrameSample -- choose frame # for one video
@@ -366,6 +366,7 @@ for sp=1,numSplit do
 					              		for x=0,numStack-1 do
 					              			netInput[{{x*nChannel+1,(x+1)*nChannel}}] = inFrames[{{x+1},{},{},{}}]
 					              		end
+					              		-- print(netInput)
 					         			local I = transform(netInput) -- 20x224x224 or 10x20x224x224 (tenCrop)
 					              		
 										local probFrame_now = torch.Tensor(1,numClass):zero()
@@ -391,7 +392,6 @@ for sp=1,numSplit do
 					            		if labelFrame == nameClass[c] then
 					            			hitTestFrameClass = hitTestFrameClass  + 1
 					            		end
-
 										predFrames[i] = predFrame					              		
 					            	end
 
