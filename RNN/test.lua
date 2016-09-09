@@ -12,10 +12,10 @@
 --  Contact: Chih-Yao Ma at <cyma@gatech.edu>
 ----------------------------------------------------------------
 
-require 'torch'
-require 'sys'
-require 'xlua'    -- xlua provides useful tools, like progress bars
-require 'optim'
+local sys = require 'sys'
+local xlua = require 'xlua'    -- xlua provides useful tools, like progress bars
+local optim = require 'optim'
+local pastalog = require 'pastalog'
 
 print(sys.COLORS.red .. '==> defining some tools')
 
@@ -73,7 +73,7 @@ function test(testData, testTarget)
 		-- create mini batch
 		local idx = 1
 		for i = t,t+opt.batchSize-1 do
-			inputs[idx] = testData[i]
+			inputs[idx] = testData[i]:float()
 			targets[idx] = testTarget[i]
 			idx = idx + 1
 		end
@@ -146,13 +146,17 @@ function test(testData, testTarget)
 		torch.save('prob.txt', prob,'ascii')
 
 		if opt.saveModel == true then
-			checkpoints.save(epoch, model, optimState, bestModel)
+			checkpoints.save(epoch-1, model, optimState, bestModel)
 		end
 	end
 	print(sys.COLORS.red .. '==> Best testing accuracy = ' .. bestAcc .. '%')
 
+	local modelName = 'DropOut=' .. opt.dropout
+	local epochSeriesName = 'epoch-top1-' .. opt.pastalogName
+	pastalog(modelName, epochSeriesName, confusion.totalValid * 100, epoch, 'http://ct5250-12.ece.gatech.edu:8120/data')
+
 	-- update log/plot
-	testLogger:add{['% mean class accuracy (test set)'] = confusion.totalValid * 100}
+	testLogger:add{['epoch'] = epoch-1, ['top-1 error'] = confusion.totalValid * 100}
 	if opt.plot then
 		testLogger:style{['% mean class accuracy (test set)'] = '-'}
 		testLogger:plot()
