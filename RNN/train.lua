@@ -15,6 +15,7 @@
 local sys = require 'sys'
 local xlua = require 'xlua'    -- xlua provides useful tools, like progress bars
 local optim = require 'optim'
+local pastalog = require 'pastalog'
 
 print(sys.COLORS.red .. '==> defining some tools')
 
@@ -35,7 +36,7 @@ end
 
 print(sys.COLORS.red ..  '==> configuring optimizer')
 -- Pass learning rate from command line
-local optimState = optimState or {
+optimState = optimState or {
    learningRate = opt.learningRate,
    momentum = opt.momentum,
    weightDecay = opt.weightDecay,
@@ -69,7 +70,7 @@ function train(trainData, trainTarget)
    print("==> online epoch # " .. epoch .. ' [batchSize = ' .. opt.batchSize .. ']')
 
    -- adjust learning rate
-   optimState.learningRate = adjustLR(optimState.learningRate, epoch)
+   optimState.learningRate = adjustLR(opt.learningRate, epoch)
 
    print(sys.COLORS.yellow ..  '==> Learning rate is: ' .. optimState.learningRate .. '')
 
@@ -93,7 +94,7 @@ function train(trainData, trainTarget)
       -- create mini batch
       local idx = 1
       for i = t,t+opt.batchSize-1 do
-         inputs[idx] = trainData[shuffle[i]]
+         inputs[idx] = trainData[shuffle[i]]:float()
          targets[idx] = trainTarget[shuffle[i]]
          idx = idx + 1
       end
@@ -145,10 +146,16 @@ function train(trainData, trainTarget)
       print((' | Epoch: [%d][%d/%d]    Time %.3f  Data %.3f  Err %1.4f  top1 %7.3f  top3 %7.3f'):format(
          epoch, t, trainData:size(1), timer:time().real, dataTime, loss, top1, top3))
 
+      local modelName = 'DropOut=' .. opt.dropout
+      local trainSeriesName = 'train-top1-' .. opt.pastalogName
+      pastalog(modelName, trainSeriesName, top1, (epoch-1)*trainData:size(1) + t, 'http://ct5250-12.ece.gatech.edu:8120/data')
+
       timer:reset()
       dataTimer:reset()
 
    end
+
+   print(sys.COLORS.red .. '==> Best testing accuracy = ' .. bestAcc .. '%')
 
    epoch = epoch + 1
 end
