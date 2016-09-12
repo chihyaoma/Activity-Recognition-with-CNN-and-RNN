@@ -78,10 +78,13 @@ function UCF101Dataset:preprocess(opt)
    -- }
 
    -- RGB
-   local meanstd = {
-      mean = { 0.392, 0.376, 0.348 },
-      std = { 0.241, 0.234, 0.231 },
-   }
+   -- 10 fps
+   -- meanstd = {ean = { 0.392, 0.376, 0.348 },
+   -- std = { 0.241, 0.234, 0.231 }}
+
+   -- 25 fps
+   meanstd = {mean = { 0.39234371606738, 0.37576219443075, 0.34801909196893 },
+               std = { 0.24149100687454, 0.23453123289779, 0.23117322727131 }}
 
    local scaleSize, imageSize = 256, 224
    if opt.downsample ~='false' then -- downsample to half
