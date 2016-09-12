@@ -12,7 +12,7 @@
 
 -- author: Min-Hung Chen
 -- contact: cmhungsteve@gatech.edu
--- Last updated: 06/09/2016
+-- Last updated: 09/08/2016
 
 -- require 'xlua'
 require 'torch'
@@ -22,42 +22,21 @@ require 'ffmpeg'
 require 'image'
 require 'cutorch'
 
--- ----------------------------------------------
--- --         Input/Output information         --
--- ----------------------------------------------
--- -- select the number of classes, groups & videos you want to use
--- numClass = 101
--- dimFeat = 2048
-
-----------------------------------------------
--- 			User-defined parameters			--
-----------------------------------------------
-numSplit = 3
-idSplit = 1
-
--- Train/Test split
-groupSplit = {}
-for sp=1,numSplit do
-	if sp==1 then
-		table.insert(groupSplit, {setTr = torch.Tensor({{8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25}}),
-			setTe = torch.Tensor({{1,2,3,4,5,6,7}})})
-	elseif sp==2 then
-		table.insert(groupSplit, {setTr = torch.Tensor({{1,2,3,4,5,6,7,15,16,17,18,19,20,21,22,23,24,25}}),
-			setTe = torch.Tensor({{8,9,10,11,12,13,14}})})
-	elseif sp==3 then
-		table.insert(groupSplit, {setTr = torch.Tensor({{1,2,3,4,5,6,7,8,9,10,11,12,13,14,22,23,24,25}}),
-			setTe = torch.Tensor({{15,16,17,18,19,20,21}})})
-	end
-end
-
 ----------------------------------------------
 -- 				Data paths				    --
 ----------------------------------------------
+source = 'local' -- local | workstation
+if source == 'local' then
+	dirSource = '/home/cmhung/Code/'
+elseif source == 'workstation' then	
+	dirSource = '/home/chih-yao/Downloads/'
+end
+
 nameDatabase = 'UCF-101'
-pathDatabase = '/media/cmhung/MyDisk/CMHung_FS/Big_and_Data/PhDResearch/Code/Dataset/'..nameDatabase..'/'
+pathDatabase = dirSource..'dataset/'..nameDatabase..'/'
 
 -- input
-dirVideoIn = 'FlowMap-M'
+dirVideoIn = 'RGB' -- FlowMap-Brox | FlowMap-TVL1-crop20 | RGB
 pathVideoIn = pathDatabase .. dirVideoIn .. '/'
 
 -- outputs
@@ -83,19 +62,70 @@ table.insert(outTrain, {name = 'data_'..nameDatabase..'_train_'..dirVideoIn..'.t
 outTest = {}
 table.insert(outTest, {name = 'data_'..nameDatabase..'_val_'..dirVideoIn..'.t7'})
 
+----------------
+-- parse args --
+----------------
+op = xlua.OptionParser('%prog [options]')
+op:option{'-f', '--fps', action='store', dest='fps',
+          help='number of frames per second', default=25}
+op:option{'-t', '--time', action='store', dest='seconds',
+          help='length to process (in seconds)', default=2}
+op:option{'-w', '--width', action='store', dest='width',
+          help='resize video, width', default=320}
+op:option{'-h', '--height', action='store', dest='height',
+          help='resize video, height', default=240}
+op:option{'-z', '--zoom', action='store', dest='zoom',
+          help='display zoom', default=1}
+op:option{'-m', '--mode', action='store', dest='mode',
+          help='option for generating features (pred|feat)', default='pred'}
+op:option{'-p', '--type', action='store', dest='type',
+          help='option for CPU/GPU', default='cuda'}
+op:option{'-i', '--devid', action='store', dest='devid',
+          help='device ID (if using CUDA)', default=1}      
+opt,args = op:parse()
+
+----------------------------------------------
+--  		       GPU option	 	        --
+----------------------------------------------
+cutorch.setDevice(opt.devid)
+print(sys.COLORS.red ..  '==> using GPU #' .. cutorch.getDevice())
+print(sys.COLORS.white ..  ' ')
+
+-- ----------------------------------------------
+-- --         Input/Output information         --
+-- ----------------------------------------------
+-- -- select the number of classes, groups & videos you want to use
+-- numClass = 101
+-- dimFeat = 2048
+
+----------------------------------------------
+-- 			User-defined parameters			--
+----------------------------------------------
+numSplit = 3
+idSplit = 1
+saveData = true
+
+-- Train/Test split
+groupSplit = {}
+for sp=1,numSplit do
+	if sp==1 then
+		table.insert(groupSplit, {setTr = torch.Tensor({{8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25}}),
+			setTe = torch.Tensor({{1,2,3,4,5,6,7}})})
+	elseif sp==2 then
+		table.insert(groupSplit, {setTr = torch.Tensor({{1,2,3,4,5,6,7,15,16,17,18,19,20,21,22,23,24,25}}),
+			setTe = torch.Tensor({{8,9,10,11,12,13,14}})})
+	elseif sp==3 then
+		table.insert(groupSplit, {setTr = torch.Tensor({{1,2,3,4,5,6,7,8,9,10,11,12,13,14,22,23,24,25}}),
+			setTe = torch.Tensor({{15,16,17,18,19,20,21}})})
+	end
+end
+
 ----------------------------------------------
 -- 					Class		        	--
 ----------------------------------------------
 nameClass = paths.dir(pathVideoIn) 
 table.sort(nameClass) -- ascending order
 numClassTotal = #nameClass -- 101 classes + "." + ".."
-
--- ----------------------------------------------
--- --  		       GPU option	 	        --
--- ----------------------------------------------
--- cutorch.setDevice(1)
--- print(sys.COLORS.red ..  '==> using GPU #' .. cutorch.getDevice())
--- print(sys.COLORS.white ..  ' ')
 
 --====================================================================--
 --                     Run all the videos in UCF-101                  --
@@ -104,7 +134,7 @@ print '==> Processing all the videos...'
 
 -- Load the intermediate data or generate a new one --
 -- Training data --
-if not paths.filep(outTrain[idSplit].name) then
+if not (saveData and paths.filep(outTrain[idSplit].name)) then
 	Tr = {} -- output
 	Tr.name = {}
 	Tr.path = {}
@@ -116,7 +146,7 @@ else
 end
 
 -- Testing data --
-if not paths.filep(outTest[idSplit].name) then
+if not (saveData and paths.filep(outTest[idSplit].name)) then
 	Te = {} -- output
 	Te.name = {}
 	Te.path = {}
@@ -168,8 +198,9 @@ else
 			       	local videoPath = pathClassIn..videoName..'.avi'
 			       	--
 			       	-- print('==> Current video: '..videoName)
-			    
-			       	local video = ffmpeg.Video{path=videoPath, delete=true, destFolder='out_frames', silent=true}
+			    	
+			    	local video = ffmpeg.Video{path=videoPath, fps=opt.fps, delete=true, destFolder='out_frames',silent=true}
+			       	-- local video = ffmpeg.Video{path=videoPath, delete=true, destFolder='out_frames', silent=true}
 			       	--
 			       	local vidTensor = video:totensor{} -- read the whole video & turn it into a 4D tensor
 
@@ -219,8 +250,12 @@ else
 			print('Generated training data#: '..Tr.countVideo)
 			print('Generated testing data#: '..Te.countVideo)
 			print('The elapsed time for the class '..nameClass[c]..': ' .. timerClass:time().real .. ' seconds')
-			torch.save(outTrain[idSplit].name, Tr)
-			torch.save(outTest[idSplit].name, Te)
+			
+			if saveData then
+				torch.save(outTrain[idSplit].name, Tr)
+				torch.save(outTest[idSplit].name, Te)
+			end
+
 			collectgarbage()
 			print(' ')
 		end
