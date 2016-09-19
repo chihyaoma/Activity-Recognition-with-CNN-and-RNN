@@ -54,14 +54,18 @@ function test(testData, testTarget)
 
 	-- local vars
 	local time = sys.clock() 
-
+	local timer = torch.Timer()
+	local dataTimer = torch.Timer()
 	-- Sets Dropout layer to have a different behaviour during evaluation.
 	model:evaluate() 
 
 	-- test over test data
 	print(sys.COLORS.red .. '==> testing on test set:')
-
+	
+	local top1Sum, top3Sum, lossSum = 0.0, 0.0, 0.0
+	local N = 0
 	for t = 1,testData:size(1),opt.batchSize do
+		local dataTime = dataTimer:time().real
 		-- disp progress
 		xlua.progress(t, testData:size(1))
 
@@ -80,6 +84,7 @@ function test(testData, testTarget)
 
 		-- Copy input and target to the GPU
 		inputs, targets = copyInputs(inputs, targets)
+		local top1, top3
 
 		if opt.averagePred == true then 
 			-- make prediction for each of the images frames, start from frame #2
@@ -98,9 +103,17 @@ function test(testData, testTarget)
 			-- average all the prediction across all frames
 			preds = torch.mean(predsFrames, 3):squeeze()
 
+			top1, top3 = computeScore(preds, targets, 1)
+			top1Sum = top1Sum + top1*opt.batchSize
+			top3Sum = top3Sum + top3*opt.batchSize
+			N = N + opt.batchSize
+
+			print((' | Test: [%d][%d/%d]    Time %.3f  Data %.3f  top1 %7.3f (%7.3f)  top3 %7.3f (%7.3f)'):format(
+				epoch-1, t, testData:size(1), timer:time().real, dataTime, top1, top1Sum / N, top3, top3Sum / N))
+
 			-- Get the top N class indexes and probabilities
-			local N = 1
-			local probLog, predLabels = preds:topk(N, true, true)
+			local topN = 1
+			local probLog, predLabels = preds:topk(topN, true, true)
 
 			-- Convert log probabilities back to [0, 1]
 			probLog:exp()
@@ -109,7 +122,7 @@ function test(testData, testTarget)
 			for i = t,t+opt.batchSize-1 do
 				labels[i] = {}
 				prob[i] = {}
-				for j = 1, N do
+				for j = 1, topN do
 					-- local indClass = predLabels[idx][j]
 					labels[i][j] = classes[predLabels[idx][j]]
 					prob[i][j] = probLog[idx][j]
@@ -133,6 +146,9 @@ function test(testData, testTarget)
 	time = time / testData:size(1)
 	print("\n==> time to test 1 sample = " .. (time*1000) .. 'ms')
 
+	timer:reset()
+	dataTimer:reset()
+
   	-- print confusion matrix
   	print(confusion)
 
@@ -150,6 +166,8 @@ function test(testData, testTarget)
 		end
 	end
 	print(sys.COLORS.red .. '==> Best testing accuracy = ' .. bestAcc .. '%')
+	print(sys.COLORS.red .. (' * Finished epoch # %d     top1: %7.3f  top3: %7.3f\n'):format(
+      epoch-1, top1Sum / N, top3Sum / N))
 
 	local modelName = 'DropOut=' .. opt.dropout
 	local epochSeriesName = 'epoch-top1-' .. opt.pastalogName
@@ -176,6 +194,27 @@ function copyInputs(input, target)
    targetGPU:resize(target:size()):copy(target)
 
    return inputGPU, targetGPU
+end
+
+function computeScore(output, target)
+
+   -- Coputes the top1 and top3 error rate
+   local batchSize = output:size(1)
+
+   local _ , predictions = output:float():sort(2, true) -- descending
+
+   -- Find which predictions match the target
+   local correct = predictions:eq(
+      target:long():view(batchSize, 1):expandAs(output))
+
+   -- Top-1 score
+   local top1 = 1.0 - (correct:narrow(2, 1, 1):sum() / batchSize)
+
+   -- Top-3 score, if there are at least 3 classes
+   local len = math.min(3, correct:size(2))
+   local top3 = 1.0 - (correct:narrow(2, 1, len):sum() / batchSize)
+
+   return top1 * 100, top3 * 100
 end
 
 -- Export:
