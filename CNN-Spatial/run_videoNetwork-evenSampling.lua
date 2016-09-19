@@ -50,7 +50,7 @@ t = require './transforms'
 ----------------------------------------------
 -- 				Data paths				    --
 ----------------------------------------------
-source = 'local' -- local | workstation
+source = 'workstation' -- local | workstation
 if source == 'local' then
 	dirSource = '/home/cmhung/Code/'
 elseif source == 'workstation' then	
@@ -87,7 +87,7 @@ op:option{'-h', '--height', action='store', dest='height',
 op:option{'-z', '--zoom', action='store', dest='zoom',
           help='display zoom', default=1}
 op:option{'-m', '--mode', action='store', dest='mode',
-          help='option for generating features (pred|feat)', default='pred'}
+          help='option for generating features (pred|feat)', default='feat'}
 op:option{'-p', '--type', action='store', dest='type',
           help='option for CPU/GPU', default='cuda'}
 op:option{'-i', '--devid', action='store', dest='devid',
@@ -123,8 +123,8 @@ end
 numFrameSample = 25
 sampleAll = false -- use all the frames or not
 numSplit = 1
-saveData = false
-methodCrop = 'centerCrop' -- tenCrop | centerCrop
+saveData = true
+methodCrop = 'tenCrop' -- tenCrop | centerCrop
 softMax = false
 nCrops = (methodCrop == 'tenCrop') and 10 or 1
 methodPred = 'scoreMean' -- classVoting | scoreMean
@@ -170,8 +170,13 @@ if dataFolder == 'RGB' then
 	meanstd = {mean = { 0.392, 0.376, 0.348 },
    				std = { 0.241, 0.234, 0.231 }}
 elseif dataFolder == 'FlowMap-Brox' then
-	meanstd = {mean = { 0.0091950063390791, 0.4922446721625, 0.49853131534726}, 
-				std = { 0.0056229398806939, 0.070845543666524, 0.081589332546496}}
+      -- 10 fps
+      -- meanstd = {mean = { 0.0091950063390791, 0.4922446721625, 0.49853131534726},
+      --             std = { 0.0056229398806939, 0.070845543666524, 0.081589332546496}}
+      -- 25 fps
+      meanstd = {mean = { 0.0091796917475333, 0.49176131835977, 0.49831646616289 },
+                  std = { 0.0056094466799444, 0.070888495268898, 0.081680047609585 }}
+
 elseif dataFolder == 'FlowMap-Brox-crop40' then
     meanstd = {mean = { 0.0091936888040752, 0.49204453841557, 0.49857498097595},
       			std = { 0.0056320802048129, 0.070939325098903, 0.081698516724234}}
@@ -188,8 +193,14 @@ elseif dataFolder == 'FlowMap-FlowNet-M' then
     meanstd = {mean = { 0.951, 0.918, 0.955 },
                 std = { 0.043, 0.052, 0.044 }}
 elseif dataFolder == 'FlowMap-TVL1-crop20' then
-    meanstd = {mean = { 0.0078286737613148, 0.49277467447062, 0.42283539438139 },
-                std = { 0.0049402251681559, 0.060421647049655, 0.058913364961995 }}
+      -- 10 fps
+      --meanstd = {mean = { 0.0078286737613148, 0.49277467447062, 0.42283539438139 },
+      --            std = { 0.0049402251681559, 0.060421647049655, 0.058913364961995 }}
+
+      -- 25 fps
+      meanstd = {mean = { 0.0078368888567733, 0.49304171615406, 0.42294166284263 },
+                  std = { 0.0049412518723573, 0.060508027119622, 0.058952390342379 }}
+
 else
     error('no mean and std defined ... ')
 end
@@ -254,7 +265,7 @@ print '==> Processing all the videos...'
 -- Load the intermediate feature data or generate a new one --
 for sp=1,numSplit do
 	-- Training data --
-	if not paths.filep(outTrain[sp].name) then
+	if not (saveData and paths.filep(outTrain[sp].name)) then
 		Tr = {} -- output
 		Tr.name = {}
 		Tr.path = {}
@@ -268,7 +279,7 @@ for sp=1,numSplit do
 	end
 
 	-- Testing data --
-	if not paths.filep(outTest[sp].name) then
+	if not (saveData and paths.filep(outTest[sp].name)) then
 		Te = {} -- output
 		Te.name = {}
 		Te.path = {}
@@ -327,8 +338,7 @@ for sp=1,numSplit do
 			        	
 			        	-- print('==> Loading the video: '..videoName)
 			        	
-			        	--local video = ffmpeg.Video{path=videoPath, width=opt.width, height=opt.height, fps=opt.fps, length=opt.seconds, delete=true, destFolder='out_frames',silent=true}
-			        	local video = ffmpeg.Video{path=videoPath, delete=true, destFolder='out_frames', silent=true}
+			        	local video = ffmpeg.Video{path=videoPath, fps=opt.fps, delete=true, destFolder='out_frames',silent=true}
 
 			        	-- --video:play{} -- play the video
 			        	local vidTensor = video:totensor{} -- read the whole video & turn it into a 4D tensor
@@ -432,7 +442,7 @@ for sp=1,numSplit do
 					         		local I = transform(netInput) -- 20x224x224 or 10x20x224x224 (tenCrop)
 
 									local feat_now = torch.Tensor(1,dimFeat):zero()
-					              	if tenCrop then
+					              	if (methodCrop == 'tenCrop') then
 						            	local outputTen = net:forward(I:cuda()):float() -- 10x2048
 					              		feat_now = torch.mean(outputTen,1) -- 1x2048
 									else
@@ -517,7 +527,10 @@ for sp=1,numSplit do
 	print('The total elapsed time in the split '..sp..': ' .. timerAll:time().real .. ' seconds')
 
 	if opt.mode == 'pred' then 
-		print('Total accuracy for the whole dataset: '..hitTestVideoAll/Te.countVideo)
+		print('Total frame numbers: '..Te.countFrame)
+		print('Total frame accuracy for the whole dataset: '..Te.hitTestFrameAll/Te.countFrame)
+		print('Total video numbers: '..Te.countVideo)
+		print('Total video accuracy for the whole dataset: '..Te.hitTestVideoAll/Te.countVideo)
 	elseif opt.mode == 'feat' then
 		print('The total training class numbers in the split'..sp..': ' .. Tr.countClass)
 		print('The total training video numbers in the split'..sp..': ' .. Tr.countVideo)
