@@ -157,7 +157,7 @@ function test(testData, classes, epo)
    end
    print("\n the max accuracy is " .. accMax ..' in the epoch '.. epoBest)
 
-   if opt.plot == 'true' then
+   if opt.plot == 'yes' then
       testLogger:style{['% mean class accuracy (test set)'] = '-'}
       testLogger:plot()
    end

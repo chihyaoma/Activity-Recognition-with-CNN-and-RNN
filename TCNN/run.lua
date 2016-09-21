@@ -32,14 +32,12 @@ opt = lapp[[
    -t,--threads            (default 2)           number of threads
    -p,--type               (default cuda)       float or cuda
    -i,--devid              (default 1)           device ID (if using CUDA)
-   -s,--size               (default small)       dataset: small or full or extra
    -o,--save               (default results)     save directory
       --patches            (default all)         percentage of samples to use for testing'
-      --visualize          (default false)        visualize dataset
       --model              (default CNN)         network model
       --optMethod          (default sgd)         optimization method
-      --plot               (default true)       plot the training and test accuracies
-      --dataAugment        (default false)       Enable dataAugmentation while training
+      --plot               (default no)       	 plot the training and test accuracies
+      --dataAugment        (default no)       Enable dataAugmentation while training
 ]]
 -- nb of threads and fixed seed (for repeatable experiments)
 torch.setnumthreads(opt.threads)
