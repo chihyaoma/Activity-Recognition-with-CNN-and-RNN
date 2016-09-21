@@ -43,7 +43,7 @@ end
 print(sys.COLORS.red .. '==> defining some tools')
 
 -- model:
-local t = require 'model_Res'
+local t = require 'model'
 local model = t.model
 local loss = t.loss
 local nframe = t.nframe

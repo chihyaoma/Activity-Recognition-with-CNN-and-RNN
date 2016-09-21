@@ -2,7 +2,7 @@
 -- CS8803DL Spring 2016 (Instructor: Zsolt Kira)
 -- Final Project: Video Classification
 
--- Train a ConvNet on UCF11
+-- Train a ConvNet on UCF101
 
 -- TODO:
 -- 1. cross-validation
@@ -10,7 +10,7 @@
 
 -- modified by Min-Hung Chen
 -- contact: cmhungsteve@gatech.edu
--- Last updated: 04/21/2016
+-- Last updated: 09/17/2016
 
 
 require 'pl'
@@ -23,13 +23,13 @@ require 'nn'      -- provides all sorts of trainable modules/layers
 print(sys.COLORS.red ..  '==> processing options')
 
 opt = lapp[[
-   -r,--learningRate       (default 1e-3)        learning rate
+   -r,--learningRate       (default 1e-2)        learning rate
    -d,--learningRateDecay  (default 1e-7)        learning rate decay (in # samples)
    -w,--weightDecay        (default 1e-5)        L2 penalty on the weights
    -m,--momentum           (default 0.1)         momentum
    -d,--dropout            (default 0.5)         dropout amount
-   -b,--batchSize          (default 10)         batch size
-   -t,--threads            (default 4)           number of threads
+   -b,--batchSize          (default 128)         batch size
+   -t,--threads            (default 8)           number of threads
    -p,--type               (default cuda)       float or cuda
    -i,--devid              (default 1)           device ID (if using CUDA)
    -s,--size               (default small)       dataset: small or full or extra
@@ -39,7 +39,7 @@ opt = lapp[[
       --model              (default CNN)         network model
       --optMethod          (default sgd)         optimization method
       --plot               (default false)       plot the training and test accuracies
-      --dataAugment        (default true)       Enable dataAugmentation while training
+      --dataAugment        (default false)       Enable dataAugmentation while training
 ]]
 -- nb of threads and fixed seed (for repeatable experiments)
 torch.setnumthreads(opt.threads)
@@ -56,7 +56,7 @@ end
 
 ----------------------------------------------------------------------
 print(sys.COLORS.cyan ..  '==> load data')
-local data  = require 'data'
+local data  = require 'data-2Stream'
 print(sys.COLORS.cyan ..  '==> prepare for training')
 local train = require 'train'
 print(sys.COLORS.cyan ..  '==> prepare for testing')
