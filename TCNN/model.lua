@@ -11,7 +11,7 @@
 
 -- modified by Min-Hung Chen
 -- contact: cmhungsteve@gatech.edu
--- Last updated: 04/26/2016
+-- Last updated: 09/17/2016
 
 
 require 'torch'   -- torch
@@ -33,19 +33,18 @@ print(sys.COLORS.red ..  '==> define parameters')
 local noutputs = 101
 
 -- input dimensions: 
-local nframe = 48
-local nfeature = 2048
+local nframe = 25
+local nfeature = 4096
 
--- hidden units, filter sizes (for ConvNet only):
---local nstates = {20,50,250} 		-- exp. 1
-local nstates = {16,32,256}      -- exp. 2, 3
-local convsize = {3, 11}        	-- exp. 1, 2, 3
+-- hidden units, filter sizes (for ConvNet only): 		
+local nstates = {16,32,256}      
+local convsize = {3, 11}        	
 local convstep = {1, 1}
 local convpad  = {(convsize[1]-1)/2, (convsize[2]-1)/2}
-local poolsize = {4, 2} 			-- exp. 1, 2
-local poolstep = {4, 2} 			-- exp. 1, 2
---local poolsize = {2, 2}          -- exp. 3
---local poolstep = {2, 2}          -- exp. 3
+local poolsize = {4, 2} 			
+local poolstep = {4, 2} 			
+--local poolsize = {2, 2}         
+--local poolstep = {2, 2}         
 
 ----------------------------------------------------------------------
 local classifier = nn.Sequential()
@@ -87,7 +86,7 @@ if opt.model == 'CNN' then
    CNN:add(nn.Dropout(opt.dropout)) -- dropout
 
    -- stage 3: linear -> ReLU -> linear
-   local ninputFC = sizePool2_w*sizePool2_h*nstates[2] -- exp. 1, 2, 3
+   local ninputFC = sizePool2_w*sizePool2_h*nstates[2] --
 
    CNN:add(nn.Reshape(ninputFC))
    CNN:add(nn.Linear(ninputFC,nstates[3]))
@@ -120,7 +119,7 @@ end
 return {
    model = model,
    loss = loss,
-   nfeature = 2048,
-   nframe = 48,
+   nfeature = nfeature,
+   nframe = nframe,
    model_name = model_name,
 }

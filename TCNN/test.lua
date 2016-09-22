@@ -43,7 +43,7 @@ end
 print(sys.COLORS.red .. '==> defining some tools')
 
 -- model:
-local t = require 'model_Res'
+local t = require 'model'
 local model = t.model
 local loss = t.loss
 local nframe = t.nframe
@@ -157,7 +157,7 @@ function test(testData, classes, epo)
    end
    print("\n the max accuracy is " .. accMax ..' in the epoch '.. epoBest)
 
-   if opt.plot then
+   if opt.plot == 'yes' then
       testLogger:style{['% mean class accuracy (test set)'] = '-'}
       testLogger:plot()
    end
