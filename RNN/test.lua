@@ -82,10 +82,7 @@ function test(testData, testTarget)
 			idx = idx + 1
 		end
 
-		-- Copy input and target to the GPU
-		inputs, targets = copyInputs(inputs, targets)
 		local top1, top3
-
 		if opt.averagePred == true then 
 			-- make prediction for each of the images frames, start from frame #2
 			idx = 1
@@ -102,6 +99,7 @@ function test(testData, testTarget)
 			end
 			-- average all the prediction across all frames
 			preds = torch.mean(predsFrames, 3):squeeze()
+			-- preds = torch.max(predsFrames, 3):squeeze()
 
 			top1, top3 = computeScore(preds, targets, 1)
 			top1Sum = top1Sum + top1*opt.batchSize
@@ -180,20 +178,6 @@ function test(testData, testTarget)
 		testLogger:plot()
 	end
 	confusion:zero()
-end
-
-function copyInputs(input, target)
-   -- Copies the input to a CUDA tensor, if using 1 GPU, or to pinned memory,
-   -- if using DataParallelTable. The target is always copied to a CUDA tensor
-   local inputGPU = input or (opt.nGPU == 1
-      and torch.CudaTensor()
-      or cutorch.createCudaHostTensor())
-   local targetGPU = target or torch.CudaTensor()
-
-   inputGPU:resize(input:size()):copy(input)
-   targetGPU:resize(target:size()):copy(target)
-
-   return inputGPU, targetGPU
 end
 
 function computeScore(output, target)

@@ -144,8 +144,8 @@ local tempTrainData, tempTestData, tempTrainTarget, tempTestTarget
 
 if opt.temporal == true then
    -- training and testing data from UCF101 website
-   assert(paths.filep(paths.concat(opt.tempFeatDir, 'data_feat_train_FlowMap-TVL1-crop20_sp1.t7')), 'no temporal training feature file found.')
-   local tempTrainFeatureLabels = torch.load(paths.concat(opt.tempFeatDir, 'data_feat_train_FlowMap-TVL1-crop20_sp1.t7'))
+   assert(paths.filep(paths.concat(opt.tempFeatDir, 'data_feat_train_FlowMap-TVL1-crop20_tenCrop_sp1.t7')), 'no temporal training feature file found.')
+   local tempTrainFeatureLabels = torch.load(paths.concat(opt.tempFeatDir, 'data_feat_train_FlowMap-TVL1-crop20_tenCrop_sp1.t7'))
    tempTrainData = tempTrainFeatureLabels.featMats
 
    -- check if there are enough frames to extract and extract
@@ -158,8 +158,8 @@ if opt.temporal == true then
 
    tempTrainTarget = tempTrainFeatureLabels.labels
 
-   assert(paths.filep(paths.concat(opt.tempFeatDir, 'data_feat_test_FlowMap-TVL1-crop20_sp1.t7')), 'no temporal testing feature file found.')
-   local tempTestFeatureLabels = torch.load(paths.concat(opt.tempFeatDir, 'data_feat_test_FlowMap-TVL1-crop20_sp1.t7'))
+   assert(paths.filep(paths.concat(opt.tempFeatDir, 'data_feat_test_FlowMap-TVL1-crop20_tenCrop_sp1.t7')), 'no temporal testing feature file found.')
+   local tempTestFeatureLabels = torch.load(paths.concat(opt.tempFeatDir, 'data_feat_test_FlowMap-TVL1-crop20_tenCrop_sp1.t7'))
    tempTestData = tempTestFeatureLabels.featMats
 
    if opt.averagePred == false then 

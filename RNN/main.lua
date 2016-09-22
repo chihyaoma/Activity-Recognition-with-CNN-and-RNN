@@ -37,7 +37,6 @@ cmd:option('-maxOutNorm', -1, 'max l2-norm of each layer`s output neuron weights
 cmd:option('-cutoffNorm', -1, 'max l2-norm of concatenation of all gradParam tensors')
 cmd:option('-batchSize', 128, 'number of examples per batch') -- how many examples per training 
 cmd:option('-cuda', true, 'use CUDA')
-cmd:option('-nGPU', 1,    'Number of GPUs to use by default')
 cmd:option('-useDevice', 1, 'sets the device (GPU) to use')
 cmd:option('-maxEpoch', 100, 'maximum number of epochs to run')
 cmd:option('-maxTries', 50, 'maximum number of epochs to try to find a better local minima for early-stopping')
@@ -49,7 +48,7 @@ cmd:option('-lstm', true, 'use Long Short Term Memory (nn.LSTM instead of nn.Rec
 cmd:option('-bn', false, 'use batch normalization. Only supported with --lstm')
 cmd:option('-gru', false, 'use Gated Recurrent Units (nn.GRU instead of nn.Recurrent)')
 cmd:option('-rho', 25, 'number of frames for each video')
-cmd:option('-fcSize', '{4096}', 'umber of hidden units used at output of each fully recurrent connected layer. When more than one is specified, fully-connected layers are stacked')
+cmd:option('-fcSize', '', 'umber of hidden units used at output of each fully recurrent connected layer. When more than one is specified, fully-connected layers are stacked')
 cmd:option('-hiddenSize', '{1024}', 'number of hidden units used at output of each recurrent layer. When more than one is specified, RNN/LSTMs/GRUs are stacked')
 cmd:option('-zeroFirst', false, 'first step will forward zero through recurrence (i.e. add bias of recurrence). As opposed to learning bias specifically for first step.')
 cmd:option('-dropout', 0, 'apply dropout after each recurrent layer')

@@ -99,9 +99,6 @@ function train(trainData, trainTarget)
          idx = idx + 1
       end
 
-      -- Copy input and target to the GPU
-      inputs, targets = copyInputs(inputs, targets)
-
       --------------------------------------------------------
       -- Using optim package for training
       --------------------------------------------------------
@@ -170,20 +167,6 @@ function adjustLR(learningRate, epoch)
    end
    
    return learningRate * math.pow(optimState.lrDecayFactor, decayPower)
-end
-
-function copyInputs(input, target)
-   -- Copies the input to a CUDA tensor, if using 1 GPU, or to pinned memory,
-   -- if using DataParallelTable. The target is always copied to a CUDA tensor
-   local inputGPU = input or (opt.nGPU == 1
-      and torch.CudaTensor()
-      or cutorch.createCudaHostTensor())
-   local targetGPU = target or torch.CudaTensor()
-
-   inputGPU:resize(input:size()):copy(input)
-   targetGPU:resize(target:size()):copy(target)
-
-   return inputGPU, targetGPU
 end
 
 function computeScore(output, target)
