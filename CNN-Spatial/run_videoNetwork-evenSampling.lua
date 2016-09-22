@@ -35,7 +35,7 @@
 -- contact:
 -- Min-Hung (Steve) Chen at <cmhungsteve@gatech.edu>
 -- Chih-Yao Ma at <cyma@gatech.edu>
--- Last updated: 8/31/2016
+-- Last updated: 9/20/2016
 
 require 'xlua'
 require 'torch'
@@ -62,13 +62,13 @@ end
 -- dirModel = dirSource..'Models/ResNet-Brox-sgd/'
 -- dirDatabase = dirSource..'dataset/UCF-101/FlowMap-Brox/'
 
--- TVL1 --
-dirModel = dirSource..'Models/ResNet-TVL1-sgd/'
-dirDatabase = dirSource..'dataset/UCF-101/FlowMap-TVL1-crop20/'
+-- -- TVL1 --
+-- dirModel = dirSource..'Models/ResNet-TVL1-sgd/'
+-- dirDatabase = dirSource..'dataset/UCF-101/FlowMap-TVL1-crop20/'
 
----- Spatial ----
--- dirModel = dirSource..'Models/ResNet-RGB-sgd/'
--- dirDatabase = dirSource..'dataset/UCF-101/RGB/'
+-- Spatial ----
+dirModel = dirSource..'Models/ResNet-RGB-sgd/'
+dirDatabase = dirSource..'dataset/UCF-101/RGB/'
 
 dataFolder = paths.basename(dirDatabase)
 
@@ -76,8 +76,12 @@ dataFolder = paths.basename(dirDatabase)
 -- parse args --
 ----------------
 op = xlua.OptionParser('%prog [options]')
-op:option{'-f', '--fps', action='store', dest='fps',
-          help='number of frames per second', default=25}
+op:option{'-f', '--frame', action='store', dest='frame',
+          help='frame length for each video', default=25}
+op:option{'-fpsTr', '--fpsTr', action='store', dest='fpsTr',
+          help='fps of the trained model', default=25}
+op:option{'-fpsTe', '--fpsTe', action='store', dest='fpsTe',
+          help='fps for testing', default=25}
 op:option{'-t', '--time', action='store', dest='seconds',
           help='length to process (in seconds)', default=2}
 op:option{'-w', '--width', action='store', dest='width',
@@ -93,6 +97,9 @@ op:option{'-p', '--type', action='store', dest='type',
 op:option{'-i', '--devid', action='store', dest='devid',
           help='device ID (if using CUDA)', default=1}      
 opt,args = op:parse()
+print('fps for training: '..opt.fpsTr)
+print('fps for testing: '..opt.fpsTe)
+print('frame length per video: '..opt.frame)
 
 ----------------------------------------------
 --  		       GPU option	 	        --
@@ -120,7 +127,7 @@ end
 -- 			User-defined parameters			--
 ----------------------------------------------
 -- will combine to 'parse args' later
-numFrameSample = 25
+numFrameSample = opt.frame
 sampleAll = false -- use all the frames or not
 numSplit = 1
 saveData = true
@@ -134,6 +141,9 @@ if softMax then
 	print('Using SoftMax layer')
 end
 print('Using '..methodCrop)
+
+nameOutFile = 'acc_video_'..numFrameSample..'Frames.txt' -- output the video accuracy
+
 
 -- Train/Test split
 groupSplit = {}
@@ -150,12 +160,12 @@ end
 -- Output information --
 outTrain = {}
 for sp=1,numSplit do
-	table.insert(outTrain, {name = 'data_'..opt.mode..'_train_'..dataFolder..'_'..methodCrop..'_sp'..sp..'.t7'})
+	table.insert(outTrain, {name = 'data_'..opt.mode..'_train_'..dataFolder..'_'..methodCrop..'_'..numFrameSample..'f_sp'..sp..'.t7'})
 end
 
 outTest = {}
 for sp=1,numSplit do
-	table.insert(outTest, {name = 'data_'..opt.mode..'_test_'..dataFolder..'_'..methodCrop..'_sp'..sp..'.t7'})
+	table.insert(outTest, {name = 'data_'..opt.mode..'_test_'..dataFolder..'_'..methodCrop..'_'..numFrameSample..'f_sp'..sp..'.t7'})
 end
 
 ------ model selection ------
@@ -167,16 +177,21 @@ modelPath = dirModel..modelName
 -- 					Functions 				--
 ----------------------------------------------
 if dataFolder == 'RGB' then
-	meanstd = {mean = { 0.392, 0.376, 0.348 },
-   				std = { 0.241, 0.234, 0.231 }}
+	if opt.fpsTr == 10 then
+		meanstd =  {mean = { 0.392, 0.376, 0.348 },
+	   				std = { 0.241, 0.234, 0.231 }}
+	elseif opt.fpsTr == 25 then
+		meanstd =  {mean = { 0.39234371606738, 0.37576219443075, 0.34801909196893 },
+	               std = { 0.24149100687454, 0.23453123289779, 0.23117322727131 }}
+	end
 elseif dataFolder == 'FlowMap-Brox' then
-      -- 10 fps
-      -- meanstd = {mean = { 0.0091950063390791, 0.4922446721625, 0.49853131534726},
-      --             std = { 0.0056229398806939, 0.070845543666524, 0.081589332546496}}
-      -- 25 fps
-      meanstd = {mean = { 0.0091796917475333, 0.49176131835977, 0.49831646616289 },
-                  std = { 0.0056094466799444, 0.070888495268898, 0.081680047609585 }}
-
+    if opt.fpsTr == 10 then
+		meanstd = {mean = { 0.0091950063390791, 0.4922446721625, 0.49853131534726}, 
+					std = { 0.0056229398806939, 0.070845543666524, 0.081589332546496}}
+	elseif opt.fpsTr == 25 then
+		meanstd = {mean = { 0.0091796917475333, 0.49176131835977, 0.49831646616289 },
+               		std = { 0.0056094466799444, 0.070888495268898, 0.081680047609585 }}
+	end
 elseif dataFolder == 'FlowMap-Brox-crop40' then
     meanstd = {mean = { 0.0091936888040752, 0.49204453841557, 0.49857498097595},
       			std = { 0.0056320802048129, 0.070939325098903, 0.081698516724234}}
@@ -193,14 +208,13 @@ elseif dataFolder == 'FlowMap-FlowNet-M' then
     meanstd = {mean = { 0.951, 0.918, 0.955 },
                 std = { 0.043, 0.052, 0.044 }}
 elseif dataFolder == 'FlowMap-TVL1-crop20' then
-      -- 10 fps
-      --meanstd = {mean = { 0.0078286737613148, 0.49277467447062, 0.42283539438139 },
-      --            std = { 0.0049402251681559, 0.060421647049655, 0.058913364961995 }}
-
-      -- 25 fps
-      meanstd = {mean = { 0.0078368888567733, 0.49304171615406, 0.42294166284263 },
-                  std = { 0.0049412518723573, 0.060508027119622, 0.058952390342379 }}
-
+    if opt.fpsTr == 10 then
+		meanstd = {mean = { 0.0078286737613148, 0.49277467447062, 0.42283539438139 },
+	                 std = { 0.0049402251681559, 0.060421647049655, 0.058913364961995 }}
+	elseif opt.fpsTr == 25 then
+		meanstd =  {mean = { 0.0078368888567733, 0.49304171615406, 0.42294166284263 },
+	                  std = { 0.0049412518723573, 0.060508027119622, 0.058952390342379 }}
+	end
 else
     error('no mean and std defined ... ')
 end
@@ -243,8 +257,6 @@ end
 -- -- Evaluate mode
 net:evaluate()
 
-
--- print(net)
 print ' '
 
 ----------------------------------------------
@@ -260,6 +272,10 @@ print ' '
 --====================================================================--
 --                     Run all the videos in UCF-101                  --
 --====================================================================--
+if opt.mode == 'pred' then
+	fd = io.open(nameOutFile,'w')
+end
+
 print '==> Processing all the videos...'
 
 -- Load the intermediate feature data or generate a new one --
@@ -308,7 +324,7 @@ for sp=1,numSplit do
 		print('The feature data of split '..sp..' is already in your folder!!!!!!')
 	else
 
-		for c=Te.c_finished+1, numClassTotal do
+		for c=Te.c_finished+1, numClassTotal do		
 			if nameClass[c] ~= '.' and nameClass[c] ~= '..' then
 
 				local hitTestFrameClass = 0
@@ -334,51 +350,47 @@ for sp=1,numSplit do
 			      	--------------------  
 			      	if nameSubVideo[sv] ~= '.' and nameSubVideo[sv] ~= '..' then
 			        	local videoName = nameSubVideo[sv]
-			        	local videoPath = dirClass..videoName
-			        	
-			        	-- print('==> Loading the video: '..videoName)
-			        	
-			        	local video = ffmpeg.Video{path=videoPath, fps=opt.fps, delete=true, destFolder='out_frames',silent=true}
 
-			        	-- --video:play{} -- play the video
-			        	local vidTensor = video:totensor{} -- read the whole video & turn it into a 4D tensor
-				        local vidTensor2 = vidTensor[{{},{3-(nChannel-1),3},{},{}}] -- nx3x240x320 --> nx2x240x320
-
-				        ------ Video prarmeters ------
-				        local numFrame = vidTensor2:size(1)
-
-				        -- print(numFrame)
-
-				        local numFrameAvailable = numFrame - numStack + 1 -- for 10-stacking
-				        local numFrameInterval = sampleAll and 1 or torch.floor(numFrameAvailable/numFrameSample)
-				        local numFrameUsed = sampleAll and numFrameAvailable or numFrameSample -- choose frame # for one video
-
-			            	-- extract the group name
-			            	local i,j = string.find(videoName,'_g') -- find the location of the group info in the string
-			            	local videoGroup = tonumber(string.sub(videoName,j+1,j+2)) -- get the group#
-			            	local videoPathLocal = nameClass[c]..'/'..videoName
+		            	-- extract the group name
+		            	local i,j = string.find(videoName,'_g') -- find the location of the group info in the string
+		            	local videoGroup = tonumber(string.sub(videoName,j+1,j+2)) -- get the group#
+		            	local videoPathLocal = nameClass[c]..'/'..videoName
 
 				          	----------------------------------------------
 				          	--           Process with the video         --
 				          	----------------------------------------------
 				          	if opt.mode == 'pred' then 
 				          		if groupSplit[sp].setTe:eq(videoGroup):sum() == 1 then -- testing data
+				          			--== Read the Video ==--
+				          			local videoPath = dirClass..videoName
+			        	
+						        	-- print('==> Loading the video: '..videoName)
+						        	local video = ffmpeg.Video{path=videoPath, fps=opt.fpsTe, delete=true, destFolder='out_frames',silent=true}
+			        				local vidTensor = video:totensor{} -- read the whole video & turn it into a 4D tensor
+
+							        ------ Video prarmeters ------
+							        local numFrame = vidTensor:size(1)
+
+				        			local numFrameAvailable = numFrame - 9 -- for 10-stacking
+				        			local numFrameInterval = sampleAll and 1 or torch.floor(numFrameAvailable/numFrameSample)
+				        			local numFrameUsed = sampleAll and numFrameAvailable or numFrameSample -- choose frame # for one video
+
+				        			--== Prediction ==--
 				          			Te.countVideo = Te.countVideo + 1
 					          		local predFrames = torch.Tensor(numFrameUsed):zero() -- 25
 					          		local probFrames = torch.Tensor(numFrameUsed,numClass):zero() -- 25x101
 					            	-- print '==> Begin predicting......'
 					            	
 					            	for i=1, numFrameUsed do
-					              		local f = (i-1)*numFrameInterval+1 -- current frame sample
-					              		-- print(f)
-					              		local inFrames = vidTensor2[{{f,f+numStack-1}}] -- 10x2x240x320
+					              		local f = (i-1)*numFrameInterval+5 -- current frame sample
+
+					              		local inFrames = vidTensor[{{torch.floor(f-numStack/2)+1,torch.floor(f+numStack/2)},{3-(nChannel-1),3},{},{}}]
 					              		local netInput = torch.Tensor(inFrames:size(1)*nChannel,opt.height,opt.width):zero() -- 20x240x320
 					              		for x=0,numStack-1 do
 					              			netInput[{{x*nChannel+1,(x+1)*nChannel}}] = inFrames[{{x+1},{},{},{}}]
 					              		end
-					              		-- print(netInput)
+
 					         			local I = transform(netInput) -- 20x224x224 or 10x20x224x224 (tenCrop)
-					              		
 										local probFrame_now = torch.Tensor(1,numClass):zero()
 					              		if (methodCrop == 'tenCrop') then
 						              		local outputTen = net:forward(I:cuda()):float() -- 10x101
@@ -389,6 +401,7 @@ for sp=1,numSplit do
 					              			local output = net:forward(I:cuda()) -- 1x101
 					              			probFrame_now = output:float()
 					              		end
+
 										probFrames[i] = probFrame_now -- 101 probabilities of the frame
 										local probLog, predLabels = probFrame_now:topk(numTopN, true, true) -- 5 (probabilities + labels)        
 										local predFrame = predLabels[1][1] -- predicted label of the frame
@@ -424,17 +437,30 @@ for sp=1,numSplit do
 					            		hitTestVideoClass = hitTestVideoClass  + 1
 					            	end
 
-					            	-- print(hitTestFrameClass, numTestFrameClass)
-					            	-- print(hitTestVideoClass, numTestVideoClass)
-
 				            	end
 				          	elseif opt.mode == 'feat' then -- feature extraction
+				          		--== Read the Video ==--
+				          		local videoPath = dirClass..videoName
+		        				-- print('==> Loading the video: '..videoName)
+			        	
+		        				local video = ffmpeg.Video{path=videoPath, fps=opt.fpsTe, delete=true, destFolder='out_frames',silent=true}
+		        				local vidTensor = video:totensor{} -- read the whole video & turn it into a 4D tensor
+
+			        			------ Video prarmeters ------
+			        			local numFrame = vidTensor:size(1)
+
+						        -- print(numFrame)
+						        local numFrameAvailable = numFrame - 9 -- for 10-stacking
+						        local numFrameInterval = sampleAll and 1 or torch.floor(numFrameAvailable/numFrameSample)
+						        local numFrameUsed = sampleAll and numFrameAvailable or numFrameSample -- choose frame # for one video
+
+								--== Extract Features ==--
 				          		local featMatsVideo = torch.DoubleTensor(1,dimFeat,numFrameUsed):zero() -- 1x2048x25
 				            	--print '==> Generating the feature matrix......'
 				            	for i=1, numFrameUsed do
-					              	local f = (i-1)*numFrameInterval+1 -- current frame sample
-					              	-- print(f)
-					              	local inFrames = vidTensor2[{{f,f+numStack-1}}] -- 10x2x240x320
+				              		local f = (i-1)*numFrameInterval+5 -- current frame sample
+
+					              	local inFrames = vidTensor[{{torch.floor(f-numStack/2)+1,torch.floor(f+numStack/2)},{3-(nChannel-1),3},{},{}}]					              	
 					              	local netInput = torch.Tensor(inFrames:size(1)*nChannel,opt.height,opt.width):zero() -- 20x240x320
 					              	for x=0,numStack-1 do
 					              		netInput[{{x*nChannel+1,(x+1)*nChannel}}] = inFrames[{{x+1},{},{},{}}]
@@ -501,6 +527,7 @@ for sp=1,numSplit do
 					-- video prediction
 					Te.hitTestVideoAll = Te.hitTestVideoAll + hitTestVideoClass
 					print('Class video accuracy: '..hitTestVideoClass/numTestVideoClass)
+					fd:write(hitTestVideoClass/numTestVideoClass, '\n')
 					print('Accumulated video accuracy: '..Te.hitTestVideoAll/Te.countVideo)
 					Te.accVideoClass[Te.countClass] = hitTestVideoClass/numTestVideoClass
 					Te.accVideoAll = Te.hitTestVideoAll/Te.countVideo
@@ -511,7 +538,6 @@ for sp=1,numSplit do
 				end
 
 			  	print('The elapsed time for the class '..nameClass[c]..': ' .. timerClass:time().real .. ' seconds')
-			  	-- torch.save(outTrain[sp].name, Tr)
 			  	
 			  	if saveData then
 					torch.save(outTrain[sp].name, Tr)
@@ -531,6 +557,7 @@ for sp=1,numSplit do
 		print('Total frame accuracy for the whole dataset: '..Te.hitTestFrameAll/Te.countFrame)
 		print('Total video numbers: '..Te.countVideo)
 		print('Total video accuracy for the whole dataset: '..Te.hitTestVideoAll/Te.countVideo)
+		fd:write(hitTestVideoClass/numTestVideoClass, '\n')
 	elseif opt.mode == 'feat' then
 		print('The total training class numbers in the split'..sp..': ' .. Tr.countClass)
 		print('The total training video numbers in the split'..sp..': ' .. Tr.countVideo)
@@ -544,4 +571,8 @@ for sp=1,numSplit do
 	Tr = nil
 	Te = nil
 	collectgarbage()
+end
+
+if opt.mode == 'pred' then
+	fd:close()
 end
