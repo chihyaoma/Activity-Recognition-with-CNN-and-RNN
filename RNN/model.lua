@@ -29,14 +29,16 @@ else
    model = nn.Sequential()
 
    local inputSize = opt.inputSize
-   for i,fcSize in ipairs(opt.fcSize) do 
-      -- add fully connected layers to fuse spatial and temporal features
-      model:add(nn.Sequencer(nn.Linear(inputSize, fcSize)))
-      inputSize = fcSize
+   if opt.fcSize ~= nil then
+      for i,fcSize in ipairs(opt.fcSize) do 
+         -- add fully connected layers to fuse spatial and temporal features
+         model:add(nn.Sequencer(nn.Linear(inputSize, fcSize)))
+         inputSize = fcSize
+      end
    end
 
    if opt.dropout > 0 then
-      model:add(nn.Sequencer(nn.Dropout(opt.dropoutProb), 1))
+      -- model:add(nn.Sequencer(nn.Dropout(opt.dropoutProb), 1))
    end
 
    for i,hiddenSize in ipairs(opt.hiddenSize) do 
@@ -55,7 +57,8 @@ else
          require 'nngraph'
          nn.FastLSTM.usenngraph = true -- faster
          nn.FastLSTM.bn = opt.bn
-         rnn = nn.Sequencer(nn.FastLSTM(inputSize, hiddenSize))
+         -- rnn = nn.Sequencer(nn.FastLSTM(inputSize, hiddenSize))
+         rnn = nn.Sequencer(nn.LSTM(inputSize, hiddenSize))
       else
          -- simple recurrent neural network
          rnn = nn.Recurrent(
@@ -76,7 +79,7 @@ else
       model:add(rnn)
 
       if opt.dropout > 0 then -- dropout it applied between recurrent layers
-         model:add(nn.Sequencer(nn.Dropout(opt.dropoutProb)))
+         -- model:add(nn.Sequencer(nn.Dropout(opt.dropoutProb)))
       end
       
       inputSize = hiddenSize
@@ -85,9 +88,9 @@ else
    -- input layer 
    model:insert(nn.SplitTable(3,1), 1) -- tensor to table of tensors
 
-   -- if opt.dropout > 0 then
-   --    model:insert(nn.Dropout(opt.dropoutProb), 1)
-   -- end
+   if opt.dropout > 0 then
+      model:insert(nn.Dropout(opt.dropoutProb), 1)
+   end
 
    -- output layer
    model:add(nn.SelectTable(-1)) -- this selects the last time-step of the rnn output sequence
@@ -109,21 +112,6 @@ criterion = nn.ClassNLLCriterion()
 
 print(sys.COLORS.red ..  '==> here is the network:')
 print(model)
-
--- Wrap the model with DataParallelTable, if using more than one GPU
-if opt.nGPU > 1 then
-   local gpus = torch.range(1, opt.nGPU):totable()
-
-   local dpt = nn.DataParallelTable(1, true, true)
-      :add(model, gpus)
-      :threads(function()
-         local rnn = require 'rnn'
-         require 'nngraph'        
-      end)
-   dpt.gradInput = nil
-
-   model = dpt:cuda()
-end
 
 if opt.cuda == true then
    model:cuda()
