@@ -23,13 +23,13 @@ require 'nn'      -- provides all sorts of trainable modules/layers
 print(sys.COLORS.red ..  '==> processing options')
 
 opt = lapp[[
-   -r,--learningRate       (default 1e-3)        learning rate
-   -d,--learningRateDecay  (default 1e-7)        learning rate decay (in # samples)
+   -r,--learningRate       (default 1e-2)        learning rate
+   -l,--learningRateDecay  (default 1e-7)        learning rate decay (in # samples)
    -w,--weightDecay        (default 1e-5)        L2 penalty on the weights
    -m,--momentum           (default 0.1)         momentum
    -d,--dropout            (default 0.5)         dropout amount
-   -b,--batchSize          (default 128)         batch size
-   -t,--threads            (default 2)           number of threads
+   -b,--batchSize          (default 64)         batch size
+   -t,--threads            (default 6)           number of threads
    -p,--type               (default cuda)       float or cuda
    -i,--devid              (default 1)           device ID (if using CUDA)
    -o,--save               (default results)     save directory
