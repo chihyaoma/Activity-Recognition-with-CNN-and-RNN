@@ -746,7 +746,7 @@ for sp=1,numSplit do
 		print('Total video accuracy for the whole dataset (Temporal): '..acc_video_all_T)
 		print('Total video accuracy for the whole dataset (Spatial): '..acc_video_all_S)
 		
-		fd:write(acc_frame_class_S, ' ', acc_video_class_S, ' ', acc_frame_class_T, ' ', acc_video_class_T, ' ', acc_frame_class_ST, ' ', acc_video_class_ST, '\n')
+		fd:write(acc_frame_all_S, ' ', acc_video_all_S, ' ', acc_frame_all_T, ' ', acc_video_all_T, ' ', acc_frame_all_ST, ' ', acc_video_all_ST, '\n')
 		
 	elseif opt.mode == 'feat' then
 		print('The total training class numbers in the split'..sp..': ' .. Tr.countClass)
