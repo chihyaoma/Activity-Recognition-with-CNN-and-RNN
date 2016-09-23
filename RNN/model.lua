@@ -37,65 +37,34 @@ else
       end
    end
 
-   if opt.dropout > 0 then
-      -- model:add(nn.Sequencer(nn.Dropout(opt.dropoutProb), 1))
-   end
-
+   -- setup two LSTM cells with different dimensions
+   local conTable = nn.ConcatTable()
+   -- recurrent layer
    for i,hiddenSize in ipairs(opt.hiddenSize) do 
-
-      if i~= 1 and (not opt.lstm) and (not opt.gru) then
-         model:add(nn.Sequencer(nn.Linear(inputSize, hiddenSize)))
-      end
-      
-      -- recurrent layer
-      local rnn
-      if opt.gru then
-         -- Gated Recurrent Units
-         rnn = nn.Sequencer(nn.GRU(inputSize, hiddenSize))
-      elseif opt.lstm then
-         -- Long Short Term Memory
-         require 'nngraph'
-         nn.FastLSTM.usenngraph = true -- faster
-         nn.FastLSTM.bn = opt.bn
-         -- rnn = nn.Sequencer(nn.FastLSTM(inputSize, hiddenSize))
-         rnn = nn.Sequencer(nn.LSTM(inputSize, hiddenSize))
-      else
-         -- simple recurrent neural network
-         rnn = nn.Recurrent(
-            hiddenSize, -- first step will use nn.Add
-            nn.Identity(), -- for efficiency (see above input layer) 
-            nn.Linear(hiddenSize, hiddenSize), -- feedback layer (recurrence)
-            nn.Sigmoid(), -- transfer function 
-            --99999 -- maximum number of time-steps per sequence
-            opt.rho
-         )
-         if opt.zeroFirst then
-            -- this is equivalent to forwarding a zero vector through the feedback layer
-            rnn.startModule:share(rnn.feedbackModule, 'bias')
-         end
-         rnn = nn.Sequencer(rnn)
-      end
-      
-      model:add(rnn)
-
-      if opt.dropout > 0 then -- dropout it applied between recurrent layers
-         -- model:add(nn.Sequencer(nn.Dropout(opt.dropoutProb)))
-      end
-      
-      inputSize = hiddenSize
+      conTable:add(nn.Sequencer(nn.LSTM(inputSize, hiddenSize)))
    end
+   model:add(conTable)
 
    -- input layer 
    model:insert(nn.SplitTable(3,1), 1) -- tensor to table of tensors
 
-   if opt.dropout > 0 then
-      model:insert(nn.Dropout(opt.dropoutProb), 1)
+   -- output layer
+   local p1 = nn.ParallelTable()
+   for i in ipairs(opt.hiddenSize) do 
+      -- select the last output from each of the LSTM cells
+      p1:add(nn.SelectTable(-1))
+   end
+   
+   local p2 = nn.ParallelTable()
+   for i,hiddenSize in ipairs(opt.hiddenSize) do
+      -- full-connected layers for each LSTM output
+      p2:add(nn.Linear(hiddenSize, nClass))
    end
 
-   -- output layer
-   model:add(nn.SelectTable(-1)) -- this selects the last time-step of the rnn output sequence
-   model:add(nn.Linear(inputSize, nClass))
-   model:add(nn.LogSoftMax())
+   model:add(p1):add(p2)
+   -- average the prediction from all FC layers
+   model:add(nn.CAddTable())
+   -- model:add(nn.CMaxTable())
 
    if opt.uniform > 0 then
       for k,param in ipairs(model:parameters()) do
@@ -108,7 +77,7 @@ else
 end
 
 -- build criterion
-criterion = nn.ClassNLLCriterion()
+criterion = nn.CrossEntropyCriterion()
 
 print(sys.COLORS.red ..  '==> here is the network:')
 print(model)
