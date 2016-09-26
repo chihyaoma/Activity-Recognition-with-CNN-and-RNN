@@ -11,7 +11,7 @@
 -- 
 --  Contact: Chih-Yao Ma at <cyma@gatech.edu>
 ----------------------------------------------------------------
-
+local nn = require 'nn'
 local sys = require 'sys'
 local xlua = require 'xlua'    -- xlua provides useful tools, like progress bars
 local optim = require 'optim'
@@ -92,6 +92,18 @@ function test(testData, testTarget)
 				local indLong = torch.LongTensor():resize(Index:size()):copy(Index)
 				local inputsPreFrames = inputs:index(3, indLong)
 
+				-- replicate the testing data and feed into LSTM cells seperately
+				inputsPreFrames = torch.repeatTensor(inputsPreFrames,#opt.hiddenSize,1,1)
+
+				-- replace the JoinTable in model with CAddTable
+				model:remove(1)
+				model:insert(nn.View(#opt.hiddenSize, opt.batchSize, opt.inputSize, -1),1)
+				model:remove(#model.modules)
+				model:add(nn.CAddTable())
+
+				if opt.cuda == true then
+					model:cuda()
+				end
 				-- feedforward pass the trained model
 				predsFrames[{{},{},idx}] = model:forward(inputsPreFrames)
 
@@ -99,7 +111,6 @@ function test(testData, testTarget)
 			end
 			-- average all the prediction across all frames
 			preds = torch.mean(predsFrames, 3):squeeze()
-			-- preds = torch.max(predsFrames, 3):squeeze()
 
 			top1, top3 = computeScore(preds, targets, 1)
 			top1Sum = top1Sum + top1*opt.batchSize
@@ -126,6 +137,15 @@ function test(testData, testTarget)
 					prob[i][j] = probLog[idx][j]
 				end
 				idx = idx + 1
+			end
+
+			-- revert back to the original model for training again 
+			model:remove(1)
+			model:insert(nn.View(#opt.hiddenSize, opt.batchSize/#opt.hiddenSize, opt.inputSize, -1),1)
+			model:remove(#model.modules)
+			model:add(nn.JoinTable(1))
+			if opt.cuda == true then
+				model:cuda()
 			end
 
 		else

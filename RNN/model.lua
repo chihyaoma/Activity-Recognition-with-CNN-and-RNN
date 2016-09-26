@@ -29,24 +29,36 @@ else
    model = nn.Sequential()
 
    local inputSize = opt.inputSize
-   if opt.fcSize ~= nil then
-      for i,fcSize in ipairs(opt.fcSize) do 
-         -- add fully connected layers to fuse spatial and temporal features
-         model:add(nn.Sequencer(nn.Linear(inputSize, fcSize)))
-         inputSize = fcSize
-      end
-   end
-
-   -- setup two LSTM cells with different dimensions
-   local conTable = nn.ConcatTable()
-   -- recurrent layer
-   for i,hiddenSize in ipairs(opt.hiddenSize) do 
-      conTable:add(nn.Sequencer(nn.LSTM(inputSize, hiddenSize)))
-   end
-   model:add(conTable)
 
    -- input layer 
-   model:insert(nn.SplitTable(3,1), 1) -- tensor to table of tensors
+   assert((opt.batchSize%(#opt.hiddenSize)) == 0, 'batchSize need to be the multiple of # of hidden layer.')
+   model:add(nn.View(#opt.hiddenSize, opt.batchSize/#opt.hiddenSize, inputSize, -1))
+   model:add(nn.SplitTable(1,2)) -- tensor to table of tensors
+   
+   local p = nn.ParallelTable()
+   for i=1,#opt.hiddenSize do 
+      p:add(nn.SplitTable(3,1))
+   end
+   model:add(p)
+
+   local pFC = nn.ParallelTable()
+   
+   if opt.fcSize ~= nil then
+      -- for i,fcSize in ipairs(opt.fcSize) do 
+      for i=1,#opt.hiddenSize do 
+         -- add fully connected layers to fuse spatial and temporal features
+         pFC:add(nn.Sequencer(nn.Linear(inputSize, opt.fcSize[1])))
+      end
+   end
+   model:add(pFC)
+
+   -- setup two LSTM cells with different dimensions
+   local lstmTable = nn.ParallelTable()
+   -- recurrent layer
+   for i,hiddenSize in ipairs(opt.hiddenSize) do 
+      lstmTable:add(nn.Sequencer(nn.LSTM(inputSize, hiddenSize)))
+   end
+   model:add(lstmTable)
 
    -- output layer
    local p1 = nn.ParallelTable()
@@ -60,11 +72,9 @@ else
       -- full-connected layers for each LSTM output
       p2:add(nn.Linear(hiddenSize, nClass))
    end
-
+   -- concat the prediction from all FC layers
    model:add(p1):add(p2)
-   -- average the prediction from all FC layers
-   model:add(nn.CAddTable())
-   -- model:add(nn.CMaxTable())
+   model:add(nn.JoinTable(1))
 
    if opt.uniform > 0 then
       for k,param in ipairs(model:parameters()) do

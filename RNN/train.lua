@@ -147,6 +147,9 @@ function train(trainData, trainTarget)
       local trainSeriesName = 'train-top1-' .. opt.pastalogName
       pastalog(modelName, trainSeriesName, top1, (epoch-1)*trainData:size(1) + t, 'http://ct5250-12.ece.gatech.edu:8120/data')
 
+      -- check that the storage didn't get changed do to an unfortunate getParameters call
+      assert(w:storage() == model:parameters()[1]:storage())
+
       timer:reset()
       dataTimer:reset()
 
