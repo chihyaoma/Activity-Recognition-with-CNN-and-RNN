@@ -69,18 +69,19 @@ function test(testData, testTarget)
 		-- disp progress
 		xlua.progress(t, testData:size(1))
 
-		-- batch fits?
-		if (t + opt.batchSize - 1) > testData:size(1) then
-			break
-		end
-
 		-- create mini batch
 		local idx = 1
+		inputs:fill(0)
+		targets:fill(0)
+
 		for i = t,t+opt.batchSize-1 do
-			inputs[idx] = testData[i]:float()
-			targets[idx] = testTarget[i]
-			idx = idx + 1
+			if i <= testData:size(1) then
+				inputs[idx] = testData[i]:float()
+				targets[idx] = testTarget[i]
+				idx = idx + 1
+			end
 		end
+		local idxBound = idx - 1
 
 		local top1, top3
 		if opt.averagePred == true then 
@@ -112,10 +113,15 @@ function test(testData, testTarget)
 			-- average all the prediction across all frames
 			preds = torch.mean(predsFrames, 3):squeeze()
 
-			top1, top3 = computeScore(preds, targets, 1)
-			top1Sum = top1Sum + top1*opt.batchSize
-			top3Sum = top3Sum + top3*opt.batchSize
-			N = N + opt.batchSize
+			-- discard the redundant predictions and targets
+			if (t + opt.batchSize - 1) > testData:size(1) then
+				preds = preds:sub(1,idxBound)
+			end
+
+			top1, top3 = computeScore(preds, targets:sub(1,idxBound), 1)
+			top1Sum = top1Sum + top1*idxBound
+			top3Sum = top3Sum + top3*idxBound
+			N = N + idxBound
 
 			print((' | Test: [%d][%d/%d]    Time %.3f  Data %.3f  top1 %7.3f (%7.3f)  top3 %7.3f (%7.3f)'):format(
 				epoch-1, t, testData:size(1), timer:time().real, dataTime, top1, top1Sum / N, top3, top3Sum / N))
@@ -129,14 +135,15 @@ function test(testData, testTarget)
 
 			idx = 1
 			for i = t,t+opt.batchSize-1 do
-				labels[i] = {}
-				prob[i] = {}
-				for j = 1, topN do
-					-- local indClass = predLabels[idx][j]
-					labels[i][j] = classes[predLabels[idx][j]]
-					prob[i][j] = probLog[idx][j]
+				if i <= testData:size(1) then
+					labels[i] = {}
+					prob[i] = {}
+					for j = 1, topN do
+						labels[i][j] = classes[predLabels[idx][j]]
+						prob[i][j] = probLog[idx][j]
+					end
+					idx = idx + 1
 				end
-				idx = idx + 1
 			end
 
 			-- revert back to the original model for training again 
@@ -150,12 +157,14 @@ function test(testData, testTarget)
 
 		else
 			-- test sample
+			-- TODO: need to be largely modify
 			preds = model:forward(inputs)
 		end
 
 		-- confusion
-		for i = 1,opt.batchSize do
-			confusion:add(preds[i], targets[i])
+		-- for i = 1,opt.batchSize do
+		for i = 1,idxBound do
+			confusion:add(preds[i], targets:sub(1,idxBound)[i])
 		end
 	end
 
@@ -169,6 +178,8 @@ function test(testData, testTarget)
 
   	-- print confusion matrix
   	print(confusion)
+
+  	assert(#labels == testData:size(1), 'predictions dimension mismatch with testing data..')
 
   	-- if the performance is so far the best..
   	local bestModel = false
