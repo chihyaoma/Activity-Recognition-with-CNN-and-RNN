@@ -75,6 +75,7 @@ else
    -- concat the prediction from all FC layers
    model:add(p1):add(p2)
    model:add(nn.JoinTable(1))
+   model:add(nn.LogSoftMax())
 
    if opt.uniform > 0 then
       for k,param in ipairs(model:parameters()) do
@@ -87,7 +88,7 @@ else
 end
 
 -- build criterion
-criterion = nn.CrossEntropyCriterion()
+criterion = nn.ClassNLLCriterion()
 
 print(sys.COLORS.red ..  '==> here is the network:')
 print(model)

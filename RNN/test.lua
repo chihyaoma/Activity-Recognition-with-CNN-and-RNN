@@ -100,7 +100,10 @@ function test(testData, testTarget)
 				model:remove(1)
 				model:insert(nn.View(#opt.hiddenSize, opt.batchSize, opt.inputSize, -1),1)
 				model:remove(#model.modules)
+				model:remove(#model.modules)
 				model:add(nn.CAddTable())
+				model:add(nn.LogSoftMax())
+				-- print(model)
 
 				if opt.cuda == true then
 					model:cuda()
@@ -127,7 +130,7 @@ function test(testData, testTarget)
 				epoch-1, t, testData:size(1), timer:time().real, dataTime, top1, top1Sum / N, top3, top3Sum / N))
 
 			-- Get the top N class indexes and probabilities
-			local topN = 1
+			local topN = 3
 			local probLog, predLabels = preds:topk(topN, true, true)
 
 			-- Convert log probabilities back to [0, 1]
@@ -150,7 +153,9 @@ function test(testData, testTarget)
 			model:remove(1)
 			model:insert(nn.View(#opt.hiddenSize, opt.batchSize/#opt.hiddenSize, opt.inputSize, -1),1)
 			model:remove(#model.modules)
+			model:remove(#model.modules)
 			model:add(nn.JoinTable(1))
+			model:add(nn.LogSoftMax())
 			if opt.cuda == true then
 				model:cuda()
 			end
