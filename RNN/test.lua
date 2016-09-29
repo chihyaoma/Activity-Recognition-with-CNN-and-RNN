@@ -186,7 +186,7 @@ function test(testData, testTarget)
 		torch.save(opt.save .. '/prob.txt', prob,'ascii')
 
 		if opt.saveModel == true then
-			checkpoints.save(epoch-1, model, optimState, bestModel)
+			checkpoints.save(epoch-1, model, optimState, bestModel, confusion.totalValid*100)
 		end
 	end
 	print(sys.COLORS.red .. '==> Best testing accuracy = ' .. bestAcc .. '%')
