@@ -112,7 +112,7 @@ function train(trainData, trainTarget)
          loss = criterion:forward(outputs,targets)
 
          -- estimate df/dW
-         local dE_dy = criterion:backward(outputs,targets)   
+         local dE_dy = criterion:backward(outputs,targets)
          model:backward(inputs,dE_dy)
 
          top1, top3 = computeScore(outputs, targets, 1)

@@ -14,17 +14,22 @@ function checkpoint.latest(opt)
       return nil
    end
 
-   local latestPath = paths.concat(opt.resume, 'latest.t7')
+   local latestFile = opt.resumeFile .. '.t7'
+   local latestPath = paths.concat(opt.resume, latestFile)
+
    if not paths.filep(latestPath) then
       return nil
    end
 
    print('=> Loading checkpoint ' .. latestPath)
    local latest = torch.load(latestPath)
-   local optimState = torch.load(paths.concat(opt.resume, latest.optimFile))
-   epoch = latest.epoch
-   print('=> current epoch # ' .. epoch)
-   return latest, optimState
+   
+   if opt.optimState == 'none' then
+        return latest, nil
+   else
+        local optimState = torch.load(paths.concat(opt.resume, latest.optimFile))
+        return latest, optimState
+   end
 end
 
 function checkpoint.save(epoch, model, optimState, bestModel)

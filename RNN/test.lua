@@ -66,7 +66,6 @@ function test(testData, testTarget)
 	model:remove(#model.modules)
 	model:add(nn.CAddTable())
 	model:add(nn.LogSoftMax())
-	-- print(model)
 
 	if opt.cuda == true then
 		model:cuda()
@@ -74,6 +73,10 @@ function test(testData, testTarget)
 
 	-- test over test data
 	print(sys.COLORS.red .. '==> testing on test set:')
+
+	if opt.testOnly then 
+		epoch = 1
+	end
 	
 	local top1Sum, top3Sum, lossSum = 0.0, 0.0, 0.0
 	local N = 0
@@ -157,7 +160,6 @@ function test(testData, testTarget)
 		end
 
 		-- confusion
-		-- for i = 1,opt.batchSize do
 		for i = 1,idxBound do
 			confusion:add(preds[i], targets:sub(1,idxBound)[i])
 		end

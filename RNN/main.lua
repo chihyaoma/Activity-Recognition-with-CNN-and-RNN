@@ -35,7 +35,7 @@ cmd:option('-epochUpdateLR', 40, 'learning rate decay per epochs for optimizer a
 cmd:option('-lrDecayFactor', 0.1, 'learning rate decay factor for optimizer adam')
 cmd:option('-maxOutNorm', -1, 'max l2-norm of each layer`s output neuron weights')
 cmd:option('-cutoffNorm', -1, 'max l2-norm of concatenation of all gradParam tensors')
-cmd:option('-batchSize', 128, 'number of examples per batch') -- how many examples per training 
+cmd:option('-batchSize', 192, 'number of examples per batch') -- how many examples per training
 cmd:option('-cuda', true, 'use CUDA')
 cmd:option('-useDevice', 1, 'sets the device (GPU) to use')
 cmd:option('-maxEpoch', 100, 'maximum number of epochs to run')
@@ -48,20 +48,25 @@ cmd:option('-lstm', true, 'use Long Short Term Memory (nn.LSTM instead of nn.Rec
 cmd:option('-bn', false, 'use batch normalization. Only supported with --lstm')
 cmd:option('-gru', false, 'use Gated Recurrent Units (nn.GRU instead of nn.Recurrent)')
 cmd:option('-rho', 25, 'number of frames for each video')
-cmd:option('-fcSize', '{2048}', 'umber of hidden units used at output of each fully recurrent connected layer. When more than one is specified, fully-connected layers are stacked')
-cmd:option('-hiddenSize', '{1024, 512}', 'number of hidden units used at output of each recurrent layer. When more than one is specified, RNN/LSTMs/GRUs are stacked')
+cmd:option('-fcSize', '{4096}', 'umber of hidden units used at output of each fully recurrent connected layer. When more than one is specified, fully-connected layers are stacked')
+cmd:option('-hiddenSize', '{1024,512,256}', 'number of hidden units used at output of each recurrent layer. When more than one is specified, RNN/LSTMs/GRUs are stacked')
 cmd:option('-zeroFirst', false, 'first step will forward zero through recurrence (i.e. add bias of recurrence). As opposed to learning bias specifically for first step.')
 cmd:option('-dropout', 0, 'apply dropout after each recurrent layer')
 -- testing process
 cmd:option('-averagePred', true, 'average the predictions from each time step per video')
 -- checkpoint
+cmd:option('-testOnly',  true, 'Run on validation set only') 
 cmd:option('-resume', 'none',  'Path to directory containing checkpoint')
+-- cmd:option('-resume', '/home/chih-yao/Downloads/log/log_LSTM-SpatTemp25fps-MultiScale-DivDuplicateData-FixNaN-5_{4096}_{2048,1024,512}_0.01_0.01_0/',  'Path to directory containing checkpoint')
+cmd:option('-resumeFile', 'latest_best',  'file for resuming training: latest_best | latest_current')
 cmd:option('-saveModel', false,  'Save the model and optimState for resume later')
 -- data
 cmd:option('-trainEpochSize', -1, 'number of train examples seen between each epoch')
 cmd:option('-validEpochSize', -1, 'number of valid examples used for early stopping and cross-validation') 
 cmd:option('-spatFeatDir', 'none', 'directory of spatial feature vectors')
 cmd:option('-tempFeatDir', 'none', 'directory of temporal feature vectors (from optical flow)')
+-- cmd:option('-spatFeatDir', '/home/chih-yao/Downloads/Features/', 'directory of spatial feature vectors')
+-- cmd:option('-tempFeatDir', '/home/chih-yao/Downloads/Features/', 'directory of temporal feature vectors (from optical flow)')
 cmd:option('-plot', false, 'Plot the training and testing accuracy')
 dname,fname = sys.fpath()
 
@@ -102,12 +107,19 @@ print(sys.COLORS.red ..  '==> load modules')
 
 -- checkpoints
 checkpoints = require 'checkpoints'
+
 -- Load previous checkpoint, if it exists
 checkpoint, optimState = checkpoints.latest(opt)
 
 local data  = require 'data-ucf101'
 local train = require 'train'
 local test  = require 'test'
+
+if opt.testOnly then
+	-- Begin testing with trained model
+	test(data.testData, data.testTarget)
+	return
+end
 
 ------------------------------------------------------------
 -- Run
