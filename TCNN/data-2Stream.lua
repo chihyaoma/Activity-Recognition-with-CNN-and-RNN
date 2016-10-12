@@ -24,7 +24,7 @@ local nframeAll = 25
 ----------------------------------------------
 -- 				  Data paths                --
 ----------------------------------------------
-source = 'local' -- local | workstation
+source = opt.sourcePath
 if source == 'local' then
 	dirSource = '/home/cmhung/Code/'
 elseif source == 'workstation' then	
@@ -37,7 +37,7 @@ dirFeature = dirSource..'Features/'
 ----------------------------------------------
 -- 			User-defined parameters		    --
 ----------------------------------------------
-idSplit = opt.splitid
+idSplit = opt.splitId
 
 ----------------------------------------------
 -- 			      Load Data	    	        --

@@ -23,19 +23,20 @@ require 'nn'      -- provides all sorts of trainable modules/layers
 print(sys.COLORS.red ..  '==> processing options')
 
 opt = lapp[[
+   -z,--sourcePath         (default workstation) source path (local | workstation)
    -r,--learningRate       (default 1e-3)        learning rate
    -l,--learningRateDecay  (default 1e-7)        learning rate decay (in # samples)
    -w,--weightDecay        (default 1e-5)        L2 penalty on the weights
    -m,--momentum           (default 0.1)         momentum
    -d,--dropout            (default 0.5)         dropout amount
-   -b,--batchSize          (default 32)         batch size
-   -t,--threads            (default 6)           number of threads
-   -p,--type               (default cuda)       float or cuda
+   -b,--batchSize          (default 32)          batch size
+   -t,--threads            (default 2)           number of threads
+   -p,--type               (default cuda)        float or cuda
    -i,--devid              (default 1)           device ID (if using CUDA)
    -o,--save               (default results)     save directory
-   -s,--splitid            (default 1)           split number
+   -s,--splitId            (default 1)           split number
       --patches            (default all)         percentage of samples to use for testing'
-      --model              (default TCNN-2)         network model (TCNN-1 | TCNN-2)
+      --model              (default TCNN-2)      network model (TCNN-1 | TCNN-2)
       --optMethod          (default sgd)         optimization method
       --plot               (default no)       	 plot the training and test accuracies
 ]]

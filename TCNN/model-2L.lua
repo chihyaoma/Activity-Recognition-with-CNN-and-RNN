@@ -13,7 +13,6 @@
 -- contact: cmhungsteve@gatech.edu
 -- Last updated: 10/11/2016
 
-
 require 'torch'   -- torch
 require 'nn'      -- provides all sorts of trainable modules/layers
 --require 'Dropout' -- Hinton dropout technique
