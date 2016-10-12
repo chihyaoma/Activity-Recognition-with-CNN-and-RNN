@@ -38,6 +38,7 @@ dirFeature = dirSource..'Features/'
 -- 			User-defined parameters		    --
 ----------------------------------------------
 idSplit = opt.splitId
+print('split #: '..idSplit)
 
 ----------------------------------------------
 -- 			      Load Data	    	        --
