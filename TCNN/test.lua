@@ -10,7 +10,7 @@
 
 -- modified by Min-Hung Chen
 -- contact: cmhungsteve@gatech.edu
--- Last updated: 04/22/2016
+-- Last updated: 10/11/2016
 
 
 require 'torch'   -- torch
@@ -43,10 +43,17 @@ end
 print(sys.COLORS.red .. '==> defining some tools')
 
 -- model:
-local t = require 'model'
+if opt.model == 'TCNN-1' then
+  t = require 'model-1L'
+elseif opt.model == 'TCNN-2' then
+  t = require 'model-2L'
+end  
+
 local model = t.model
-local loss = t.loss
-local nframe = t.nframe
+-- local loss = t.loss
+local model_name = t.model_name
+local nframeAll = t.nframeAll
+local nframeUse = t.nframeUse
 local nfeature = t.nfeature
 
 -- This matrix records the current confusion across classes
@@ -56,7 +63,7 @@ local confusion = optim.ConfusionMatrix(classes)
 local testLogger = optim.Logger(paths.concat(opt.save,'test.log'))
 
 -- Batch test:
-local inputs = torch.Tensor(opt.batchSize,1, nfeature, nframe) -- get size from data
+local inputs = torch.Tensor(opt.batchSize,1, nfeature, nframeUse) -- get size from data
 local targets = torch.Tensor(opt.batchSize)
 if opt.type == 'cuda' then 
    inputs = inputs:cuda()
@@ -71,9 +78,13 @@ epoBest = 0 -- record the epoch # of the best testing accuracy
 
 -- test function
 function test(testData, classes, epo)
+   model:evaluate()
+
+   local bSize = opt.batchSize
+   
    -- local vars
    local time = sys.clock()
-
+   
    -- test over test data
    print(sys.COLORS.red .. '==> testing on test set:')
    local predlabeltxt = {}
@@ -84,20 +95,24 @@ function test(testData, classes, epo)
       xlua.progress(t, testData:size())
 
       -- batch fits?
-      if (t + opt.batchSize - 1) > testData:size() then
-         break
+      if (t + bSize - 1) > testData:size() then
+         bSize = testData:size() - (t-1)
+         -- break
       end
 
       -- create mini batch
+      local frameSkip = nframeAll-nframeUse
       local idx = 1
-      for i = t,t+opt.batchSize-1 do
-         inputs[{idx,1}] = testData.data[{i,{},{1,nframe}}]
-         targets[idx] = testData.labels[i]
+      for i = t,t+bSize-1 do
+         --inputs[{idx,1}] = testData.data[{i,{},{1,nframeUse}}]
+         inputs[{idx,1}] = testData.data[{i,{},{1+frameSkip/2,nframeAll-frameSkip/2}}] -- take the middle part
+	      targets[idx] = testData.labels[i]
          idx = idx + 1
       end
 
       -- test sample
       local preds = model:forward(inputs)
+      preds = preds[{{1,bSize}}] -- for the last few test data
 
       -- Get the top N class indexes and probabilities
       local N = 3
@@ -112,7 +127,7 @@ function test(testData, classes, epo)
       -- --print(predlabels:size())
 
       
-      for i = 1,opt.batchSize do
+      for i = 1,bSize do
          --predlabeltxt[i-1+t] = classes[predlabels[i]]
          predlabeltxt[i-1+t] = {}
          prob[i-1+t] = {}
@@ -124,8 +139,8 @@ function test(testData, classes, epo)
       end
 
       -- idx = 1
-      -- for i = t,t+opt.batchSize-1 do
-      --    -- inputs[{idx,1}] = testData.data[{i,{},{1,nframe}}]
+      -- for i = t,t+bSize-1 do
+      --    -- inputs[{idx,1}] = testData.data[{i,{},{1,nframeUse}}]
       --    -- targets[idx] = testData.labels[i]
       --    predlabeltxt[i] = classes[predlabels[idx]]
       --    idx = idx + 1
@@ -133,7 +148,7 @@ function test(testData, classes, epo)
 
 
       -- confusion
-      for i = 1,opt.batchSize do
+      for i = 1,bSize do
          confusion:add(preds[i], targets[i])
       end
    end
@@ -154,6 +169,14 @@ function test(testData, classes, epo)
       epoBest = epo
       torch.save('labels.txt',predlabeltxt,'ascii')
       torch.save('prob.txt',prob,'ascii')
+
+      -- save/log current net
+      local filename = paths.concat(opt.save, model_name..'.t7')
+      -- os.execute('mkdir -p ' .. sys.dirname(filename))
+      print('==> saving model to '..filename)
+      --model1 = model:clone()
+      --netLighter(model1)
+      torch.save(filename, model)
    end
    print("\n the max accuracy is " .. accMax ..' in the epoch '.. epoBest)
 

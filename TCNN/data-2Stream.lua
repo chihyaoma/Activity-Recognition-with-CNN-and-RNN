@@ -10,7 +10,7 @@
 
 -- modified by Min-Hung Chen
 -- contact: cmhungsteve@gatech.edu
--- Last updated: 09/20/2016
+-- Last updated: 10/11/2016
 
 
 require 'torch'   -- torch
@@ -19,7 +19,7 @@ require 'torch'   -- torch
 --      User-defined parameters     --
 ----------------------------------------------
 numStream = 2
-local nframe = 50
+local nframeAll = 25
 
 ----------------------------------------------
 -- 				  Data paths                --
@@ -37,17 +37,16 @@ dirFeature = dirSource..'Features/'
 ----------------------------------------------
 -- 			User-defined parameters		    --
 ----------------------------------------------
---ratioTrain = 0.8
+idSplit = opt.splitid
 
 ----------------------------------------------
 -- 			      Load Data	    	        --
 ----------------------------------------------
 -- Load all the feature matrices & labels
-idSplit = 1
 
 nameType = {}
-table.insert(nameType, 'FlowMap-TVL1-crop20')
 table.insert(nameType, 'RGB')
+table.insert(nameType, 'FlowMap-TVL1-crop20')
 
 methodCrop = 'tenCrop' -- tenCrop | centerCrop
 
@@ -55,8 +54,8 @@ methodCrop = 'tenCrop' -- tenCrop | centerCrop
 dataTestAll = {}
 
 for nS=1,numStream do
-  print('==> load test data: '..'data_feat_test_'..nameType[nS]..'_'..methodCrop..'_'..nframe..'f_sp'..idSplit..'.t7')
-  table.insert(dataTestAll, torch.load(dirFeature..'data_feat_test_'..nameType[nS]..'_'..methodCrop..'_'..nframe..'f_sp'..idSplit..'.t7'))
+  print('==> load test data: '..'data_feat_test_'..nameType[nS]..'_'..methodCrop..'_'..nframeAll..'f_sp'..idSplit..'.t7')
+  table.insert(dataTestAll, torch.load(dirFeature..'data_feat_test_'..nameType[nS]..'_'..methodCrop..'_'..nframeAll..'f_sp'..idSplit..'.t7'))
 end
 
 -- concatenation
@@ -94,8 +93,8 @@ collectgarbage()
 dataTrainAll = {}
 
 for nS=1,numStream do
-  print('==> load training data: '..'data_feat_train_'..nameType[nS]..'_'..methodCrop..'_'..nframe..'f_sp'..idSplit..'.t7')
-  table.insert(dataTrainAll, torch.load(dirFeature..'data_feat_train_'..nameType[nS]..'_'..methodCrop..'_'..nframe..'f_sp'..idSplit..'.t7'))
+  print('==> load training data: '..'data_feat_train_'..nameType[nS]..'_'..methodCrop..'_'..nframeAll..'f_sp'..idSplit..'.t7')
+  table.insert(dataTrainAll, torch.load(dirFeature..'data_feat_train_'..nameType[nS]..'_'..methodCrop..'_'..nframeAll..'f_sp'..idSplit..'.t7'))
 end
 
 dataTrain = {}
@@ -151,6 +150,7 @@ table.sort(classes)
 return {
    trainData = trainData,
    testData = testData,
-   classes = classes
+   classes = classes,
+   nframeAll = nframeAll
 }
 

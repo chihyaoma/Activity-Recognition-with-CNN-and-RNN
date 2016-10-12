@@ -10,7 +10,7 @@
 
 -- modified by Min-Hung Chen
 -- contact: cmhungsteve@gatech.edu
--- Last updated: 04/03/2016
+-- Last updated: 10/11/2016
 
 ----------------------------------------------------------------------
 -- This script demonstrates how to define a training procedure,
@@ -34,12 +34,18 @@ require 'image'
 
 ----------------------------------------------------------------------
 -- Model + Loss:
-local t = require 'model'
+local t
+if opt.model == 'TCNN-1' then
+  t = require 'model-1L'
+elseif opt.model == 'TCNN-2' then
+  t = require 'model-2L'
+end  
+
 local model = t.model
---local fwmodel = t.model
 local loss = t.loss
 local model_name = t.model_name
-local nframe = t.nframe
+local nframeAll = t.nframeAll
+local nframeUse = t.nframeUse
 local nfeature = t.nfeature
 ----------------------------------------------------------------------
 -- Save light network tools:
@@ -107,7 +113,8 @@ end
 
 ----------------------------------------------------------------------
 print(sys.COLORS.red ..  '==> allocating minibatch memory')
-local x = torch.Tensor(opt.batchSize,1, nfeature, nframe) -- data
+
+local x = torch.Tensor(opt.batchSize,1, nfeature, nframeUse) -- data
 local yt = torch.Tensor(opt.batchSize)
 if opt.type == 'cuda' then 
    x = x:cuda()
@@ -121,13 +128,14 @@ local epoch
 local function data_augmentation(inputs)
 		-- TODO: appropriate augmentation methods
         -- DATA augmentation (only random 1-D cropping here)
-		local i = torch.random(1,3)
-		local outputs = inputs[{{},{i,i+47}}]
+		local i = torch.random(1,nframeAll-nframeUse+1)
+		local outputs = inputs[{{},{i,i+nframeUse-1}}]
 		return outputs
 		
 end
 
 local function train(trainData)
+   model:training()
 
    -- epoch tracker
    epoch = epoch or 1
@@ -156,8 +164,8 @@ local function train(trainData)
       -- create mini batch
       local idx = 1
       for i = t,t+opt.batchSize-1 do
-         -- x[{idx,1}] = data_augmentation(trainData.data[shuffle[i]])
-         x[{idx,1}] = trainData.data[shuffle[i]]
+         x[{idx,1}] = data_augmentation(trainData.data[shuffle[i]])
+         -- x[{idx,1}] = trainData.data[shuffle[i]]
          yt[idx] = trainData.labels[shuffle[i]]
          idx = idx + 1
       end
@@ -174,7 +182,6 @@ local function train(trainData)
             local dE_dy = loss:backward(y,yt)   
             model:backward(x,dE_dy)
 
-			--print(y:size(),yt:size())
             -- update confusion
             for i = 1,opt.batchSize do
                confusion:add(y[i],yt[i])
