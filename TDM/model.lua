@@ -17,14 +17,14 @@ print(sys.COLORS.red ..  '==> construct LSTM + T-CNN')
 if checkpoint then
 
    -- load T-CNN model
-   local tcnnModelPath = paths.concat(opt.tcnnResume, 'TCNN.net')
+   local tcnnModelPath = paths.concat(opt.tcnnResume, checkpoint.modelFile)
    assert(paths.filep(tcnnModelPath), 'Saved model not found: ' .. tcnnModelPath)
    print('=> Resuming model from ' .. tcnnModelPath)
    
    tcnn = torch.load(tcnnModelPath)
    tcnn:insert(nn.View(opt.batchSize, 1, opt.inputSize, -1),1)
    tcnn:get(2):remove(9)
-   
+      
    -- load LSTM model
    local lstmModelPath = paths.concat(opt.lstmResume, checkpoint.modelFile)
    assert(paths.filep(lstmModelPath), 'Saved model not found: ' .. lstmModelPath)
@@ -43,7 +43,8 @@ if checkpoint then
 
    local inputSize = opt.inputSize
 
-   model:add(nn.View(2, opt.batchSize, inputSize, -1))
+   model:add(nn.Replicate(2))
+   -- model:add(nn.View(2, opt.batchSize, inputSize, -1))
    model:add(nn.SplitTable(1,2)) -- tensor to table of tensors
 
    local p = nn.ParallelTable()
@@ -51,7 +52,10 @@ if checkpoint then
    p:add(tcnn)
    model:add(p)
 
-   model:add(nn.CAddTable())
+   model:add(nn.JoinTable(2))
+   model:add(nn.Dropout(0.5))
+   model:add(nn.Linear(2*nClass, nClass))
+
    model:add(nn.LogSoftMax())
 
 else

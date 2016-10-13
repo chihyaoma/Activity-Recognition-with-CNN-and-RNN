@@ -51,19 +51,20 @@ function test(testData, testTarget)
 	local time = sys.clock() 
 	local timer = torch.Timer()
 	local dataTimer = torch.Timer()
-	-- Sets Dropout layer to have a different behaviour during evaluation.
-	model:evaluate() 
+
+	model:remove(1)
 
 	-- replace the JoinTable in model with CAddTable
-	model:get(3):get(1):remove(1)
-	model:get(3):get(1):insert(nn.View(#opt.hiddenSize, opt.batchSize, opt.inputSize, -1),1)
-	-- model:get(3):get(1):remove(#model.modules)
-	model:get(3):get(1):remove(8)
-	model:get(3):get(1):add(nn.CAddTable())
+	model:get(2):get(1):remove(1)
+	model:get(2):get(1):insert(nn.View(#opt.hiddenSize, opt.batchSize, opt.inputSize, -1),1)
+	model:get(2):get(1):remove(8)
+	model:get(2):get(1):add(nn.CAddTable())
 
 	if opt.cuda == true then
 		model:cuda()
 	end
+	-- Sets Dropout layer to have a different behaviour during evaluation.
+	model:evaluate() 
 
 	-- test over test data
 	print(sys.COLORS.red .. '==> testing on test set:')
@@ -107,7 +108,7 @@ function test(testData, testTarget)
 				inputsPreFrames = torch.repeatTensor(inputsPreFrames,#opt.hiddenSize,1,1)
 
 				-- feedforward pass the trained model
-				predsFrames[{{},{},idx}] = model:get(3):get(1):forward(inputsPreFrames)
+				predsFrames[{{},{},idx}] = model:get(2):get(1):forward(inputsPreFrames)
 
 				idx = idx + 1
 			end
@@ -115,10 +116,17 @@ function test(testData, testTarget)
 			preds = torch.mean(predsFrames, 3):squeeze()
 
 			-- T-CNN forward
-			local tcnnOutput = model:get(3):get(2):forward(inputs)
+			local tcnnOutput = model:get(2):get(2):forward(inputs)
 
 			-- add prediction from LSTM and T-CNN
-			preds:add(tcnnOutput)
+			-- preds:add(tcnnOutput)
+
+			local tmp = torch.cat(preds, tcnnOutput)
+			local damn = nn.Sequential()
+			damn:add(model:get(4))
+			damn:add(model:get(5))
+
+			preds = damn:forward(tmp)
 
 			-- discard the redundant predictions and targets
 			if (t + opt.batchSize - 1) > testData:size(1) then
@@ -175,7 +183,6 @@ function test(testData, testTarget)
 
   	-- print confusion matrix
   	print(confusion)
-  	print(confusion.totalValid * 100)
 
   	assert(#labels == testData:size(1), 'predictions dimension mismatch with testing data..')
 
@@ -205,6 +212,7 @@ function test(testData, testTarget)
 	confusion:zero()
 
 	-- revert back to the original model for training again 
+	model:insert(nn.Replicate(2),1)
 	model:get(3):get(1):remove(1)
 	model:get(3):get(1):insert(nn.View(#opt.hiddenSize, opt.batchSize/#opt.hiddenSize, opt.inputSize, -1),1)
 	model:get(3):get(1):remove(8)

@@ -94,9 +94,6 @@ function train(trainData, trainTarget)
          idx = idx + 1
       end
 
-      -- replicate the training data and feed into LSTM and T-CNN
-      local repeatInputs = torch.repeatTensor(inputs,2,1,1)
-
       --------------------------------------------------------
       -- Using optim package for training
       --------------------------------------------------------
@@ -106,16 +103,12 @@ function train(trainData, trainTarget)
          dE_dw:zero()
 
          -- evaluate function for complete mini batch
-         local outputs = model:forward(repeatInputs)
-
-         -- print(outputs)
-         -- error('test')
-
+         local outputs = model:forward(inputs)
          loss = criterion:forward(outputs,targets)
 
          -- estimate df/dW
          local dE_dy = criterion:backward(outputs,targets)
-         model:backward(repeatInputs,dE_dy)
+         model:backward(inputs,dE_dy)
 
          top1, top3 = computeScore(outputs, targets, 1)
          top1Sum = top1Sum + top1*opt.batchSize
