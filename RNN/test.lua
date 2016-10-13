@@ -59,18 +59,6 @@ function test(testData, testTarget)
 	-- Sets Dropout layer to have a different behaviour during evaluation.
 	model:evaluate() 
 
-	-- replace the JoinTable in model with CAddTable
-	model:remove(1)
-	model:insert(nn.View(#opt.hiddenSize, opt.batchSize, opt.inputSize, -1),1)
-	model:remove(#model.modules)
-	model:remove(#model.modules)
-	model:add(nn.CAddTable())
-	model:add(nn.LogSoftMax())
-
-	if opt.cuda == true then
-		model:cuda()
-	end
-
 	-- test over test data
 	print(sys.COLORS.red .. '==> testing on test set:')
 
@@ -108,9 +96,6 @@ function test(testData, testTarget)
 				local Index = torch.range(1, i)
 				local indLong = torch.LongTensor():resize(Index:size()):copy(Index)
 				local inputsPreFrames = inputs:index(3, indLong)
-
-				-- replicate the testing data and feed into LSTM cells seperately
-				inputsPreFrames = torch.repeatTensor(inputsPreFrames,#opt.hiddenSize,1,1)
 
 				-- feedforward pass the trained model
 				predsFrames[{{},{},idx}] = model:forward(inputsPreFrames)
@@ -207,16 +192,6 @@ function test(testData, testTarget)
 	end
 	confusion:zero()
 
-	-- revert back to the original model for training again 
-	model:remove(1)
-	model:insert(nn.View(#opt.hiddenSize, opt.batchSize/#opt.hiddenSize, opt.inputSize, -1),1)
-	model:remove(#model.modules)
-	model:remove(#model.modules)
-	model:add(nn.JoinTable(1))
-	model:add(nn.LogSoftMax())
-	if opt.cuda == true then
-		model:cuda()
-	end
 end
 
 function computeScore(output, target)

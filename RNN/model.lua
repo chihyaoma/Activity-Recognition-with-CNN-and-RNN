@@ -31,10 +31,9 @@ else
    local inputSize = opt.inputSize
 
    -- input layer 
-   assert((opt.batchSize%(#opt.hiddenSize)) == 0, 'batchSize need to be the multiple of # of hidden layer.')
-   model:add(nn.View(#opt.hiddenSize, opt.batchSize/#opt.hiddenSize, inputSize, -1))
+   model:add(nn.Replicate(3))
    model:add(nn.SplitTable(1,2)) -- tensor to table of tensors
-   
+ 
    local p = nn.ParallelTable()
    for i=1,#opt.hiddenSize do 
       p:add(nn.SplitTable(3,1))
@@ -44,7 +43,6 @@ else
    local pFC = nn.ParallelTable()
    
    if opt.fcSize ~= nil then
-      -- for i,fcSize in ipairs(opt.fcSize) do 
       for i=1,#opt.hiddenSize do 
          -- add fully connected layers to fuse spatial and temporal features
          pFC:add(nn.Sequencer(nn.Linear(inputSize, opt.fcSize[1])))
@@ -52,11 +50,15 @@ else
    end
    model:add(pFC)
 
+   inputSize = opt.fcSize[1]
+   local fcInputSize = 0
+
    -- setup two LSTM cells with different dimensions
    local lstmTable = nn.ParallelTable()
    -- recurrent layer
    for i,hiddenSize in ipairs(opt.hiddenSize) do 
       lstmTable:add(nn.Sequencer(nn.LSTM(inputSize, hiddenSize)))
+      fcInputSize = fcInputSize + hiddenSize
    end
    model:add(lstmTable)
 
@@ -67,14 +69,11 @@ else
       p1:add(nn.SelectTable(-1))
    end
    
-   local p2 = nn.ParallelTable()
-   for i,hiddenSize in ipairs(opt.hiddenSize) do
-      -- full-connected layers for each LSTM output
-      p2:add(nn.Linear(hiddenSize, nClass))
-   end
    -- concat the prediction from all FC layers
-   model:add(p1):add(p2)
-   model:add(nn.JoinTable(1))
+   model:add(p1)
+   model:add(nn.JoinTable(2))
+   model:add(nn.Dropout(0.5))
+   model:add(nn.Linear(fcInputSize, nClass))
    model:add(nn.LogSoftMax())
 
    if opt.uniform > 0 then
