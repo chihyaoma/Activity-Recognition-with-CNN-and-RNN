@@ -31,30 +31,14 @@ else
    local inputSize = opt.inputSize
 
    -- input layer 
-   model:add(nn.Replicate(3))
-   model:add(nn.SplitTable(1,2)) -- tensor to table of tensors
- 
-   local p = nn.ParallelTable()
-   for i=1,#opt.hiddenSize do 
-      p:add(nn.SplitTable(3,1))
-   end
-   model:add(p)
-
-   local pFC = nn.ParallelTable()
-   
-   if opt.fcSize ~= nil then
-      for i=1,#opt.hiddenSize do 
-         -- add fully connected layers to fuse spatial and temporal features
-         pFC:add(nn.Sequencer(nn.Linear(inputSize, opt.fcSize[1])))
-      end
-   end
-   model:add(pFC)
+   model:add(nn.SplitTable(3,1)) -- tensor to table of tensors
+   model:add(nn.Sequencer(nn.Linear(inputSize, opt.fcSize[1])))
 
    inputSize = opt.fcSize[1]
    local fcInputSize = 0
 
    -- setup two LSTM cells with different dimensions
-   local lstmTable = nn.ParallelTable()
+   local lstmTable = nn.ConcatTable()
    -- recurrent layer
    for i,hiddenSize in ipairs(opt.hiddenSize) do 
       lstmTable:add(nn.Sequencer(nn.LSTM(inputSize, hiddenSize)))
