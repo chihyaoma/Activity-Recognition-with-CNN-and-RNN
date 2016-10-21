@@ -51,6 +51,8 @@ t = require './transforms'
 -- parse args --
 ----------------
 op = xlua.OptionParser('%prog [options]')
+op:option{'-iSp', '--idSplit', action='store', dest='idSplit',
+          help='index of the split set', default=2}
 op:option{'-f', '--frame', action='store', dest='frame',
           help='frame length for each video', default=25}
 op:option{'-fpsTr', '--fpsTr', action='store', dest='fpsTr',
@@ -76,6 +78,7 @@ op:option{'-i2', '--devid2', action='store', dest='devid2',
 
 opt,args = op:parse()
 
+print('split #: '..opt.idSplit)
 print('fps for training: '..opt.fpsTr)
 print('fps for testing: '..opt.fpsTe)
 print('frame length per video: '..opt.frame)
@@ -86,7 +89,7 @@ print('frame length per video: '..opt.frame)
 numStream = 2
 numFrameSample = opt.frame
 sampleAll = false -- use all the frames or not
-numSplit = 1
+numSplit = 3
 saveData = false
 methodOF = 'TVL1' -- TVL1 | Brox
 methodCrop = 'tenCrop' -- tenCrop | centerCrop
@@ -100,7 +103,7 @@ if softMax then
 end
 print('Using '..methodCrop)
 
-nameOutFile = 'acc_video_'..numFrameSample..'Frames.txt' -- output the video accuracy
+nameOutFile = 'acc_video_'..'_'..numFrameSample..'Frames'..'-'..methodCrop..'-'..opt.fpsTe..'fps-sp'..opt.idSplit..'.txt' -- output the video accuracy
 
 ----------------------------------------------
 -- 				Data paths				    --
@@ -116,15 +119,15 @@ DIR = {}
 dataFolder = {}
 ---- Temporal ----
 if methodOF == 'Brox' then
-	table.insert(DIR, {dirModel = dirSource..'Models/ResNet-Brox-sgd/', 
+	table.insert(DIR, {dirModel = dirSource..'Models/ResNet-Brox-sgd-sp'..opt.idSplit..'/', 
 		dirDatabase = dirSource..'dataset/UCF-101/FlowMap-Brox/'})
 elseif methodOF == 'TVL1' then
-	table.insert(DIR, {dirModel = dirSource..'Models/ResNet-TVL1-sgd/', 
+	table.insert(DIR, {dirModel = dirSource..'Models/ResNet-TVL1-sgd-sp'..opt.idSplit..'/', 
 		dirDatabase = dirSource..'dataset/UCF-101/FlowMap-TVL1-crop20/'})
 end
 
 ---- Spatial ----
-table.insert(DIR, {dirModel = dirSource..'Models/ResNet-RGB-sgd/', 
+table.insert(DIR, {dirModel = dirSource..'Models/ResNet-RGB-sgd-sp'..opt.idSplit..'/', 
 	dirDatabase = dirSource..'dataset/UCF-101/RGB/'})
 
 for nS=1,numStream do
@@ -294,7 +297,7 @@ for nS=1,numStream do
 end
 
 ----------------------------------------------
--- 			Loading ImageNet labels	  		--
+-- 			Loading UCF-101 labels	  		--
 ----------------------------------------------
 if opt.mode == 'pred' then
 	-- imagenetLabel = require './imagenet'
@@ -313,7 +316,8 @@ end
 print '==> Processing all the videos...'
 
 -- Load the intermediate feature data or generate a new one --
-for sp=1,numSplit do
+-- for sp=1,numSplit do
+sp = opt.idSplit
 	-- Training data --
 	if not (saveData and paths.filep(outTrain[sp].name)) then
 		Tr = {} -- output
@@ -761,7 +765,7 @@ for sp=1,numSplit do
 	Tr = nil
 	Te = nil
 	collectgarbage()
-end
+-- end
 
 if opt.mode == 'pred' then
 	fd:close()
