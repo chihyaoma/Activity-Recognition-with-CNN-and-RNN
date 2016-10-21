@@ -23,22 +23,23 @@ require 'nn'      -- provides all sorts of trainable modules/layers
 print(sys.COLORS.red ..  '==> processing options')
 
 opt = lapp[[
-   -z,--sourcePath         (default workstation) source path (local | workstation)
-   -r,--learningRate       (default 1e-3)        learning rate
-   -l,--learningRateDecay  (default 1e-7)        learning rate decay (in # samples)
-   -w,--weightDecay        (default 1e-5)        L2 penalty on the weights
-   -m,--momentum           (default 0.1)         momentum
-   -d,--dropout            (default 0.5)         dropout amount
-   -b,--batchSize          (default 32)          batch size
-   -t,--threads            (default 2)           number of threads
-   -p,--type               (default cuda)        float or cuda
-   -i,--devid              (default 1)           device ID (if using CUDA)
-   -o,--save               (default results)     save directory
-   -s,--splitId            (default 1)           split number
-      --patches            (default all)         percentage of samples to use for testing'
-      --model              (default TCNN-2)      network model (TCNN-1 | TCNN-2)
-      --optMethod          (default sgd)         optimization method
-      --plot               (default no)       	 plot the training and test accuracies
+   -z,--sourcePath         (default local)         source path (local | workstation)
+   -r,--learningRate       (default 1e-3)          learning rate
+   -l,--learningRateDecay  (default 1e-7)          learning rate decay (in # samples)
+   -w,--weightDecay        (default 1e-5)          L2 penalty on the weights
+   -m,--momentum           (default 0.1)           momentum
+   -d,--dropout            (default 0.5)           dropout amount
+   -b,--batchSize          (default 16)            batch size
+   -t,--threads            (default 6)             number of threads
+   -p,--type               (default cuda)          float or cuda
+   -i,--devid              (default 1)             device ID (if using CUDA)
+   -o,--save               (default results)       save directory
+   -s,--splitId            (default 1)             split number
+      --model              (default model-1L-MultiFlow)      network model (model-1L-MultiFlow | model-1L | model-2L | model-1L-SplitST)
+      --typeMF             (default LS-Add)        multi-flow type (LS-Add | S-Add | Add-LS | Add-S | Joint-LS | Joint-S | Joint-FC-LS | Joint-FC-S | LS-Joint-LS)
+      --optMethod          (default sgd)           optimization method
+      --plot               (default No)       	   plot the training and test accuracies (Yes | No)
+      --saveModel          (default No)            save the model or not (Yes | No)
 ]]
 -- nb of threads and fixed seed (for repeatable experiments)
 torch.setnumthreads(opt.threads)
@@ -65,7 +66,7 @@ local test  = require 'test'
 print(sys.COLORS.red .. '==> training!')
 --
 
-for epo=1,100 do 
+for epo=1,50 do 
 --while true do
 	train(data.trainData)
    test(data.testData, data.classes, epo)

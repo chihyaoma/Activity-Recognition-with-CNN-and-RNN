@@ -43,11 +43,16 @@ end
 print(sys.COLORS.red .. '==> defining some tools')
 
 -- model:
-if opt.model == 'TCNN-1' then
+local t
+if opt.model == 'model-1L-MultiFlow' then
+  t = require 'model-1L-MultiFlow'
+elseif opt.model == 'model-1L-SplitST' then
+  t = require 'model-1L-SplitST'
+elseif opt.model == 'model-1L' then
   t = require 'model-1L'
-elseif opt.model == 'TCNN-2' then
+elseif opt.model == 'model-2L' then
   t = require 'model-2L'
-end  
+end
 
 local model = t.model
 -- local loss = t.loss
@@ -111,7 +116,13 @@ function test(testData, classes, epo)
       end
 
       -- test sample
-      local preds = model:forward(inputs)
+      local preds
+      if opt.model == 'model-1L-SplitST' then
+         preds = model:forward{inputs[{{},{},{1,nfeature/2},{}}],inputs[{{},{},{nfeature/2+1,nfeature},{}}]}
+      else
+         preds = model:forward(inputs)
+      end
+
       preds = preds[{{1,bSize}}] -- for the last few test data
 
       -- Get the top N class indexes and probabilities
@@ -171,16 +182,19 @@ function test(testData, classes, epo)
       torch.save('prob.txt',prob,'ascii')
 
       -- save/log current net
-      local filename = paths.concat(opt.save, model_name..'.t7')
-      -- os.execute('mkdir -p ' .. sys.dirname(filename))
-      print('==> saving model to '..filename)
-      --model1 = model:clone()
-      --netLighter(model1)
-      torch.save(filename, model)
+      if opt.saveModel == 'Yes' then
+         local filename = paths.concat(opt.save, model_name..'.t7')
+         -- os.execute('mkdir -p ' .. sys.dirname(filename))
+         print('==> saving model to '..filename)
+         --model1 = model:clone()
+         --netLighter(model1)
+         torch.save(filename, model)
+      end
+      
    end
    print("\n the max accuracy is " .. accMax ..' in the epoch '.. epoBest)
 
-   if opt.plot == 'yes' then
+   if opt.plot == 'Yes' then
       testLogger:style{['% mean class accuracy (test set)'] = '-'}
       testLogger:plot()
    end

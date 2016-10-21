@@ -2,16 +2,12 @@
 -- CS8803DL Spring 2016 (Instructor: Zsolt Kira)
 -- Final Project: Video Classification
 
--- Create CNN and loss to optimize.
--- parameters for the Res-101 network
-
--- TODO:
--- 1. change nstate
--- 2. change convsize, convstep, poolsize, poolstep
+-- split spatial and temporal network
+-- results are not good
 
 -- modified by Min-Hung Chen
 -- contact: cmhungsteve@gatech.edu
--- Last updated: 10/11/2016
+-- Last updated: 10/13/2016
 
 require 'torch'   -- torch
 require 'nn'      -- provides all sorts of trainable modules/layers
@@ -37,18 +33,21 @@ local frameSkip = 0
 local nframeAll = data.trainData.data:size(3)
 local nframeUse = nframeAll - frameSkip
 local nfeature = data.trainData.data:size(2)
+local nfeature_h = nfeature/2
 local bSize = opt.batchSize
 local dimMap = 1
 
+-- hidden units, filter sizes: 		
+local nstate_CNN = {4, 4} -- neuron # after pooling
+local nstate_FC = 2048 -- neuron # after 1st FC
 
--- hidden units, filter sizes (for ConvNet only): 		
-local nstates = {4,32,768}
-local convsize = {5,13} 
+local convsize = {5,5}
 local convstep = {1,1}
-local convpad  = {(convsize[1]-1)/2, (convsize[2]-1)/2}
-local poolsize = {2, 2}
-local poolstep = {2, 2}
+local convpad  = {(convsize[1]-1)/2,(convsize[2]-1)/2}
+local poolsize = {2,2}
+local poolstep = {2,2}
 
+local numStream = #convsize
 ----------------------------------------------------------------------
 local model = nn.Sequential()
 local model_name = "model"
@@ -67,7 +66,7 @@ end
 batch_FC:add(vectorTable)
 
 -- 2. duplicate thr fully-connected layer to fit the input
-local mapFC = nn.MapTable():add(nn.MapTable():add(nn.Linear(nfeature,nfeature)))
+local mapFC = nn.MapTable():add(nn.MapTable():add(nn.Linear(nfeature_h,nfeature_h)))
 batch_FC:add(mapFC)
 
 -- 3. convert the whole table back to the original mini-batch
@@ -79,51 +78,60 @@ batch_FC:add(combineTable)
 
 local viewTable = nn.ParallelTable()
 for b=1,bSize do 
-   viewTable:add(nn.View(dimMap,nfeature,nframeUse)) -- (1,4096*25) --> (1,4096,25)
+   viewTable:add(nn.View(dimMap,nfeature_h,nframeUse)) -- (1,2048*25) --> (1,2048,25)
 end
 batch_FC:add(viewTable)
 
 batch_FC:add(nn.JoinTable(1)) -- merge all the maps back to mini-batch
-batch_FC:add(nn.View(bSize,dimMap,nfeature,nframeUse)) -- 32x1x4096x25
+batch_FC:add(nn.View(bSize,dimMap,nfeature_h,nframeUse)) -- 32x1x2048x25
 
 -----------------------
 -- Main Architecture --
 -----------------------
-if opt.model == 'model-2L' then
-   print(sys.COLORS.red ..  '==> construct 2-layer T-CNN')
+if opt.model == 'model-1L-SplitST' then
+	print(sys.COLORS.red ..  '==> construct 1-layer T-CNN (split spatial & temporal network)')
 
    model_name = 'model_best'
 
-   -- stage 0: mini-batch FC
-   model:add(batch_FC)
+   ------------------------------
+   --  Two-stream CNN block    --
+   ------------------------------
+   local CNN_branches = nn.ParallelTable()
 
-   -- stage 1: conv -> ReLU -> Pooling
-   model:add(nn.SpatialConvolutionMM(dimMap,nstates[1],convsize[1],1,convstep[1],1,convpad[1],0))
-   model:add(nn.ReLU())
-   model:add(nn.SpatialMaxPooling(poolsize[1],1,poolstep[1],1))
+  	local noutput_1 = torch.zeros(numStream)
+	for n=1,numStream do
+		noutput_1[n] = nstate_CNN[n]*nfeature_h*torch.floor(nframeUse/poolsize[n]) -- temporal kernel
 
-   --model:add(nn.Dropout(opt.dropout)) -- dropout
+		local CNN_1L = nn.Sequential()
+		-- stage 0: mini-batch FC (not used here)
+		-- CNN_1L:add(batch_FC)
 
-   -- stage 2: conv -> ReLU -> Pooling   
-   model:add(nn.SpatialConvolutionMM(nstates[1],nstates[2],convsize[2],1,convstep[2],1,convpad[2],0))
-   model:add(nn.ReLU()) 
-   model:add(nn.SpatialMaxPooling(poolsize[2],1,poolstep[2],1))
+		-- stage 1: Conv -> ReLU -> Pooling
+		CNN_1L:add(nn.SpatialConvolutionMM(dimMap,nstate_CNN[n],convsize[n],1,convstep[n],1,convpad[n],0))
+		CNN_1L:add(nn.ReLU())
+		CNN_1L:add(nn.SpatialMaxPooling(poolsize[n],1,poolstep[n],1))
+				
+		CNN_branches:add(CNN_1L)
+   end
+   	
+   model:add(CNN_branches)
 
-   model:add(nn.Dropout(opt.dropout)) -- dropout
+   ------------------------------
+   --   Combine two streams    --
+   ------------------------------
+	model:add(nn.JoinTable(3)) -- merge two streams: bSizex1x(2048+2048)x?
+	model:add(nn.Dropout(opt.dropout)) -- dropout
 
-   -- stage 3: linear -> ReLU -> linear
-   local ninputFC = nstates[2]*nfeature*torch.floor(torch.floor(nframeUse/poolsize[1])/poolsize[2]) -- temporal kernel
+   	-- stage 2: linear -> ReLU -> linear
 
-   model:add(nn.Reshape(ninputFC))
-   model:add(nn.Linear(ninputFC,nstates[3]))
-   model:add(nn.ReLU())
+	local ninputFC = noutput_1:sum()
+	model:add(nn.Reshape(ninputFC))
+   	model:add(nn.Linear(ninputFC,nstate_FC)) -- add one more FC layer
+   	model:add(nn.ReLU())
+	model:add(nn.Linear(nstate_FC,noutputs)) -- output layer (output: 101 prediction probability)
 
-   --model:add(nn.Dropout(opt.dropout)) -- dropout
-
-   model:add(nn.Linear(nstates[3],noutputs))
-
-   -- stage 4 : log probabilities
-   model:add(nn.LogSoftMax())
+   	-- stage 3 : log probabilities
+   	model:add(nn.LogSoftMax())
 
 end
    

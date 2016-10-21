@@ -19,7 +19,7 @@ require 'torch'   -- torch
 --      User-defined parameters     --
 ----------------------------------------------
 numStream = 2
-local nframeAll = 25
+nframeAll = 25
 
 ----------------------------------------------
 -- 				  Data paths                --
@@ -152,6 +152,5 @@ return {
    trainData = trainData,
    testData = testData,
    classes = classes,
-   nframeAll = nframeAll
 }
 

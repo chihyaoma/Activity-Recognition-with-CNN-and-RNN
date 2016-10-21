@@ -34,9 +34,11 @@ local noutputs = 101
 
 -- input: 
 local frameSkip = 0
-local nframeAll = data.nframeAll
+local nframeAll = data.trainData.data:size(3)
 local nframeUse = nframeAll - frameSkip
-local nfeature = 4096
+local nfeature = data.trainData.data:size(2)
+local bSize = opt.batchSize
+local dimMap = 1
 
 -- hidden units, filter sizes (for ConvNet only): 		
 -- experiments for 25fps (25 frames)
@@ -51,13 +53,52 @@ local poolstep = 2
 local model = nn.Sequential()
 local model_name = "model"
 
-if opt.model == 'TCNN-1' then
+------------------------------------
+-- Full-connected layer for input --
+------------------------------------
+local batch_FC = nn.Sequential()
+-- 1. dispart the mini-patch feature maps to lots of feature vectors
+batch_FC:add(nn.SplitTable(1)) -- split the mini-batches into single feature maps
+
+local vectorTable = nn.ParallelTable()
+for b=1,bSize do 
+   vectorTable:add(nn.SplitTable(-1)) -- split one feature map into feature vectors
+end
+batch_FC:add(vectorTable)
+
+-- 2. duplicate thr fully-connected layer to fit the input
+local mapFC = nn.MapTable():add(nn.MapTable():add(nn.Linear(nfeature,nfeature)))
+batch_FC:add(mapFC)
+
+-- 3. convert the whole table back to the original mini-batch
+local combineTable = nn.ParallelTable()
+for b=1,bSize do 
+   combineTable:add(nn.JoinTable(-1)) -- merge all the vectors back to map
+end
+batch_FC:add(combineTable)
+
+local viewTable = nn.ParallelTable()
+for b=1,bSize do 
+   viewTable:add(nn.View(dimMap,nfeature,nframeUse)) -- (1,4096*25) --> (1,4096,25)
+end
+batch_FC:add(viewTable)
+
+batch_FC:add(nn.JoinTable(1)) -- merge all the maps back to mini-batch
+batch_FC:add(nn.View(bSize,dimMap,nfeature,nframeUse)) -- 32x1x4096x25
+
+-----------------------
+-- Main Architecture --
+-----------------------
+if opt.model == 'model-1L' then
    print(sys.COLORS.red ..  '==> construct 1-layer T-CNN')
 
    model_name = 'model_best'
 
+   -- -- stage 0: mini-batch FC
+   -- model:add(batch_FC)
+
    -- stage 1: conv -> ReLU -> Pooling
-   model:add(nn.SpatialConvolutionMM(1,nstates[1],convsize,1,convstep,1,convpad,0))
+   model:add(nn.SpatialConvolutionMM(dimMap,nstates[1],convsize,1,convstep,1,convpad,0))
    model:add(nn.ReLU())
    model:add(nn.SpatialMaxPooling(poolsize,1,poolstep,1))
 

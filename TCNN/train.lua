@@ -4,28 +4,9 @@
 
 -- training w/ data augmentation
 
--- TODO:
--- 1. frame selection
--- 2. 
-
 -- modified by Min-Hung Chen
 -- contact: cmhungsteve@gatech.edu
 -- Last updated: 10/11/2016
-
-----------------------------------------------------------------------
--- This script demonstrates how to define a training procedure,
--- irrespective of the model/loss functions chosen.
---
--- It shows how to:
---   + construct mini-batches on the fly
---   + define a closure to estimate (a noisy) loss
---     function, as well as its derivatives wrt the parameters of the
---     model to be trained
---   + optimize the function, according to several optmization
---     methods: SGD, L-BFGS.
---
--- Clement Farabet
-----------------------------------------------------------------------
 
 require 'torch'   -- torch
 require 'xlua'    -- xlua provides useful tools, like progress bars
@@ -35,12 +16,15 @@ require 'image'
 ----------------------------------------------------------------------
 -- Model + Loss:
 local t
-if opt.model == 'TCNN-1' then
+if opt.model == 'model-1L-MultiFlow' then
+  t = require 'model-1L-MultiFlow'
+elseif opt.model == 'model-1L-SplitST' then
+  t = require 'model-1L-SplitST'
+elseif opt.model == 'model-1L' then
   t = require 'model-1L'
-elseif opt.model == 'TCNN-2' then
+elseif opt.model == 'model-2L' then
   t = require 'model-2L'
-end  
-
+end
 local model = t.model
 local loss = t.loss
 local model_name = t.model_name
@@ -114,7 +98,7 @@ end
 ----------------------------------------------------------------------
 print(sys.COLORS.red ..  '==> allocating minibatch memory')
 
-local x = torch.Tensor(opt.batchSize,1, nfeature, nframeUse) -- data
+local x = torch.Tensor(opt.batchSize,1, nfeature, nframeUse) -- data (32x1x4096x25)
 local yt = torch.Tensor(opt.batchSize)
 if opt.type == 'cuda' then 
    x = x:cuda()
@@ -175,7 +159,16 @@ local function train(trainData)
             dE_dw:zero()
 
             -- evaluate function for complete mini batch
-            local y = model:forward(x)
+            local y
+            if opt.model == 'model-1L-SplitST' then
+              y = model:forward{x[{{},{},{1,nfeature/2},{}}],x[{{},{},{nfeature/2+1,nfeature},{}}]}
+            else
+              y = model:forward(x)
+	      --print(x:size())
+	      --print(y:size())
+	      --input()
+            end
+             
             local E = loss:forward(y,yt)
 
             -- estimate df/dW
@@ -214,7 +207,7 @@ local function train(trainData)
 
    -- update logger/plot
    trainLogger:add{['% mean class accuracy (train set)'] = confusion.totalValid * 100}
-   if opt.plot == 'yes' then
+   if opt.plot == 'Yes' then
       trainLogger:style{['% mean class accuracy (train set)'] = '-'}
       trainLogger:plot()
    end
