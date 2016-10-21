@@ -99,6 +99,13 @@ function train(trainData, trainTarget)
          idx = idx + 1
       end
 
+      local repeatTarget = {}
+      if opt.seqCriterion == true then
+         repeatTarget = torch.repeatTensor(targets,opt.rho,1):transpose(1,2)
+      end
+
+      -- local inputs_SeqLSTM = inputs:transpose(2,3):transpose(1,2)
+
       --------------------------------------------------------
       -- Using optim package for training
       --------------------------------------------------------
@@ -109,10 +116,18 @@ function train(trainData, trainTarget)
 
          -- evaluate function for complete mini batch
          local outputs = model:forward(inputs)
-         loss = criterion:forward(outputs,targets)
-
+         local dE_dy = {}
+         if opt.seqCriterion == true then
+            loss = criterion:forward(outputs,repeatTarget)
+            -- estimate df/dW
+            dE_dy = criterion:backward(outputs,repeatTarget)
+         else
+            loss = criterion:forward(outputs,targets)
+            -- estimate df/dW
+            dE_dy = criterion:backward(outputs,targets)
+         end
          -- estimate df/dW
-         local dE_dy = criterion:backward(outputs,targets)
+         -- local dE_dy = criterion:backward(outputs,targets)
          model:backward(inputs,dE_dy)
 
          top1, top3 = computeScore(outputs, targets, 1)

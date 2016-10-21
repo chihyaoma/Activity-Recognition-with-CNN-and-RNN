@@ -97,51 +97,51 @@ function test(testData, testTarget)
 				local indLong = torch.LongTensor():resize(Index:size()):copy(Index)
 				local inputsPreFrames = inputs:index(3, indLong)
 
+				-- inputsPreFrames = inputsPreFrames:transpose(2,3):transpose(1,2)
+
 				-- feedforward pass the trained model
 				predsFrames[{{},{},idx}] = model:forward(inputsPreFrames)
 
 				idx = idx + 1
 			end
+			
+			-- Convert log probabilities back to [0, 1]
+			predsFrames:exp()
 			-- average all the prediction across all frames
 			preds = torch.mean(predsFrames, 3):squeeze()
-
-			-- discard the redundant predictions and targets
-			if (t + opt.batchSize - 1) > testData:size(1) then
-				preds = preds:sub(1,idxBound)
-			end
-
-			top1, top3 = computeScore(preds, targets:sub(1,idxBound), 1)
-			top1Sum = top1Sum + top1*idxBound
-			top3Sum = top3Sum + top3*idxBound
-			N = N + idxBound
-
-			print((' | Test: [%d][%d/%d]    Time %.3f  Data %.3f  top1 %7.3f (%7.3f)  top3 %7.3f (%7.3f)'):format(
-				epoch-1, t, testData:size(1), timer:time().real, dataTime, top1, top1Sum / N, top3, top3Sum / N))
-
-			-- Get the top N class indexes and probabilities
-			local topN = 3
-			local probLog, predLabels = preds:topk(topN, true, true)
-
-			-- Convert log probabilities back to [0, 1]
-			probLog:exp()
-
-			idx = 1
-			for i = t,t+opt.batchSize-1 do
-				if i <= testData:size(1) then
-					labels[i] = {}
-					prob[i] = {}
-					for j = 1, topN do
-						labels[i][j] = classes[predLabels[idx][j]]
-						prob[i][j] = probLog[idx][j]
-					end
-					idx = idx + 1
-				end
-			end
-
 		else
 			-- test sample
-			-- TODO: need to be largely modify
 			preds = model:forward(inputs)
+		end			
+
+		-- discard the redundant predictions and targets
+		if (t + opt.batchSize - 1) > testData:size(1) then
+			preds = preds:sub(1,idxBound)
+		end
+
+		top1, top3 = computeScore(preds, targets:sub(1,idxBound), 1)
+		top1Sum = top1Sum + top1*idxBound
+		top3Sum = top3Sum + top3*idxBound
+		N = N + idxBound
+
+		print((' | Test: [%d][%d/%d]    Time %.3f  Data %.3f  top1 %7.3f (%7.3f)  top3 %7.3f (%7.3f)'):format(
+			epoch-1, t, testData:size(1), timer:time().real, dataTime, top1, top1Sum / N, top3, top3Sum / N))
+
+		-- Get the top N class indexes and probabilities
+		local topN = 3
+		local probLog, predLabels = preds:topk(topN, true, true)
+
+		idx = 1
+		for i = t,t+opt.batchSize-1 do
+			if i <= testData:size(1) then
+				labels[i] = {}
+				prob[i] = {}
+				for j = 1, topN do
+					labels[i][j] = classes[predLabels[idx][j]]
+					prob[i][j] = probLog[idx][j]
+				end
+				idx = idx + 1
+			end
 		end
 
 		-- confusion
