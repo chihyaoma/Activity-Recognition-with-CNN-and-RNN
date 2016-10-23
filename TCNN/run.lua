@@ -36,7 +36,9 @@ opt = lapp[[
    -o,--save               (default results)       save directory
    -s,--splitId            (default 1)             split number
       --model              (default model-1L-MultiFlow)      network model (model-1L-MultiFlow | model-1L | model-2L | model-1L-SplitST)
-      --typeMF             (default LS-Add)        multi-flow type (LS-Add | S-Add | Add-LS | Add-S | Joint-LS | Joint-S | Joint-FC-LS | Joint-FC-S | LS-Joint-LS)
+      --typeMF             (default LS-Add)        multi-flow type (LS-Add | S-Add-L | Add-LS | Add-S | Joint-LS | Joint-S | Joint-FC-LS | Joint-FC-S | LS-Joint-LS)
+      --batchNormalize	   (default Yes)		   do batch-normalization or not
+      --methodCrop         (default centerCrop)    cropping method (tenCrop | centerCrop | centerCropFlip)
       --optMethod          (default sgd)           optimization method
       --plot               (default No)       	   plot the training and test accuracies (Yes | No)
       --saveModel          (default No)            save the model or not (Yes | No)

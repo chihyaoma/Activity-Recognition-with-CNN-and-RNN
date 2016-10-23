@@ -98,8 +98,19 @@ end
 ----------------------------------------------------------------------
 print(sys.COLORS.red ..  '==> allocating minibatch memory')
 
-local x = torch.Tensor(opt.batchSize,1, nfeature, nframeUse) -- data (32x1x4096x25)
-local yt = torch.Tensor(opt.batchSize)
+local nCrops
+if opt.methodCrop == 'tenCrop' then
+  nCrops = 10
+elseif opt.methodCrop == 'centerCropFlip' then
+  nCrops = 2
+else 
+  nCrops = 1
+end
+
+local numTrainVideo = trainData:size(1)/nCrops
+
+local x = torch.Tensor(opt.batchSize*nCrops,1, nfeature, nframeUse) -- data (32x1x4096x25)
+local yt = torch.Tensor(opt.batchSize*nCrops)
 if opt.type == 'cuda' then 
    x = x:cuda()
    yt = yt:cuda()
@@ -113,7 +124,7 @@ local function data_augmentation(inputs)
 		-- TODO: appropriate augmentation methods
         -- DATA augmentation (only random 1-D cropping here)
 		local i = torch.random(1,nframeAll-nframeUse+1)
-		local outputs = inputs[{{},{i,i+nframeUse-1}}]
+		local outputs = inputs[{{},{},{i,i+nframeUse-1}}]
 		return outputs
 		
 end
@@ -130,27 +141,28 @@ local function train(trainData)
    local mean_dfdx = torch.Tensor():typeAs(w):resizeAs(w):zero()
 
    -- shuffle at each epoch
-   local shuffle = torch.randperm(trainData:size())
+   local shuffle = torch.randperm(numTrainVideo)
 
    -- do one epoch
    print(sys.COLORS.green .. '==> doing epoch on training data:') 
    print("==> online epoch # " .. epoch .. ' [batchSize = ' .. opt.batchSize .. ']')
-   for t = 1,trainData:size(),opt.batchSize do
+   for t = 1,numTrainVideo,opt.batchSize do
       -- disp progress
       xlua.progress(t, trainData:size())
       collectgarbage()
 
       -- batch fits?
-      if (t + opt.batchSize - 1) > trainData:size() then
+      if (t + opt.batchSize - 1) > numTrainVideo then
          break
       end
 
       -- create mini batch
       local idx = 1
       for i = t,t+opt.batchSize-1 do
-         x[{idx,1}] = data_augmentation(trainData.data[shuffle[i]])
+      	 local i_shuf = shuffle[i]
+         x[{{(idx-1)*nCrops+1,idx*nCrops},1}] = data_augmentation(trainData.data[{{(i_shuf-1)*nCrops+1,i_shuf*nCrops}}])
          -- x[{idx,1}] = trainData.data[shuffle[i]]
-         yt[idx] = trainData.labels[shuffle[i]]
+         yt[{{(idx-1)*nCrops+1,idx*nCrops}}] = trainData.labels[{{(i_shuf-1)*nCrops+1,i_shuf*nCrops}}]
          idx = idx + 1
       end
          -- create closure to evaluate f(X) and df/dX

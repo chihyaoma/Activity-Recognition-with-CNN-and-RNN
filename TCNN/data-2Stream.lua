@@ -49,7 +49,7 @@ nameType = {}
 table.insert(nameType, 'RGB')
 table.insert(nameType, 'FlowMap-TVL1-crop20')
 
-methodCrop = 'tenCrop' -- tenCrop | centerCrop
+methodCrop = opt.methodCrop
 
 ---- Load testing data ----
 dataTestAll = {}

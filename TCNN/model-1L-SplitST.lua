@@ -108,7 +108,8 @@ if opt.model == 'model-1L-SplitST' then
 
 		-- stage 1: Conv -> ReLU -> Pooling
 		CNN_1L:add(nn.SpatialConvolutionMM(dimMap,nstate_CNN[n],convsize[n],1,convstep[n],1,convpad[n],0))
-		CNN_1L:add(nn.ReLU())
+		if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN[n])) end
+      CNN_1L:add(nn.ReLU())
 		CNN_1L:add(nn.SpatialMaxPooling(poolsize[n],1,poolstep[n],1))
 				
 		CNN_branches:add(CNN_1L)

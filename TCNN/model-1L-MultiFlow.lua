@@ -91,6 +91,7 @@ if opt.model == 'model-1L-MultiFlow' then
 
       	-- stage 1: Conv -> ReLU -> Pooling
       	CNN_1L:add(nn.SpatialConvolutionMM(dimMap,nstate_CNN[n],convsize[n],1,convstep[n],1,convpad[n],0))
+      	if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN[n])) end
       	CNN_1L:add(nn.ReLU())
       	CNN_1L:add(nn.SpatialMaxPooling(poolsize[n],1,poolstep[n],1))
       	CNN_1L:add(nn.Dropout(opt.dropout)) -- dropout
@@ -100,20 +101,20 @@ if opt.model == 'model-1L-MultiFlow' then
       	CNN_1L:add(nn.Linear(ninputFC,nstate_FC[n]))
       	CNN_1L:add(nn.ReLU())
 
-      	if opt.typeMF == 'LS-Joint-LS' or opt.typeMF == 'LS-Add' or opt.typeMF == 'S-Add' or opt.typeMF == 'Add-LS' or opt.typeMF == 'Add-S' then
+      	if opt.typeMF == 'LS-Joint-LS' or opt.typeMF == 'LS-Add' or opt.typeMF == 'S-Add-L' or opt.typeMF == 'Add-LS' or opt.typeMF == 'Add-S' then
       		CNN_1L:add(nn.Linear(nstate_FC[n],noutputs)) -- output layer (output: 101 prediction probability)
 
 		    -- stage 3 : probabilities
       		if opt.typeMF == 'LS-Joint-LS' or opt.typeMF == 'LS-Add' then
 	   			CNN_1L:add(nn.LogSoftMax())
-	   		elseif opt.typeMF == 'S-Add' then
+	   		elseif opt.typeMF == 'S-Add-L' then
 	   			CNN_1L:add(nn.SoftMax())
 	   		end
       	end
       	
     	CNN_flows:add(CNN_1L)
 
-    	if opt.typeMF == 'LS-Joint-LS' or opt.typeMF == 'LS-Add' or opt.typeMF == 'S-Add' or opt.typeMF == 'Add-LS' or opt.typeMF == 'Add-S' then
+    	if opt.typeMF == 'LS-Joint-LS' or opt.typeMF == 'LS-Add' or opt.typeMF == 'S-Add-L' or opt.typeMF == 'Add-LS' or opt.typeMF == 'Add-S' then
       		noutput_1L[n] = noutputs
       	else
       		noutput_1L[n] = nstate_FC[n]
@@ -125,13 +126,15 @@ if opt.model == 'model-1L-MultiFlow' then
    	------------------------------
    	--  Combine multiple flows  --
    	------------------------------
-   	if opt.typeMF == 'LS-Add' or opt.typeMF == 'S-Add' or opt.typeMF == 'Add-LS' or opt.typeMF == 'Add-S' then
+   	if opt.typeMF == 'LS-Add' or opt.typeMF == 'S-Add-L' or opt.typeMF == 'Add-LS' or opt.typeMF == 'Add-S' then
    		model:add(nn.CAddTable())
    		-- stage 4 : probabilities
       	if opt.typeMF == 'Add-LS' then
 	   		model:add(nn.LogSoftMax())
 	   	elseif opt.typeMF == 'Add-S' then
 	   		model:add(nn.SoftMax())
+  		elseif opt.typeMF == 'S-Add-L' then
+  			model:add(nn.Log())
 	   	end
    	elseif opt.typeMF == 'LS-Joint-LS' or opt.typeMF == 'Joint-LS' or opt.typeMF == 'Joint-S' or opt.typeMF == 'Joint-FC-LS' or opt.typeMF == 'Joint-FC-S' then
    		model:add(nn.JoinTable(2)) -- merge two streams: bSizex(dim1+dim2+dim3)

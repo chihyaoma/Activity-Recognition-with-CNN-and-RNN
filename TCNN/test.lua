@@ -10,7 +10,7 @@
 
 -- modified by Min-Hung Chen
 -- contact: cmhungsteve@gatech.edu
--- Last updated: 10/11/2016
+-- Last updated: 10/22/2016
 
 
 require 'torch'   -- torch
@@ -67,9 +67,20 @@ local confusion = optim.ConfusionMatrix(classes)
 -- Logger:
 local testLogger = optim.Logger(paths.concat(opt.save,'test.log'))
 
+local nCrops
+if opt.methodCrop == 'tenCrop' then
+  nCrops = 10
+elseif opt.methodCrop == 'centerCropFlip' then
+  nCrops = 2
+else 
+  nCrops = 1
+end
+
+local numTestVideo = testData:size(1)/nCrops
+
 -- Batch test:
-local inputs = torch.Tensor(opt.batchSize,1, nfeature, nframeUse) -- get size from data
-local targets = torch.Tensor(opt.batchSize)
+local inputs = torch.Tensor(opt.batchSize*nCrops,1, nfeature, nframeUse) -- get size from data
+local targets = torch.Tensor(opt.batchSize*nCrops)
 if opt.type == 'cuda' then 
    inputs = inputs:cuda()
    targets = targets:cuda()
@@ -94,24 +105,24 @@ function test(testData, classes, epo)
    print(sys.COLORS.red .. '==> testing on test set:')
    local predlabeltxt = {}
    local prob = {}
-   for t = 1,testData:size(),opt.batchSize do
+   for t = 1,numTestVideo,opt.batchSize do
       -- disp progress
 	  collectgarbage()
       xlua.progress(t, testData:size())
 
       -- batch fits?
-      if (t + bSize - 1) > testData:size() then
-         bSize = testData:size() - (t-1)
+      if (t + bSize - 1) > numTestVideo then
+         bSize = numTestVideo - (t-1)
          -- break
       end
 
       -- create mini batch
       local frameSkip = nframeAll-nframeUse
-      local idx = 1
+      local idx = 1 -- index only for this mini-batch
       for i = t,t+bSize-1 do
          --inputs[{idx,1}] = testData.data[{i,{},{1,nframeUse}}]
-         inputs[{idx,1}] = testData.data[{i,{},{1+frameSkip/2,nframeAll-frameSkip/2}}] -- take the middle part
-	      targets[idx] = testData.labels[i]
+         inputs[{{(idx-1)*nCrops+1,idx*nCrops},1}] = testData.data[{{(i-1)*nCrops+1,i*nCrops},{},{1+frameSkip/2,nframeAll-frameSkip/2}}] -- take the middle part
+	      targets[{{(idx-1)*nCrops+1,idx*nCrops}}] = testData.labels[{{(i-1)*nCrops+1,i*nCrops}}]
          idx = idx + 1
       end
 
@@ -123,7 +134,10 @@ function test(testData, classes, epo)
          preds = model:forward(inputs)
       end
 
-      preds = preds[{{1,bSize}}] -- for the last few test data
+      preds = preds[{{1,bSize*nCrops}}] -- for the last few test data
+
+      ---- Compute n-Crop score ----
+      preds = preds:view(preds:size(1) / nCrops, nCrops, preds:size(2)):exp():sum(2):squeeze(2)
 
       -- Get the top N class indexes and probabilities
       local N = 3

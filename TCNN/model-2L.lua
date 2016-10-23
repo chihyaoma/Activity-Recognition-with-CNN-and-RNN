@@ -99,6 +99,7 @@ if opt.model == 'model-2L' then
 
    -- stage 1: conv -> ReLU -> Pooling
    model:add(nn.SpatialConvolutionMM(dimMap,nstates[1],convsize[1],1,convstep[1],1,convpad[1],0))
+   if opt.batchNormalize == 'Yes' then model:add(nn.SpatialBatchNormalization(nstates[1])) end
    model:add(nn.ReLU())
    model:add(nn.SpatialMaxPooling(poolsize[1],1,poolstep[1],1))
 
@@ -106,6 +107,7 @@ if opt.model == 'model-2L' then
 
    -- stage 2: conv -> ReLU -> Pooling   
    model:add(nn.SpatialConvolutionMM(nstates[1],nstates[2],convsize[2],1,convstep[2],1,convpad[2],0))
+   if opt.batchNormalize == 'Yes' then model:add(nn.SpatialBatchNormalization(nstates[2])) end
    model:add(nn.ReLU()) 
    model:add(nn.SpatialMaxPooling(poolsize[2],1,poolstep[2],1))
 
