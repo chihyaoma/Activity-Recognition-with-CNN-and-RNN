@@ -22,7 +22,7 @@ cmd:text('Example:')
 cmd:text("main.lua -cuda -progress -opt.rho 25")
 cmd:text('Options:')
 ------------ General options --------------------
-cmd:option('-pastalogName', 'model_TemporalDropout_LSTM_FC', 'the name of your experiment, e.g. pretrain-fullsize')
+cmd:option('-pastalogName', 'model_RNN', 'the name of your experiment, e.g. pretrain-fullsize')
 cmd:option('-learningRate', 1e-2, 'learning rate at t=0')
 cmd:option('-learningRateDecay', 0, 'learningRateDecay')
 cmd:option('-momentum', 0.9, 'momentum')
@@ -33,7 +33,7 @@ cmd:option('-epochUpdateLR', 25, 'learning rate decay per epochs for optimizer a
 cmd:option('-lrDecayFactor', 0.1, 'learning rate decay factor for optimizer adam')
 cmd:option('-batchSize', 48, 'number of examples per batch') -- how many examples per training
 cmd:option('-cuda', true, 'use CUDA')
-cmd:option('-useDevice', 1, 'sets the device (GPU) to use')
+cmd:option('-nGPU', 1, 'use CUDA')
 cmd:option('-maxEpoch', 75, 'maximum number of epochs to run')
 cmd:option('-maxTries', 50, 'maximum number of epochs to try to find a better local minima for early-stopping')
 cmd:option('-progress', true, 'print progress bar')
@@ -45,8 +45,8 @@ cmd:option('-lstm', true, 'use Long Short Term Memory (nn.LSTM instead of nn.Rec
 cmd:option('-bn', false, 'use batch normalization. Only supported with --lstm')
 cmd:option('-gru', false, 'use Gated Recurrent Units (nn.GRU instead of nn.Recurrent)')
 cmd:option('-rho', 25, 'number of frames for each video')
-cmd:option('-fcSize', '{4096}', 'umber of hidden units used at output of each fully recurrent connected layer. When more than one is specified, fully-connected layers are stacked')
-cmd:option('-hiddenSize', '{2048}', 'number of hidden units used at output of each recurrent layer. When more than one is specified, RNN/LSTMs/GRUs are stacked')
+cmd:option('-fcSize', '{1024}', 'umber of hidden units used at output of each fully recurrent connected layer. When more than one is specified, fully-connected layers are stacked')
+cmd:option('-hiddenSize', '{512}', 'number of hidden units used at output of each recurrent layer. When more than one is specified, RNN/LSTMs/GRUs are stacked')
 cmd:option('-projSize', 2048, 'size of the projection layer (number of hidden cell units for LSTMP)')
 cmd:option('-zeroFirst', false, 'first step will forward zero through recurrence (i.e. add bias of recurrence). As opposed to learning bias specifically for first step.')
 cmd:option('-dropout', 0, 'apply dropout after each recurrent layer')
@@ -61,10 +61,10 @@ cmd:option('-saveModel', false,  'Save the model and optimState for resume later
 -- data
 cmd:option('-trainEpochSize', -1, 'number of train examples seen between each epoch')
 cmd:option('-validEpochSize', -1, 'number of valid examples used for early stopping and cross-validation') 
--- cmd:option('-spatFeatDir', 'none', 'directory of spatial feature vectors')
--- cmd:option('-tempFeatDir', 'none', 'directory of temporal feature vectors (from optical flow)')
-cmd:option('-spatFeatDir', '/home/chih-yao/Downloads/Features/', 'directory of spatial feature vectors')
-cmd:option('-tempFeatDir', '/home/chih-yao/Downloads/Features/', 'directory of temporal feature vectors (from optical flow)')
+cmd:option('-spatFeatDir', 'none', 'directory of spatial feature vectors')
+cmd:option('-tempFeatDir', 'none', 'directory of temporal feature vectors (from optical flow)')
+-- cmd:option('-spatFeatDir', '/home/chih-yao/Downloads/Features/', 'directory of spatial feature vectors')
+-- cmd:option('-tempFeatDir', '/home/chih-yao/Downloads/Features/', 'directory of temporal feature vectors (from optical flow)')
 cmd:option('-plot', false, 'Plot the training and testing accuracy')
 dname,fname = sys.fpath()
 
@@ -86,8 +86,6 @@ opt.hiddenSize = loadstring(" return "..opt.hiddenSize)()
 if opt.cuda == true then
 	print(sys.COLORS.red ..  '==> switching to CUDA')
 	require 'cunn'
-	cutorch.setDevice(opt.useDevice)
-	print(sys.COLORS.red ..  '==> using GPU #' .. cutorch.getDevice())
 end
 
 -- check if rgb or flow features wanted to be used

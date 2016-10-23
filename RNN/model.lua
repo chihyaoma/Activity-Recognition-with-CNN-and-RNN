@@ -13,7 +13,8 @@
 -- Contact: Chih-Yao Ma at <cyma@gatech.edu>
 ----------------------------------------------------------------
 
-nn = require 'nn'
+require 'nn'
+
 local rnn = require 'rnn'
 local sys = require 'sys'
 require 'TemporalDropout'
@@ -351,7 +352,6 @@ else
 
     -- construct model
     model = model_FC_stackedRNN_FC()
-
     model:add(nn.LogSoftMax())
 
     if opt.uniform > 0 then
@@ -379,6 +379,26 @@ print(model)
 if opt.cuda == true then
     model:cuda()
     criterion:cuda()
+
+    -- Wrap the model with DataParallelTable, if using more than one GPU
+    if opt.nGPU > 1 then
+      local gpus = torch.range(1, opt.nGPU):totable()
+
+      local dpt = nn.DataParallelTable(1, true, true)
+         :add(model, gpus)
+         :threads(function()
+            local cudnn = require 'cudnn'
+            local rnn = require 'rnn'
+            -- require 'TemporalDropout'
+            
+            -- Set the CUDNN flags
+            cudnn.fastest = true
+            cudnn.benchmark = true
+         end)
+      dpt.gradInput = nil
+
+      model = dpt:cuda()
+    end
 end
 
 -- Export:
