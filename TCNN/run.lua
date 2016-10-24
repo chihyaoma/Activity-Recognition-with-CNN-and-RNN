@@ -28,7 +28,7 @@ opt = lapp[[
    -l,--learningRateDecay  (default 1e-7)          learning rate decay (in # samples)
    -w,--weightDecay        (default 1e-5)          L2 penalty on the weights
    -m,--momentum           (default 0.1)           momentum
-   -d,--dropout            (default 0.5)           dropout amount
+   -d,--dropout            (default 0.3)           dropout amount
    -b,--batchSize          (default 16)            batch size
    -t,--threads            (default 6)             number of threads
    -p,--type               (default cuda)          float or cuda
@@ -38,7 +38,7 @@ opt = lapp[[
       --model              (default model-1L-MultiFlow)      network model (model-1L-MultiFlow | model-1L | model-2L | model-1L-SplitST)
       --typeMF             (default LS-Add)        multi-flow type (LS-Add | S-Add-L | Add-LS | Add-S | Joint-LS | Joint-S | Joint-FC-LS | Joint-FC-S | LS-Joint-LS)
       --batchNormalize	   (default Yes)		   do batch-normalization or not
-      --methodCrop         (default centerCrop)    cropping method (tenCrop | centerCrop | centerCropFlip)
+      --methodCrop         (default centerCrop)    cropping method (tenCrop | centerCrop | centerCropMirror | centerCropFlip)
       --optMethod          (default sgd)           optimization method
       --plot               (default No)       	   plot the training and test accuracies (Yes | No)
       --saveModel          (default No)            save the model or not (Yes | No)

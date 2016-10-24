@@ -99,10 +99,10 @@ end
 print(sys.COLORS.red ..  '==> allocating minibatch memory')
 
 local nCrops
-if opt.methodCrop == 'tenCrop' then
-  nCrops = 10
-elseif opt.methodCrop == 'centerCropFlip' then
+if opt.methodCrop == 'centerCropFlip' then
   nCrops = 2
+-- elseif opt.methodCrop == 'tenCrop' then
+--   nCrops = 10
 else 
   nCrops = 1
 end

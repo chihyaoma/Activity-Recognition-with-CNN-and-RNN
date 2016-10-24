@@ -34,7 +34,8 @@ local nframeAll = data.trainData.data:size(3)
 local nframeUse = nframeAll - frameSkip
 local nfeature = data.trainData.data:size(2)
 local nfeature_h = nfeature/2
-local bSize = opt.batchSize
+local bSize = tonumber(opt.batchSize)
+local dropout = tonumber(opt.dropout)
 local dimMap = 1
 
 -- hidden units, filter sizes: 		
@@ -121,7 +122,7 @@ if opt.model == 'model-1L-SplitST' then
    --   Combine two streams    --
    ------------------------------
 	model:add(nn.JoinTable(3)) -- merge two streams: bSizex1x(2048+2048)x?
-	model:add(nn.Dropout(opt.dropout)) -- dropout
+	model:add(nn.SpatialDropout(dropout)) -- dropout
 
    	-- stage 2: linear -> ReLU -> linear
 

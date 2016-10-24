@@ -68,10 +68,10 @@ local confusion = optim.ConfusionMatrix(classes)
 local testLogger = optim.Logger(paths.concat(opt.save,'test.log'))
 
 local nCrops
-if opt.methodCrop == 'tenCrop' then
-  nCrops = 10
-elseif opt.methodCrop == 'centerCropFlip' then
+if opt.methodCrop == 'centerCropFlip' then
   nCrops = 2
+-- elseif opt.methodCrop == 'tenCrop' then
+--   nCrops = 10
 else 
   nCrops = 1
 end
@@ -108,7 +108,7 @@ function test(testData, classes, epo)
    for t = 1,numTestVideo,opt.batchSize do
       -- disp progress
 	  collectgarbage()
-      xlua.progress(t, testData:size())
+      xlua.progress(t, numTestVideo)
 
       -- batch fits?
       if (t + bSize - 1) > numTestVideo then
@@ -135,9 +135,11 @@ function test(testData, classes, epo)
       end
 
       preds = preds[{{1,bSize*nCrops}}] -- for the last few test data
+      targets_batch = targets[{{1,bSize*nCrops}}] -- for the last few test data
 
       ---- Compute n-Crop score ----
-      preds = preds:view(preds:size(1) / nCrops, nCrops, preds:size(2)):exp():sum(2):squeeze(2)
+      preds = preds:view(preds:size(1) / nCrops, nCrops, preds:size(2)):mean(2):squeeze(2)
+      targets_batch = targets_batch:view(targets_batch:size(1) / nCrops, nCrops):mean(2):squeeze(2)
 
       -- Get the top N class indexes and probabilities
       local N = 3
@@ -174,7 +176,7 @@ function test(testData, classes, epo)
 
       -- confusion
       for i = 1,bSize do
-         confusion:add(preds[i], targets[i])
+         confusion:add(preds[i], targets_batch[i])
       end
    end
 

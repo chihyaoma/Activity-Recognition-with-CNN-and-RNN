@@ -37,7 +37,8 @@ local frameSkip = 0
 local nframeAll = data.trainData.data:size(3)
 local nframeUse = nframeAll - frameSkip
 local nfeature = data.trainData.data:size(2)
-local bSize = opt.batchSize
+local bSize = tonumber(opt.batchSize)
+local dropout = tonumber(opt.dropout)
 local dimMap = 1
 
 -- hidden units, filter sizes  	
@@ -94,12 +95,14 @@ if opt.model == 'model-1L-MultiFlow' then
       	if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN[n])) end
       	CNN_1L:add(nn.ReLU())
       	CNN_1L:add(nn.SpatialMaxPooling(poolsize[n],1,poolstep[n],1))
-      	CNN_1L:add(nn.Dropout(opt.dropout)) -- dropout
+      	CNN_1L:add(nn.SpatialDropout(dropout)) -- dropout
       
       	-- stage 2: linear -> ReLU -> linear
       	CNN_1L:add(nn.Reshape(ninputFC))
       	CNN_1L:add(nn.Linear(ninputFC,nstate_FC[n]))
+      	if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.BatchNormalization(nstate_FC[n])) end
       	CNN_1L:add(nn.ReLU())
+      	CNN_1L:add(nn.Dropout(0.7)) -- dropout
 
       	if opt.typeMF == 'LS-Joint-LS' or opt.typeMF == 'LS-Add' or opt.typeMF == 'S-Add-L' or opt.typeMF == 'Add-LS' or opt.typeMF == 'Add-S' then
       		CNN_1L:add(nn.Linear(nstate_FC[n],noutputs)) -- output layer (output: 101 prediction probability)
@@ -128,6 +131,7 @@ if opt.model == 'model-1L-MultiFlow' then
    	------------------------------
    	if opt.typeMF == 'LS-Add' or opt.typeMF == 'S-Add-L' or opt.typeMF == 'Add-LS' or opt.typeMF == 'Add-S' then
    		model:add(nn.CAddTable())
+   		-- model:add(nn.MulConstant(1/numFlow)) -- take the average
    		-- stage 4 : probabilities
       	if opt.typeMF == 'Add-LS' then
 	   		model:add(nn.LogSoftMax())

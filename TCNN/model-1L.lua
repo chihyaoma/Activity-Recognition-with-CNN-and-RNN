@@ -37,7 +37,8 @@ local frameSkip = 0
 local nframeAll = data.trainData.data:size(3)
 local nframeUse = nframeAll - frameSkip
 local nfeature = data.trainData.data:size(2)
-local bSize = opt.batchSize
+local bSize = tonumber(opt.batchSize)
+local dropout = tonumber(opt.dropout)
 local dimMap = 1
 
 -- hidden units, filter sizes (for ConvNet only): 		
@@ -103,7 +104,7 @@ if opt.model == 'model-1L' then
    model:add(nn.ReLU())
    model:add(nn.SpatialMaxPooling(poolsize,1,poolstep,1))
 
-   model:add(nn.Dropout(opt.dropout)) -- dropout
+   model:add(nn.SpatialDropout(dropout)) -- dropout
 
    -- stage 2: linear -> ReLU -> linear
    local ninputFC = nstates[1]*nfeature*torch.floor(nframeUse/poolsize) -- temporal kernel

@@ -37,7 +37,8 @@ local frameSkip = 0
 local nframeAll = data.trainData.data:size(3)
 local nframeUse = nframeAll - frameSkip
 local nfeature = data.trainData.data:size(2)
-local bSize = opt.batchSize
+local bSize = tonumber(opt.batchSize)
+local dropout = tonumber(opt.dropout)
 local dimMap = 1
 
 
@@ -94,8 +95,8 @@ if opt.model == 'model-2L' then
 
    model_name = 'model_best'
 
-   -- stage 0: mini-batch FC
-   model:add(batch_FC)
+   ---- stage 0: mini-batch FC
+   --model:add(batch_FC)
 
    -- stage 1: conv -> ReLU -> Pooling
    model:add(nn.SpatialConvolutionMM(dimMap,nstates[1],convsize[1],1,convstep[1],1,convpad[1],0))
@@ -111,7 +112,7 @@ if opt.model == 'model-2L' then
    model:add(nn.ReLU()) 
    model:add(nn.SpatialMaxPooling(poolsize[2],1,poolstep[2],1))
 
-   model:add(nn.Dropout(opt.dropout)) -- dropout
+   model:add(nn.SpatialDropout(dropout)) -- dropout
 
    -- stage 3: linear -> ReLU -> linear
    local ninputFC = nstates[2]*nfeature*torch.floor(torch.floor(nframeUse/poolsize[1])/poolsize[2]) -- temporal kernel
