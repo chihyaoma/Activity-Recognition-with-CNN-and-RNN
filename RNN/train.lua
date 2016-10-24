@@ -67,6 +67,8 @@ function train(trainData, trainTarget)
    local shuffle = torch.randperm(trainData:size(1))
 
    local function feval()
+      -- clip gradient element-wise
+      gradParams:clamp(-opt.gradClip, opt.gradClip)
       return criterion.output, gradParams
    end
 

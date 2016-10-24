@@ -29,11 +29,13 @@ cmd:option('-momentum', 0.9, 'momentum')
 cmd:option('-weightDecay', 1e-2, 'weightDecay')
 cmd:option('-optimizer', 'sgd', 'Use different optimizer, e.g. sgd, adam, adamax, rmsprop for now')
 cmd:option('-lrMethod',  'fixed',   'methods for tuning the learning rate: manual | fixed ')
-cmd:option('-epochUpdateLR', 25, 'learning rate decay per epochs for optimizer adam')
-cmd:option('-lrDecayFactor', 0.1, 'learning rate decay factor for optimizer adam')
+cmd:option('-epochUpdateLR', 25, 'learning rate decay per epochs')
+cmd:option('-lrDecayFactor', 0.1, 'learning rate decay factor')
 cmd:option('-batchSize', 48, 'number of examples per batch') -- how many examples per training
+cmd:option('-gradClip',5,'clip gradients at this value')
 cmd:option('-cuda', true, 'use CUDA')
 cmd:option('-nGPU', 1, 'use CUDA')
+cmd:option('-useDevice', 1, 'which graphics card to use')
 cmd:option('-maxEpoch', 75, 'maximum number of epochs to run')
 cmd:option('-maxTries', 50, 'maximum number of epochs to try to find a better local minima for early-stopping')
 cmd:option('-progress', true, 'print progress bar')
@@ -45,8 +47,8 @@ cmd:option('-lstm', true, 'use Long Short Term Memory (nn.LSTM instead of nn.Rec
 cmd:option('-bn', false, 'use batch normalization. Only supported with --lstm')
 cmd:option('-gru', false, 'use Gated Recurrent Units (nn.GRU instead of nn.Recurrent)')
 cmd:option('-rho', 25, 'number of frames for each video')
-cmd:option('-fcSize', '{1024}', 'umber of hidden units used at output of each fully recurrent connected layer. When more than one is specified, fully-connected layers are stacked')
-cmd:option('-hiddenSize', '{512}', 'number of hidden units used at output of each recurrent layer. When more than one is specified, RNN/LSTMs/GRUs are stacked')
+cmd:option('-fcSize', '{4096}', 'umber of hidden units used at output of each fully recurrent connected layer. When more than one is specified, fully-connected layers are stacked')
+cmd:option('-hiddenSize', '{2048}', 'number of hidden units used at output of each recurrent layer. When more than one is specified, RNN/LSTMs/GRUs are stacked')
 cmd:option('-projSize', 2048, 'size of the projection layer (number of hidden cell units for LSTMP)')
 cmd:option('-zeroFirst', false, 'first step will forward zero through recurrence (i.e. add bias of recurrence). As opposed to learning bias specifically for first step.')
 cmd:option('-dropout', 0, 'apply dropout after each recurrent layer')
@@ -86,6 +88,10 @@ opt.hiddenSize = loadstring(" return "..opt.hiddenSize)()
 if opt.cuda == true then
 	print(sys.COLORS.red ..  '==> switching to CUDA')
 	require 'cunn'
+	if opt.nGPU == 1 then
+		cutorch.setDevice(opt.useDevice)
+		print(sys.COLORS.red ..  '==> using GPU #' .. cutorch.getDevice())
+	end
 end
 
 -- check if rgb or flow features wanted to be used
