@@ -16,9 +16,9 @@ op:option{'-fT', '--featType', action='store', dest='featType',
 op:option{'-sT', '--stream', action='store', dest='stream',
           help='type of stream (RGB | FlowMap-TVL1-crop20 | FlowMap-Brox)', default='RGB'}
 op:option{'-iC', '--inputCrop', action='store', dest='inputCrop',
-          help='input cropping method', default='tenCrop'}
+          help='input cropping method (tenCrop | centerCropFlip)', default='tenCrop'}
 op:option{'-oC', '--outputCrop', action='store', dest='outputCrop',
-          help='output cropping method (centerCrop | centerCropFlip)', default='centerCropFlip'}
+          help='output cropping method (centerCrop | centerCropFlip | centerCropMirror)', default='centerCropFlip'}
 
 opt,args = op:parse()
 
@@ -34,15 +34,32 @@ outputCrop  = opt.outputCrop
 inputName = 'data_feat_'..featType..'_'..stream..'_'..inputCrop..'_25f_sp1'
 outputName = 'data_feat_'..featType..'_'..stream..'_'..outputCrop..'_25f_sp1'
 
-nCropsIn = (inputCrop == 'tenCrop') and 10 or 1
-nCropsOut = (outputCrop == 'centerCropFlip') and 2 or 1
+if inputCrop == 'tenCrop' then
+	nCropsIn = 10
+elseif inputCrop == 'centerCropFlip' then
+	nCropsIn = 2
+else
+	nCropsIn = 1
+end
+
+if outputCrop == 'tenCrop' then
+	nCropsOut = 10
+elseif outputCrop == 'centerCropFlip' then
+	nCropsOut = 2
+else
+	nCropsOut = 1
+end
 
 print('Loading features: '..inputName)
 dataIn = torch.load(inputName..'.t7')
 
 numVideo = dataIn.labels:size(1)/nCropsIn
 
-idx_Selected = {1,6} -- 1: centerCrop; 6: centerCrop + horizontal flipping
+if outputCrop == 'centerCropFlip' then
+	idx_Selected = {1,6} -- 1: centerCrop; 6: centerCrop + horizontal flipping
+elseif inputCrop == 'centerCropFlip' and outputCrop == 'centerCropMirror' then
+	idx_Selected = {2} -- 1: centerCrop; 2: centerCrop + horizontal flipping
+end
 
 dataOut = {}
 dataOut.featMats = torch.zeros(numVideo*nCropsOut,dataIn.featMats:size(2),dataIn.featMats:size(3)):double()
