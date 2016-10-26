@@ -53,11 +53,11 @@ op = xlua.OptionParser('%prog [options]')
 op:option{'-iP', '--idPart', action='store', dest='idPart',
           help='index of the divided part', default=1}
 op:option{'-nP', '--numPart', action='store', dest='numPart',
-          help='number of parts to divide', default=4}
+          help='number of parts to divide', default=1}
 op:option{'-sT', '--stream', action='store', dest='stream',
           help='type of stream (RGB | TVL1 | Brox)', default='RGB'}
 op:option{'-mC', '--methodCrop', action='store', dest='methodCrop',
-          help='cropping method (tenCrop | centerCrop)', default='tenCrop'}
+          help='cropping method (tenCrop | centerCrop)', default='centerCrop'}
 op:option{'-mP', '--methodPred', action='store', dest='methodPred',
           help='prediction method (scoreMean | classVoting)', default='scoreMean'}
 op:option{'-iSp', '--idSplit', action='store', dest='idSplit',
@@ -438,7 +438,7 @@ sp = idSplit
 					              			probFrame_now = torch.mean(outputTen,1) -- 1x101
 									
 					              		else
-					              			I = I:view(1, table.unpack(I:size():totable())) -- 1x20x224x224
+					              			I = I:view(nCrops, table.unpack(I:size():totable())) -- 1x20x224x224
 					              			local output = net:forward(I:cuda()) -- 1x101
 					              			probFrame_now = output:float()
 					              		end
@@ -482,7 +482,7 @@ sp = idSplit
 				          	elseif opt.mode == 'feat' then -- feature extraction
 				          		--== Read the Video ==--
 				          		local videoPath = dirClass..videoName
-		        				print('==> Loading the video: '..videoPath)
+		        				-- print('==> Loading the video: '..videoPath)
 			        	
 		        				local video = ffmpeg.Video{path=videoPath, fps=fpsTe, delete=true, destFolder='out_frames',silent=true}
 		        				local vidTensor = video:totensor{} -- read the whole video & turn it into a 4D tensor
@@ -507,6 +507,7 @@ sp = idSplit
 					              		netInput[{{x*nChannel+1,(x+1)*nChannel}}] = inFrames[{{x+1},{},{},{}}]
 					              	end
 					         		local I = transform(netInput) -- 20x224x224 or 10x20x224x224 (tenCrop)
+					         		I = I:view(nCrops, table.unpack(I:size():totable())) -- 20x224x224 --> 1x20x224x224
 									local feat_now = net:forward(I:cuda()):float() -- 1x2048 or 10x2048
 
 				              		-- store the feature matrix for this video

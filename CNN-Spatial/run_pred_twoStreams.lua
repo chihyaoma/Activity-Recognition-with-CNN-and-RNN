@@ -52,21 +52,13 @@ t = require './transforms'
 ----------------
 op = xlua.OptionParser('%prog [options]')
 op:option{'-iSp', '--idSplit', action='store', dest='idSplit',
-          help='index of the split set', default=2}
+          help='index of the split set', default=1}
 op:option{'-f', '--frame', action='store', dest='frame',
           help='frame length for each video', default=25}
 op:option{'-fpsTr', '--fpsTr', action='store', dest='fpsTr',
           help='fps of the trained model', default=25}
 op:option{'-fpsTe', '--fpsTe', action='store', dest='fpsTe',
           help='fps for testing', default=25}
-op:option{'-t', '--time', action='store', dest='seconds',
-          help='length to process (in seconds)', default=2}
-op:option{'-w', '--width', action='store', dest='width',
-          help='resize video, width', default=320}
-op:option{'-h', '--height', action='store', dest='height',
-          help='resize video, height', default=240}
-op:option{'-z', '--zoom', action='store', dest='zoom',
-          help='display zoom', default=1}
 op:option{'-m', '--mode', action='store', dest='mode',
           help='option for generating features (pred|feat)', default='pred'}
 op:option{'-p', '--type', action='store', dest='type',
@@ -76,23 +68,38 @@ op:option{'-i1', '--devid1', action='store', dest='devid1',
 op:option{'-i2', '--devid2', action='store', dest='devid2',
           help='2nd GPU', default=2}      
 
-opt,args = op:parse()
+op:option{'-t', '--time', action='store', dest='seconds',
+          help='length to process (in seconds)', default=2}
+op:option{'-w', '--width', action='store', dest='width',
+          help='resize video, width', default=320}
+op:option{'-h', '--height', action='store', dest='height',
+          help='resize video, height', default=240}
+op:option{'-z', '--zoom', action='store', dest='zoom',
+          help='display zoom', default=1}
 
-print('split #: '..opt.idSplit)
-print('fps for training: '..opt.fpsTr)
-print('fps for testing: '..opt.fpsTe)
-print('frame length per video: '..opt.frame)
+opt,args = op:parse()
+idSplit = tonumber(opt.idSplit)
+frame = tonumber(opt.frame)
+fpsTr = tonumber(opt.fpsTr)
+fpsTe = tonumber(opt.fpsTe)
+devid1 = tonumber(opt.devid1)
+devid2 = tonumber(opt.devid2)
+
+print('split #: '..idSplit)
+print('fps for training: '..fpsTr)
+print('fps for testing: '..fpsTe)
+print('frame length per video: '..frame)
 ----------------------------------------------
 -- 			User-defined parameters			--
 ----------------------------------------------
 -- will combine to 'parse args' later
 numStream = 2
-numFrameSample = opt.frame
+numFrameSample = frame
 sampleAll = false -- use all the frames or not
 numSplit = 3
 saveData = false
 methodOF = 'TVL1' -- TVL1 | Brox
-methodCrop = 'tenCrop' -- tenCrop | centerCrop
+methodCrop = 'tenCrop' -- tenCrop | centerCroip
 softMax = false
 nCrops = (methodCrop == 'tenCrop') and 10 or 1
 methodPred = 'scoreMean' -- classVoting | scoreMean
@@ -103,7 +110,7 @@ if softMax then
 end
 print('Using '..methodCrop)
 
-nameOutFile = 'acc_video_'..'_'..numFrameSample..'Frames'..'-'..methodCrop..'-'..opt.fpsTe..'fps-sp'..opt.idSplit..'.txt' -- output the video accuracy
+nameOutFile = 'acc_video_'..numFrameSample..'Frames'..'-'..methodCrop..'-'..fpsTe..'fps-sp'..idSplit..'.txt' -- output the video accuracy
 
 ----------------------------------------------
 -- 				Data paths				    --
@@ -119,15 +126,15 @@ DIR = {}
 dataFolder = {}
 ---- Temporal ----
 if methodOF == 'Brox' then
-	table.insert(DIR, {dirModel = dirSource..'Models/ResNet-Brox-sgd-sp'..opt.idSplit..'/', 
+	table.insert(DIR, {dirModel = dirSource..'Models-25fps/ResNet-Brox-sgd-sp'..idSplit..'/', 
 		dirDatabase = dirSource..'dataset/UCF-101/FlowMap-Brox/'})
 elseif methodOF == 'TVL1' then
-	table.insert(DIR, {dirModel = dirSource..'Models/ResNet-TVL1-sgd-sp'..opt.idSplit..'/', 
+	table.insert(DIR, {dirModel = dirSource..'Models-25fps/ResNet-TVL1-sgd-sp'..idSplit..'/', 
 		dirDatabase = dirSource..'dataset/UCF-101/FlowMap-TVL1-crop20/'})
 end
 
 ---- Spatial ----
-table.insert(DIR, {dirModel = dirSource..'Models/ResNet-RGB-sgd-sp'..opt.idSplit..'/', 
+table.insert(DIR, {dirModel = dirSource..'Models-25fps/ResNet-RGB-sgd-sp'..idSplit..'/', 
 	dirDatabase = dirSource..'dataset/UCF-101/RGB/'})
 
 for nS=1,numStream do
@@ -198,10 +205,10 @@ end
 meanstd = {}
 -- Temporal
 if dataFolder[1] == 'FlowMap-Brox' then
-	if opt.fpsTr == 10 then
+	if fpsTr == 10 then
 		table.insert(meanstd, {mean = { 0.0091950063390791, 0.4922446721625, 0.49853131534726}, 
 					std = { 0.0056229398806939, 0.070845543666524, 0.081589332546496}})
-	elseif opt.fpsTr == 25 then
+	elseif fpsTr == 25 then
 		table.insert(meanstd, {mean = { 0.0091796917475333, 0.49176131835977, 0.49831646616289 },
                		std = { 0.0056094466799444, 0.070888495268898, 0.081680047609585 }})
 	end
@@ -221,10 +228,10 @@ elseif dataFolder[1] == 'FlowMap-FlowNet-M' then
 	table.insert(meanstd, {mean = { 0.951, 0.918, 0.955 },
                 std = { 0.043, 0.052, 0.044 }})
 elseif dataFolder[1] == 'FlowMap-TVL1-crop20' then
-	if opt.fpsTr == 10 then
+	if fpsTr == 10 then
 		table.insert(meanstd, {mean = { 0.0078286737613148, 0.49277467447062, 0.42283539438139 },
 	                 std = { 0.0049402251681559, 0.060421647049655, 0.058913364961995 }})
-	elseif opt.fpsTr == 25 then
+	elseif fpsTr == 25 then
 		table.insert(meanstd, {mean = { 0.0078368888567733, 0.49304171615406, 0.42294166284263 },
 	                  std = { 0.0049412518723573, 0.060508027119622, 0.058952390342379 }})
 	end
@@ -234,10 +241,10 @@ end
 
 -- Spatial
 if dataFolder[2] == 'RGB' then
-	if opt.fpsTr == 10 then
+	if fpsTr == 10 then
 		table.insert(meanstd, {mean = { 0.392, 0.376, 0.348 },
 	   				std = { 0.241, 0.234, 0.231 }})
-	elseif opt.fpsTr == 25 then
+	elseif fpsTr == 25 then
 		table.insert(meanstd, {mean = { 0.39234371606738, 0.37576219443075, 0.34801909196893 },
 	               std = { 0.24149100687454, 0.23453123289779, 0.23117322727131 }})
 	end
@@ -258,8 +265,8 @@ numClassTotal = #nameClass -- 101 classes + "." + ".."
 -- 					Models		        	--
 ----------------------------------------------
 devID = torch.Tensor(numStream)
-devID[1] = opt.devid1 -- for temporal
-devID[2] = opt.devid2 -- for spatial
+devID[1] = devid1 -- for temporal
+devID[2] = devid2 -- for spatial
 net = {}
 
 for nS=1,numStream do
@@ -317,7 +324,7 @@ print '==> Processing all the videos...'
 
 -- Load the intermediate feature data or generate a new one --
 -- for sp=1,numSplit do
-sp = opt.idSplit
+sp = idSplit
 	-- Training data --
 	if not (saveData and paths.filep(outTrain[sp].name)) then
 		Tr = {} -- output
@@ -444,7 +451,7 @@ sp = opt.idSplit
 					        	for nS=1,numStream do
 					        		local videoPath = dirClass[nS]..videoName[nS]
 						        	-- print('==> Loading the video: '..videoName[nS])
-									local video = ffmpeg.Video{path=videoPath, fps=opt.fpsTe, delete=true, destFolder='out_frames',silent=true}
+									local video = ffmpeg.Video{path=videoPath, fps=fpsTe, delete=true, destFolder='out_frames',silent=true}
 									--video:play{} -- play the video
 					        		table.insert(vidTensor, video:totensor{}) -- read the whole video & turn it into a 4D tensor (e.g. 150x3x240x320)
 								end
