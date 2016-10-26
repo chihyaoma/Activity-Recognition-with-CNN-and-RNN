@@ -37,7 +37,7 @@ dirFeature = dirSource..'Features/'
 ----------------------------------------------
 -- 			User-defined parameters		    --
 ----------------------------------------------
-idSplit = opt.splitId
+idSplit = tonumber(opt.splitId)
 print('split #: '..idSplit)
 
 ----------------------------------------------

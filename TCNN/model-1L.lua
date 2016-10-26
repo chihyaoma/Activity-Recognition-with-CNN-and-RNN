@@ -54,38 +54,38 @@ local poolstep = 2
 local model = nn.Sequential()
 local model_name = "model"
 
-------------------------------------
--- Full-connected layer for input --
-------------------------------------
-local batch_FC = nn.Sequential()
--- 1. dispart the mini-patch feature maps to lots of feature vectors
-batch_FC:add(nn.SplitTable(1)) -- split the mini-batches into single feature maps
+-- ------------------------------------
+-- -- Full-connected layer for input --
+-- ------------------------------------
+-- local batch_FC = nn.Sequential()
+-- -- 1. dispart the mini-patch feature maps to lots of feature vectors
+-- batch_FC:add(nn.SplitTable(1)) -- split the mini-batches into single feature maps
 
-local vectorTable = nn.ParallelTable()
-for b=1,bSize do 
-   vectorTable:add(nn.SplitTable(-1)) -- split one feature map into feature vectors
-end
-batch_FC:add(vectorTable)
+-- local vectorTable = nn.ParallelTable()
+-- for b=1,bSize do 
+--    vectorTable:add(nn.SplitTable(-1)) -- split one feature map into feature vectors
+-- end
+-- batch_FC:add(vectorTable)
 
--- 2. duplicate thr fully-connected layer to fit the input
-local mapFC = nn.MapTable():add(nn.MapTable():add(nn.Linear(nfeature,nfeature)))
-batch_FC:add(mapFC)
+-- -- 2. duplicate thr fully-connected layer to fit the input
+-- local mapFC = nn.MapTable():add(nn.MapTable():add(nn.Linear(nfeature,nfeature)))
+-- batch_FC:add(mapFC)
 
--- 3. convert the whole table back to the original mini-batch
-local combineTable = nn.ParallelTable()
-for b=1,bSize do 
-   combineTable:add(nn.JoinTable(-1)) -- merge all the vectors back to map
-end
-batch_FC:add(combineTable)
+-- -- 3. convert the whole table back to the original mini-batch
+-- local combineTable = nn.ParallelTable()
+-- for b=1,bSize do 
+--    combineTable:add(nn.JoinTable(-1)) -- merge all the vectors back to map
+-- end
+-- batch_FC:add(combineTable)
 
-local viewTable = nn.ParallelTable()
-for b=1,bSize do 
-   viewTable:add(nn.View(dimMap,nfeature,nframeUse)) -- (1,4096*25) --> (1,4096,25)
-end
-batch_FC:add(viewTable)
+-- local viewTable = nn.ParallelTable()
+-- for b=1,bSize do 
+--    viewTable:add(nn.View(dimMap,nfeature,nframeUse)) -- (1,4096*25) --> (1,4096,25)
+-- end
+-- batch_FC:add(viewTable)
 
-batch_FC:add(nn.JoinTable(1)) -- merge all the maps back to mini-batch
-batch_FC:add(nn.View(bSize,dimMap,nfeature,nframeUse)) -- 32x1x4096x25
+-- batch_FC:add(nn.JoinTable(1)) -- merge all the maps back to mini-batch
+-- batch_FC:add(nn.View(bSize,dimMap,nfeature,nframeUse)) -- 32x1x4096x25
 
 -----------------------
 -- Main Architecture --
@@ -104,16 +104,16 @@ if opt.model == 'model-1L' then
    model:add(nn.ReLU())
    model:add(nn.SpatialMaxPooling(poolsize,1,poolstep,1))
 
-   model:add(nn.SpatialDropout(dropout)) -- dropout
+   model:add(nn.SpatialDropout(0.3)) -- dropout
 
    -- stage 2: linear -> ReLU -> linear
    local ninputFC = nstates[1]*nfeature*torch.floor(nframeUse/poolsize) -- temporal kernel
 
    model:add(nn.Reshape(ninputFC))
    model:add(nn.Linear(ninputFC,nstates[2]))
+   if opt.batchNormalize == 'Yes' then model:add(nn.BatchNormalization(nstates[2])) end
    model:add(nn.ReLU())
-
-   --model:add(nn.Dropout(opt.dropout)) -- dropout
+   model:add(nn.Dropout(0.8)) -- dropout
 
    model:add(nn.Linear(nstates[2],noutputs))
 

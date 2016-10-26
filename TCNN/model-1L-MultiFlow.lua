@@ -45,7 +45,7 @@ local dimMap = 1
 ---- 2-flow	
 local nstate_CNN = {4, 4} -- neuron # after pooling
 local nstate_FC = {1280, 1280} -- neuron # after 1st FC
-local nstate_FC_all = 1024 -- neuron # after the last FC
+local nstate_FC_all = 1280 -- neuron # after the last FC
 
 local convsize = {5,7}
 local convstep = {1,1}
@@ -95,14 +95,14 @@ if opt.model == 'model-1L-MultiFlow' then
       	if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN[n])) end
       	CNN_1L:add(nn.ReLU())
       	CNN_1L:add(nn.SpatialMaxPooling(poolsize[n],1,poolstep[n],1))
-      	CNN_1L:add(nn.SpatialDropout(dropout)) -- dropout
+      	CNN_1L:add(nn.SpatialDropout(0.3)) -- dropout
       
       	-- stage 2: linear -> ReLU -> linear
       	CNN_1L:add(nn.Reshape(ninputFC))
       	CNN_1L:add(nn.Linear(ninputFC,nstate_FC[n]))
       	if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.BatchNormalization(nstate_FC[n])) end
       	CNN_1L:add(nn.ReLU())
-      	CNN_1L:add(nn.Dropout(0.7)) -- dropout
+      	CNN_1L:add(nn.Dropout(0.8)) -- dropout
 
       	if opt.typeMF == 'LS-Joint-LS' or opt.typeMF == 'LS-Add' or opt.typeMF == 'S-Add-L' or opt.typeMF == 'Add-LS' or opt.typeMF == 'Add-S' then
       		CNN_1L:add(nn.Linear(nstate_FC[n],noutputs)) -- output layer (output: 101 prediction probability)
@@ -132,6 +132,7 @@ if opt.model == 'model-1L-MultiFlow' then
    	if opt.typeMF == 'LS-Add' or opt.typeMF == 'S-Add-L' or opt.typeMF == 'Add-LS' or opt.typeMF == 'Add-S' then
    		model:add(nn.CAddTable())
    		-- model:add(nn.MulConstant(1/numFlow)) -- take the average
+
    		-- stage 4 : probabilities
       	if opt.typeMF == 'Add-LS' then
 	   		model:add(nn.LogSoftMax())
@@ -159,7 +160,8 @@ if opt.model == 'model-1L-MultiFlow' then
 		   	model:add(nn.Linear(ninputFC_all,nstate_FC_all)) -- add one more FC layer
 		   	model:add(nn.ReLU())
 
-		   	--model:add(nn.Dropout(opt.dropout)) -- dropout
+		   	model:add(nn.Dropout(dropout)) -- dropout
+
 		   	model:add(nn.Linear(nstate_FC_all,noutputs)) -- output layer (output: 101 prediction probability)
 
 		   	-- stage 4 : log probabilities

@@ -138,7 +138,7 @@ function test(testData, classes, epo)
       targets_batch = targets[{{1,bSize*nCrops}}] -- for the last few test data
 
       ---- Compute n-Crop score ----
-      preds = preds:view(preds:size(1) / nCrops, nCrops, preds:size(2)):mean(2):squeeze(2)
+      preds = preds:view(preds:size(1) / nCrops, nCrops, preds:size(2)):exp():mean(2):squeeze(2)
       targets_batch = targets_batch:view(targets_batch:size(1) / nCrops, nCrops):mean(2):squeeze(2)
 
       -- Get the top N class indexes and probabilities
@@ -146,7 +146,7 @@ function test(testData, classes, epo)
       local probLog, predLabels = preds:topk(N, true, true)
 
       -- Convert log probabilities back to [0, 1]
-      probLog:exp()
+      -- probLog:exp()
 
       -- --print(preds:size())
       -- _,indices = torch.sort(preds,2,true)

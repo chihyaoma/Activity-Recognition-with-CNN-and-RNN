@@ -72,10 +72,10 @@ local w,dE_dw = model:getParameters()
 print(sys.COLORS.red ..  '==> configuring optimizer')
 
 local optimState = {
-   learningRate = opt.learningRate,
-   momentum = opt.momentum,
-   weightDecay = opt.weightDecay,
-   learningRateDecay = opt.learningRateDecay
+   learningRate = tonumber(opt.learningRate),
+   momentum = tonumber(opt.momentum),
+   weightDecay = tonumber(opt.weightDecay),
+   learningRateDecay = tonumber(opt.learningRateDecay)
 }
 local function deepCopy(object)
     local lookup_table = {}
