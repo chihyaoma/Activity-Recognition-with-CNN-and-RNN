@@ -109,8 +109,10 @@ end
 
 local numTrainVideo = trainData:size(1)/nCrops
 
-local x = torch.Tensor(opt.batchSize*nCrops,1, nfeature, nframeUse) -- data (32x1x4096x25)
-local yt = torch.Tensor(opt.batchSize*nCrops)
+local batchSize = tonumber(opt.batchSize)
+-- print('training batch size: '..batchSize)
+local x = torch.Tensor(batchSize*nCrops,1, nfeature, nframeUse) -- data (32x1x4096x25)
+local yt = torch.Tensor(batchSize*nCrops)
 if opt.type == 'cuda' then 
    x = x:cuda()
    yt = yt:cuda()
@@ -145,20 +147,20 @@ local function train(trainData)
 
    -- do one epoch
    print(sys.COLORS.green .. '==> doing epoch on training data:') 
-   print("==> online epoch # " .. epoch .. ' [batchSize = ' .. opt.batchSize .. ']')
-   for t = 1,numTrainVideo,opt.batchSize do
+   print("==> online epoch # " .. epoch .. ' [batchSize = ' .. batchSize .. ']')
+   for t = 1,numTrainVideo,batchSize do
       -- disp progress
       xlua.progress(t, trainData:size())
       collectgarbage()
 
       -- batch fits?
-      if (t + opt.batchSize - 1) > numTrainVideo then
+      if (t + batchSize - 1) > numTrainVideo then
          break
       end
 
       -- create mini batch
       local idx = 1
-      for i = t,t+opt.batchSize-1 do
+      for i = t,t+batchSize-1 do
       	 local i_shuf = shuffle[i]
          x[{{(idx-1)*nCrops+1,idx*nCrops},1}] = data_augmentation(trainData.data[{{(i_shuf-1)*nCrops+1,i_shuf*nCrops}}])
          -- x[{idx,1}] = trainData.data[shuffle[i]]
@@ -188,7 +190,7 @@ local function train(trainData)
             model:backward(x,dE_dy)
 
             -- update confusion
-            for i = 1,opt.batchSize do
+            for i = 1,batchSize do
                confusion:add(y[i],yt[i])
             end
 

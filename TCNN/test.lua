@@ -79,8 +79,10 @@ end
 local numTestVideo = testData:size(1)/nCrops
 
 -- Batch test:
-local inputs = torch.Tensor(opt.batchSize*nCrops,1, nfeature, nframeUse) -- get size from data
-local targets = torch.Tensor(opt.batchSize*nCrops)
+local batchSize = tonumber(opt.batchSize)
+-- print('testing batch size: '..batchSize)
+local inputs = torch.Tensor(batchSize*nCrops,1, nfeature, nframeUse) -- get size from data
+local targets = torch.Tensor(batchSize*nCrops)
 if opt.type == 'cuda' then 
    inputs = inputs:cuda()
    targets = targets:cuda()
@@ -96,7 +98,7 @@ epoBest = 0 -- record the epoch # of the best testing accuracy
 function test(testData, classes, epo)
    model:evaluate()
 
-   local bSize = opt.batchSize
+   local bSize = batchSize
    
    -- local vars
    local time = sys.clock()
@@ -105,7 +107,7 @@ function test(testData, classes, epo)
    print(sys.COLORS.red .. '==> testing on test set:')
    local predlabeltxt = {}
    local prob = {}
-   for t = 1,numTestVideo,opt.batchSize do
+   for t = 1,numTestVideo,batchSize do
       -- disp progress
 	  collectgarbage()
       xlua.progress(t, numTestVideo)
