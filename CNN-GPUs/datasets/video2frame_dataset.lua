@@ -148,9 +148,7 @@ numClassTotal = #nameClass -- 101 classes
 --====================================================================--
 --                     Run all the videos in UCF-101                  --
 --====================================================================--
-fd = io.open('frameNum.txt','w')
-	
-print '==> Processing all the videos...'
+fd = io.open('frameNum_'..opt.nameDatabase..'_'..opt.stream..'_sp'..opt.idSplit..'.txt','w')
 
 -- Load the intermediate data or generate a new one --
 -- Training data --
