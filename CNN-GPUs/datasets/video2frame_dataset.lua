@@ -44,7 +44,7 @@ op:option{'-s', '--save', action='store', dest='save',
           help='save the intermediate data or not', default=false}
 
 op:option{'-t', '--time', action='store', dest='seconds',
-          help='length to process (in seconds)', default=2}
+          help='length to process (in seconds)', default=100}
 op:option{'-w', '--width', action='store', dest='width',
           help='resize video, width', default=320}
 op:option{'-h', '--height', action='store', dest='height',
@@ -148,6 +148,8 @@ numClassTotal = #nameClass -- 101 classes
 --====================================================================--
 --                     Run all the videos in UCF-101                  --
 --====================================================================--
+fd = io.open('frameNum.txt','w')
+	
 print '==> Processing all the videos...'
 
 -- Load the intermediate data or generate a new one --
@@ -184,6 +186,7 @@ else
 	for c=Tr.c_finished+1, numClassTotal do
 		
 			print('Current Class: '..c..'. '..nameClass[c])
+			fd:write('Class: '..c..'. '..nameClass[c], '\n')
 			Tr.countClass = Tr.countClass + 1
 			Te.countClass = Te.countClass + 1
 			countVideoClassTr = 0
@@ -246,13 +249,14 @@ else
 			       	-- print('==> Current video: '..videoName)
 			    	
 			    	local vid = FFmpeg(videoPath)
-			    	local vidStats = vid:stats()
-			    	local video = ffmpeg.Video{path=videoPath, fps=opt.fps, width = vidStats.width, height = vidStats.height, delete=true, destFolder='out_frames',silent=true}
+			    	local vidStats = vid:stats() -- avg_frame_rate, duration, width, height
+			    	local video = ffmpeg.Video{path=videoPath, fps=vidStats.avg_frame_rate, length = vidStats.duration, width = vidStats.width, height = vidStats.height, delete=true, destFolder='out_frames',silent=true}
 			       	--
 			       	local vidTensor = video:totensor{} -- read the whole video & turn it into a 4D tensor
 
 			       	------ Video prarmeters ------
 				    local numFrame = vidTensor:size(1)
+				    fd:write(numFrame, ' ')
 				   	-- local numChannel = vidTensor:size(2)
 				    -- local height = vidTensor:size(3)
 				    -- local width = vidTensor:size(4)
@@ -331,6 +335,7 @@ else
 
 			collectgarbage()
 			print(' ')
+			fd:write('\n')
 		
 	end
 end       	
@@ -345,3 +350,5 @@ print ' '
 Tr = nil
 Te = nil
 collectgarbage()
+
+fd:close()
