@@ -329,8 +329,8 @@ else
 			print('The elapsed time for the class '..nameClass[c]..': ' .. timerClass:time().real .. ' seconds')
 			
 			if opt.save then
-				torch.save(outTrain[idSplit].name, Tr)
-				torch.save(outTest[idSplit].name, Te)
+				torch.save(outTrain[1].name, Tr)
+				torch.save(outTest[1].name, Te)
 			end
 
 			collectgarbage()
