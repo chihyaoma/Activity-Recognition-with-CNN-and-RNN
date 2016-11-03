@@ -58,7 +58,9 @@ devid = tonumber(opt.devid)
 
 print('Split #: '..idSplit)
 print('source path: '..opt.sourcePath)
-print('fps: '..fps)
+print('Database: '..opt.nameDatabase)
+print('Stream: '..opt.stream)
+-- print('fps: '..fps)
 
 ----------------------------------------------
 -- 			User-defined parameters			--
@@ -228,21 +230,21 @@ else
 			    	--------------------  
 			    	local videoName
 			    	local videoIndex -- for HMDB-51
+			    	local videoPath
 			       	if nameDatabase == 'UCF-101' then
 			       		videoName = paths.basename(nameSubVideo[sv],'avi')
+			       		videoPath = pathClassIn..videoName..'.avi'
 			       	elseif nameDatabase == 'HMDB-51' then
 			       		local i,j = string.find(nameSubVideo[sv],' ') -- find the location of the group info in the string
 				    	videoName = string.sub(nameSubVideo[sv],1,j-5) -- get the video name
 						videoIndex = tonumber(string.sub(nameSubVideo[sv],j+1)) -- get the index for training/testing
+						if dirVideoIn == 'RGB' then
+					       	videoPath = pathClassIn..videoName..'.avi'
+					    else
+					    	videoPath = pathClassIn..videoName..'_flow.avi'
+					    end
 			       	end
-			       	local videoPath
-			       	if dirVideoIn == 'RGB' then
-				       	videoPath = pathClassIn..videoName..'.avi'
-				    else
-				    	videoPath = pathClassIn..videoName..'_flow.avi'
-				    end
-			       	
-
+			    
 			       	--
 			       	-- print('==> Current video: '..videoName)
 			    	
