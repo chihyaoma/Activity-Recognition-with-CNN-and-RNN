@@ -154,7 +154,7 @@ fd = io.open('frameNum_'..opt.nameDatabase..'_'..opt.stream..'_sp'..opt.idSplit.
 
 -- Load the intermediate data or generate a new one --
 -- Training data --
-if not (opt.save and paths.filep(outTrain[idSplit].name)) then
+if not (opt.save and paths.filep(outTrain[1].name)) then
 	Tr = {} -- output
 	Tr.name = {}
 	Tr.path = {}
@@ -162,11 +162,11 @@ if not (opt.save and paths.filep(outTrain[idSplit].name)) then
 	Tr.countClass = 0
 	Tr.c_finished = 0 -- different from countClass since there are also "." and ".."
 else
-	Tr = torch.load(outTrain[idSplit].name) -- output
+	Tr = torch.load(outTrain[1].name) -- output
 end
 
 -- Testing data --
-if not (opt.save and paths.filep(outTest[idSplit].name)) then
+if not (opt.save and paths.filep(outTest[1].name)) then
 	Te = {} -- output
 	Te.name = {}
 	Te.path = {}
@@ -174,7 +174,7 @@ if not (opt.save and paths.filep(outTest[idSplit].name)) then
 	Te.countClass = 0
 	Te.c_finished = 0 -- different from countClass since there are also "." and ".."
 else
-	Te = torch.load(outTest[idSplit].name) -- output
+	Te = torch.load(outTest[1].name) -- output
 end
 collectgarbage()
 
