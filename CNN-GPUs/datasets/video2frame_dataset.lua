@@ -12,16 +12,12 @@
 
 -- author: Min-Hung Chen
 -- contact: cmhungsteve@gatech.edu
--- Last updated: 09/08/2016
+-- Last updated: 11/10/2016
 
--- require 'xlua'
 require 'torch'
--- require 'imgraph'
--- require 'nnx'
-require 'ffmpeg'
-require 'torch-ffmpeg'
 require 'image'
-require 'cutorch'
+
+local videoDecoder = assert(require("libvideo_decoder")) -- package 3
 
 ----------------
 -- parse args --
@@ -31,20 +27,20 @@ op = xlua.OptionParser('%prog [options]')
 op:option{'-sP', '--sourcePath', action='store', dest='sourcePath',
           help='source path (local | workstation)', default='local'}
 op:option{'-dB', '--nameDatabase', action='store', dest='nameDatabase',
-          help='used database (UCF-101 | HMDB-51)', default='HMDB-51'}
+          help='used database (UCF-101 | HMDB-51)', default='UCF-101'}
 op:option{'-sT', '--stream', action='store', dest='stream',
           help='type of stream (FlowMap-Brox | FlowMap-TVL1-crop20 | RGB)', default='RGB'}
 op:option{'-iSp', '--idSplit', action='store', dest='idSplit',
           help='index of the split set', default=1}
 op:option{'-f', '--fps', action='store', dest='fps',
           help='number of frames per second', default=30}
-op:option{'-i', '--devid', action='store', dest='devid',
-          help='device ID (if using CUDA)', default=1}
+op:option{'-tH', '--threads', action='store', dest='threads',
+          help='number of threads', default=1}
 op:option{'-s', '--save', action='store', dest='save',
-          help='save the intermediate data or not', default=false}
+          help='save the intermediate data or not', default=true}
 
 op:option{'-t', '--time', action='store', dest='seconds',
-          help='length to process (in seconds)', default=100}
+          help='length to process (in seconds)', default=1000}
 op:option{'-w', '--width', action='store', dest='width',
           help='resize video, width', default=320}
 op:option{'-h', '--height', action='store', dest='height',
@@ -55,8 +51,10 @@ opt,args = op:parse()
 idSplit = tonumber(opt.idSplit)
 fps = tonumber(opt.fps)
 devid = tonumber(opt.devid)
+threads = tonumber(opt.threads)
 
 print('Split #: '..idSplit)
+print('threads #: '..threads)
 print('source path: '..opt.sourcePath)
 print('Database: '..opt.nameDatabase)
 print('Stream: '..opt.stream)
@@ -73,6 +71,7 @@ numSplit = 3
 source = opt.sourcePath -- local | workstation
 if source == 'local' then
 	dirSource = '/home/cmhung/Code/'
+	-- dirSource = '/home/cmhung/Desktop/'
 elseif source == 'workstation' then	
 	dirSource = '/home/chih-yao/Downloads/'
 end
@@ -109,18 +108,16 @@ outTest = {}
 table.insert(outTest, {name = 'data_'..nameDatabase..'_val_'..dirVideoIn..'_sp'..idSplit..'.t7'})
 
 ----------------------------------------------
---  		       GPU option	 	        --
+--  		       CPU option	 	        --
 ----------------------------------------------
-cutorch.setDevice(opt.devid)
-print(sys.COLORS.red ..  '==> using GPU #' .. cutorch.getDevice())
-print(sys.COLORS.white ..  ' ')
+-- nb of threads and fixed seed (for repeatable experiments)
+torch.setnumthreads(threads)
+torch.manualSeed(1)
+torch.setdefaulttensortype('torch.FloatTensor')
 
 -- ----------------------------------------------
 -- --         Input/Output information         --
 -- ----------------------------------------------
--- -- select the number of classes, groups & videos you want to use
--- numClass = 101
--- dimFeat = 2048
 
 -- Train/Test split
 if nameDatabase == 'UCF-101' then
@@ -160,6 +157,7 @@ if not (opt.save and paths.filep(outTrain[1].name)) then
 	Tr.path = {}
 	Tr.countVideo = 0
 	Tr.countClass = 0
+	Tr.FrameNumTotal = 0
 	Tr.c_finished = 0 -- different from countClass since there are also "." and ".."
 else
 	Tr = torch.load(outTrain[1].name) -- output
@@ -183,10 +181,11 @@ timerAll = torch.Timer() -- count the whole processing time
 if Tr.c_finished == numClassTotal and Te.c_finished == numClassTotal then
 	print('The feature data of split '..idSplit..' is already in your folder!!!!!!')
 else
+
 	for c=Tr.c_finished+1, numClassTotal do
-		
+			local FrameNumClass = 0
 			print('Current Class: '..c..'. '..nameClass[c])
-			fd:write('Class: '..c..'. '..nameClass[c], '\n')
+			-- fd:write('Class: '..c..'. '..nameClass[c], '\n')
 			Tr.countClass = Tr.countClass + 1
 			Te.countClass = Te.countClass + 1
 			countVideoClassTr = 0
@@ -247,19 +246,7 @@ else
 			    
 			       	--
 			       	-- print('==> Current video: '..videoName)
-			    	
-			    	local vid = FFmpeg(videoPath)
-			    	local vidStats = vid:stats() -- avg_frame_rate, duration, width, height
-			    	local video = ffmpeg.Video{path=videoPath, fps=vidStats.avg_frame_rate, length = vidStats.duration, width = vidStats.width, height = vidStats.height, delete=true, destFolder='out_frames',silent=true}
-			       	--
-			       	local vidTensor = video:totensor{} -- read the whole video & turn it into a 4D tensor
-
-			       	------ Video prarmeters ------
-				    local numFrame = vidTensor:size(1)
-				    fd:write(numFrame, ' ')
-				   	-- local numChannel = vidTensor:size(2)
-				    -- local height = vidTensor:size(3)
-				    -- local width = vidTensor:size(4)
+			     	local status, height, width, length, fps = videoDecoder.init(videoPath)
 
 				    ----------------------
 				    -- Train/Test split --
@@ -304,16 +291,27 @@ else
 			           	Te.path[Te.countVideo] = videoPathLocal
 			           	pathClassOut = pathClassTest
 			        end
+			        print('processed videos: '..tostring(Tr.countVideo+Te.countVideo))
 
-				    -- save all the frames
-					for f=1, numFrame do
-				        local inFrame = vidTensor[f]
-				        nameImage = videoName .. '_' .. tostring(f) 
+				    -- save all the frames & count frame numbers
+				    local inFrame = torch.ByteTensor(3, height, width)
+				    local countFrame = 0
+					while true do
+						-- local inFrame = vidTensor[f]
+						status = videoDecoder.frame_rgb(inFrame)
+						if not status then
+   							break
+						end
+						countFrame = countFrame + 1
+   						nameImage = videoName .. '_' .. tostring(countFrame) 
 				        pathImageOut = pathClassOut .. nameImage .. '.png'
 				        
 				        image.save(pathImageOut, inFrame)
 				    end
-				    
+				    videoDecoder.exit()
+
+				    FrameNumClass = FrameNumClass + countFrame           
+                    fd:write(countFrame, ' ', videoName, '\n')
 				    
 				end
 				collectgarbage()
@@ -322,6 +320,8 @@ else
 			Te.c_finished = c -- save the index
 			-- print('Split: '..idSplit)
 			-- print('Finished class#: '..Tr.countClass)
+            print('Frame # of this class: '..FrameNumClass)
+            Tr.FrameNumTotal = Tr.FrameNumTotal + FrameNumClass
 			print('Generated training data# in this class: '..countVideoClassTr)
 			print('Generated testing data# in this class: '..countVideoClassTe)
 			print('Generated total training data#: '..Tr.countVideo)
@@ -335,12 +335,13 @@ else
 
 			collectgarbage()
 			print(' ')
-			fd:write('\n')
+			-- fd:write('\n')
 		
 	end
 end       	
 
 print('The total elapsed time in the split '..idSplit..': ' .. timerAll:time().real .. ' seconds')
+print('Frame # of the whole dataset: '..Tr.FrameNumTotal)
 print('The total training class numbers in the split'..idSplit..': ' .. Tr.countClass)
 print('The total training video numbers in the split'..idSplit..': ' .. Tr.countVideo)
 print('The total testing class numbers in the split'..idSplit..': ' .. Te.countClass)
