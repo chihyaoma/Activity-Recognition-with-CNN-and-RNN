@@ -53,6 +53,9 @@ fps = tonumber(opt.fps)
 devid = tonumber(opt.devid)
 threads = tonumber(opt.threads)
 
+nameDatabase = opt.nameDatabase
+dirVideoIn = opt.stream 
+
 print('Split #: '..idSplit)
 print('threads #: '..threads)
 print('source path: '..opt.sourcePath)
@@ -76,11 +79,9 @@ elseif source == 'workstation' then
 	dirSource = '/home/chih-yao/Downloads/'
 end
 
-nameDatabase = opt.nameDatabase
 pathDatabase = dirSource..'dataset/'..nameDatabase..'/'
 
 -- input
-dirVideoIn = opt.stream 
 pathVideoIn = pathDatabase .. dirVideoIn .. '/'
 pathTxtSplit = pathDatabase .. 'testTrainMulti_7030_splits/' -- for HMDB-51
 
@@ -230,6 +231,7 @@ else
 			    	local videoName
 			    	local videoIndex -- for HMDB-51
 			    	local videoPath
+			    	
 			       	if nameDatabase == 'UCF-101' then
 			       		videoName = paths.basename(nameSubVideo[sv],'avi')
 			       		videoPath = pathClassIn..videoName..'.avi'
