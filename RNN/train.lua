@@ -111,6 +111,9 @@ function train(trainData, trainTarget)
 
       -- local inputs_SeqLSTM = inputs:transpose(2,3):transpose(1,2)
 
+      -- print(inputs:size())
+      -- error('test')
+
       local output = model:forward(inputs):float()
       local batchSize = output:size(1)
       local loss = criterion:forward(model.output, targets)

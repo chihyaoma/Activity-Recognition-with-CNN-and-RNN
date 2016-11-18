@@ -63,10 +63,10 @@ cmd:option('-saveModel', false,  'Save the model and optimState for resume later
 -- data
 cmd:option('-trainEpochSize', -1, 'number of train examples seen between each epoch')
 cmd:option('-validEpochSize', -1, 'number of valid examples used for early stopping and cross-validation') 
-cmd:option('-spatFeatDir', 'none', 'directory of spatial feature vectors')
-cmd:option('-tempFeatDir', 'none', 'directory of temporal feature vectors (from optical flow)')
--- cmd:option('-spatFeatDir', '/home/chih-yao/Downloads/Features/', 'directory of spatial feature vectors')
--- cmd:option('-tempFeatDir', '/home/chih-yao/Downloads/Features/', 'directory of temporal feature vectors (from optical flow)')
+-- cmd:option('-spatFeatDir', 'none', 'directory of spatial feature vectors')
+-- cmd:option('-tempFeatDir', 'none', 'directory of temporal feature vectors (from optical flow)')
+cmd:option('-spatFeatDir', '/home/chih-yao/Downloads/Features/', 'directory of spatial feature vectors')
+cmd:option('-tempFeatDir', '/home/chih-yao/Downloads/Features/', 'directory of temporal feature vectors (from optical flow)')
 cmd:option('-plot', false, 'Plot the training and testing accuracy')
 dname,fname = sys.fpath()
 

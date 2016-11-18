@@ -56,6 +56,19 @@ function test(testData, testTarget)
 	local time = sys.clock() 
 	local timer = torch.Timer()
 	local dataTimer = torch.Timer()
+
+	-- replace the JoinTable in model with CAddTable
+	model:remove(1)
+	model:insert(nn.View(#opt.hiddenSize, opt.batchSize, opt.inputSize, -1),1)
+	model:remove(#model.modules)
+	model:remove(#model.modules)
+	model:add(nn.CAddTable())
+	model:add(nn.LogSoftMax())
+
+	if opt.cuda == true then
+		model:cuda()
+	end
+
 	-- Sets Dropout layer to have a different behaviour during evaluation.
 	model:evaluate() 
 
@@ -99,6 +112,9 @@ function test(testData, testTarget)
 
 				-- inputsPreFrames = inputsPreFrames:transpose(2,3):transpose(1,2)
 
+				-- replicate the testing data and feed into LSTM cells seperately
+				inputsPreFrames = torch.repeatTensor(inputsPreFrames,#opt.hiddenSize,1,1)
+
 				-- feedforward pass the trained model
 				predsFrames[{{},{},idx}] = model:forward(inputsPreFrames)
 
@@ -124,8 +140,8 @@ function test(testData, testTarget)
 		top3Sum = top3Sum + top3*idxBound
 		N = N + idxBound
 
-		print((' | Test: [%d][%d/%d]    Time %.3f  Data %.3f  top1 %7.3f (%7.3f)  top3 %7.3f (%7.3f)'):format(
-			epoch-1, t, testData:size(1), timer:time().real, dataTime, top1, top1Sum / N, top3, top3Sum / N))
+		print(('%.3f | Test: [%d][%d/%d] | Time %.3f  Data %.3f  top1 %7.3f (%7.3f)  top3 %7.3f (%7.3f)'):format(
+			bestAcc, epoch-1, t, testData:size(1), timer:time().real, dataTime, top1, top1Sum / N, top3, top3Sum / N))
 
 		-- Get the top N class indexes and probabilities
 		local topN = 3
@@ -144,11 +160,25 @@ function test(testData, testTarget)
 			end
 		end
 
+
+
 		-- confusion
 		for i = 1,idxBound do
 			confusion:add(preds[i], targets:sub(1,idxBound)[i])
 		end
 	end
+
+	-- revert back to the original model for training again 
+	model:remove(1)
+	model:insert(nn.View(#opt.hiddenSize, opt.batchSize/#opt.hiddenSize, opt.inputSize, -1),1)
+	model:remove(#model.modules)
+	model:remove(#model.modules)
+	model:add(nn.JoinTable(1))
+	model:add(nn.LogSoftMax())
+	if opt.cuda == true then
+		model:cuda()
+	end
+	-- print(model)
 
 	-- timing
 	time = sys.clock() - time
@@ -173,7 +203,9 @@ function test(testData, testTarget)
 		torch.save(opt.save .. '/prob.txt', prob,'ascii')
 
 		if opt.saveModel == true then
-			checkpoints.save(epoch-1, model, optimState, bestModel, confusion.totalValid*100)
+			if confusion.totalValid * 100 >= 92 then
+				checkpoints.save(epoch-1, model, optimState, bestModel, confusion.totalValid*100)
+			end
 		end
 	end
 	print(sys.COLORS.red .. '==> Best testing accuracy = ' .. bestAcc .. '%')

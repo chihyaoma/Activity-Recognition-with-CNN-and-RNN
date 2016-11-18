@@ -21,12 +21,127 @@ require 'TemporalDropout'
 
 print(sys.COLORS.red ..  '==> construct RNN')
 
-function model_temp()
+function model_triData_3FC_3LSTM_Avg_CAdd()
+    -- Video Classification model
     local model = nn.Sequential()
-    model:add(nn.TemporalDropout())
-    -- model:add(nn.SpatialDropout())
 
-    -- model:add(nn.Dropout())
+    local inputSize = opt.inputSize
+
+    -- input layer 
+    assert((opt.batchSize%(#opt.hiddenSize)) == 0, 'batchSize need to be the multiple of # of hidden layer.')
+    model:add(nn.View(#opt.hiddenSize, opt.batchSize/#opt.hiddenSize, inputSize, -1))
+    model:add(nn.SplitTable(1,2)) -- tensor to table of tensors
+
+    local p = nn.ParallelTable()
+    for i=1,#opt.hiddenSize do 
+      p:add(nn.SplitTable(3,1))
+    end
+    model:add(p)
+
+    local pFC = nn.ParallelTable()
+
+    if opt.fcSize ~= nil then
+      -- for i,fcSize in ipairs(opt.fcSize) do 
+      for i=1,#opt.hiddenSize do 
+         -- add fully connected layers to fuse spatial and temporal features
+         pFC:add(nn.Sequencer(nn.Linear(inputSize, opt.fcSize[1])))
+      end
+    end
+    model:add(pFC)
+
+    -- setup two LSTM cells with different dimensions
+    local lstmTable = nn.ParallelTable()
+    -- recurrent layer
+    for i,hiddenSize in ipairs(opt.hiddenSize) do 
+      lstmTable:add(nn.Sequencer(nn.LSTM(inputSize, hiddenSize)))
+    end
+    model:add(lstmTable)
+
+    -- output layer
+    local p1 = nn.ParallelTable()
+    for i in ipairs(opt.hiddenSize) do 
+      -- select the last output from each of the LSTM cells
+      p1:add(nn.SelectTable(-1))
+    end
+
+    local p2 = nn.ParallelTable()
+    for i,hiddenSize in ipairs(opt.hiddenSize) do 
+        -- select the last output from each of the LSTM cells
+        p2:add(nn.BatchNormalization(hiddenSize))
+    end
+
+    local p3 = nn.Identity()
+    if opt.dropout > 0 then 
+        p3 = nn.ParallelTable()
+        for i in ipairs(opt.hiddenSize) do 
+            -- Dropout layer
+            p3:add(nn.Dropout(opt.dropout))
+        end
+    end
+
+    local p4 = nn.ParallelTable()
+    for i,hiddenSize in ipairs(opt.hiddenSize) do
+      -- full-connected layers for each LSTM output
+      p4:add(nn.Linear(hiddenSize, nClass))
+    end
+
+    -- concat the prediction from all FC layers
+    model:add(p1):add(p2):add(p3):add(p4)
+    model:add(nn.JoinTable(1))
+
+    return model
+end
+
+function model_FC_LSTM_CAdd()
+    -- Video Classification model
+    local model = nn.Sequential()
+    local inputSize = opt.inputSize
+
+    -- input layer 
+    model:add(nn.SplitTable(3,1)) -- tensor to table of tensors
+    model:add(nn.Sequencer(nn.Linear(inputSize, opt.fcSize[1])))
+    inputSize = opt.fcSize[1]
+
+    -- setup two LSTM cells with different dimensions
+    local lstmTable = nn.ConcatTable()
+    -- recurrent layer
+    for i,hiddenSize in ipairs(opt.hiddenSize) do 
+        lstmTable:add(nn.Sequencer(nn.LSTM(inputSize, hiddenSize)))
+    end
+   
+    model:add(lstmTable)
+
+    -- output layer
+    local p1 = nn.ParallelTable()
+    for i in ipairs(opt.hiddenSize) do 
+        -- select the last output from each of the LSTM cells
+        p1:add(nn.SelectTable(-1))
+    end
+
+    local p2 = nn.ParallelTable()
+    for i,hiddenSize in ipairs(opt.hiddenSize) do 
+        -- full-connected layers for each LSTM output
+        p2:add(nn.BatchNormalization(hiddenSize))
+    end
+
+    local p3 = nn.Identity()
+    if opt.dropout > 0 then 
+        p3 = nn.ParallelTable()
+        for i in ipairs(opt.hiddenSize) do 
+            -- Dropout layer
+            p3:add(nn.Dropout(opt.dropout))
+        end
+    end
+
+    local p4 = nn.ParallelTable()
+    for i,hiddenSize in ipairs(opt.hiddenSize) do 
+        -- full-connected layers for each LSTM output
+        p4:add(nn.Linear(hiddenSize, nClass))
+    end
+
+    model:add(p1):add(p2):add(p3):add(p4)
+    model:add(nn.CAddTable())
+
     return model
 end
 
@@ -185,6 +300,7 @@ function model_FC_LSTM_FC()
     end
    
     model:add(lstmTable)
+    inputSize = fcInputSize
 
     -- output layer
     local p1 = nn.ParallelTable()
@@ -193,14 +309,22 @@ function model_FC_LSTM_FC()
         p1:add(nn.SelectTable(-1))
     end
 
-    model:add(p1)
+    local p2 = nn.ParallelTable()
+    for i,hiddenSize in ipairs(opt.hiddenSize) do 
+        -- select the last output from each of the LSTM cells
+        p2:add(nn.BatchNormalization(hiddenSize))
+    end
+
+    model:add(p1):add(p2)
     model:add(nn.JoinTable(2))
+
+    -- model:add(nn.ReLU())
     
     -- Dropout layer
     if opt.dropout > 0 then 
        model:add(nn.Dropout(opt.dropout))
     end
-    model:add(nn.Linear(fcInputSize, nClass))
+    model:add(nn.Linear(inputSize, nClass))
 
     return model
 end
@@ -220,6 +344,7 @@ function model_3FC_LSTM_FC()
         fcTable:add(nn.Sequencer(nn.Linear(inputSize, opt.fcSize[1])))   
     end
     model:add(fcTable)
+    inputSize = opt.fcSize[1]
 
     -- setup two LSTM cells with different dimensions
     local lstmTable = nn.ParallelTable()
@@ -228,24 +353,32 @@ function model_3FC_LSTM_FC()
         lstmTable:add(nn.Sequencer(nn.LSTM(inputSize, hiddenSize)))
         fcInputSize = fcInputSize + hiddenSize
     end
-   
     model:add(lstmTable)
-
+    inputSize = fcInputSize
+    
     -- output layer
-    local s1 = nn.ParallelTable()
+    local p1 = nn.ParallelTable()
     for i in ipairs(opt.hiddenSize) do 
         -- select the last output from each of the LSTM cells
-        s1:add(nn.SelectTable(-1))
+        p1:add(nn.SelectTable(-1))
     end
 
-    model:add(s1)
+    -- local p2 = nn.ParallelTable()
+    -- for i,hiddenSize in ipairs(opt.hiddenSize) do 
+    --     -- select the last output from each of the LSTM cells
+    --     p2:add(nn.BatchNormalization(hiddenSize))
+    -- end
+
+    model:add(p1)--:add(p2)
+
     model:add(nn.JoinTable(2))
-    
+    model:add(nn.BatchNormalization(inputSize))
+       
     -- Dropout layer
     if opt.dropout > 0 then 
        model:add(nn.Dropout(opt.dropout))
     end
-    model:add(nn.Linear(fcInputSize, nClass))
+    model:add(nn.Linear(inputSize, nClass))
     
     return model
 end
@@ -258,6 +391,9 @@ function model_FC_stackedRNN_FC()
     -- input layer 
     -- model:add(nn.TemporalDropout(0.5))
     model:add(nn.SplitTable(3,1)) -- tensor to table of tensors
+
+    model:add(nn.Sequencer(nn.Linear(inputSize, opt.fcSize[1])))
+    inputSize = opt.fcSize[1]
 
     for i,hiddenSize in ipairs(opt.hiddenSize) do 
         
@@ -277,6 +413,8 @@ function model_FC_stackedRNN_FC()
     end
     
     model:add(nn.SelectTable(-1))
+
+    model:add(nn.BatchNormalization(inputSize))
     
     if opt.dropout > 0 then 
        model:add(nn.Dropout(opt.dropout))
@@ -330,6 +468,7 @@ function model_FCs()
     end
     model:add(nn.Sequencer(nn.Linear(opt.fcSize[1], nClass)))
 
+    -- average the prediciton from spatialRNN and temporalRNN
     model:add(nn.CAddTable())
 
     return model
@@ -351,7 +490,7 @@ if checkpoint then
 else
 
     -- construct model
-    model = model_FC_stackedRNN_FC()
+    model = model_triData_3FC_3LSTM_Avg_CAdd()
     model:add(nn.LogSoftMax())
 
     if opt.uniform > 0 then
