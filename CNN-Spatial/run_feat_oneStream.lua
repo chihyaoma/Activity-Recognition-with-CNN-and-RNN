@@ -106,7 +106,7 @@ elseif source == 'workstation' then
 	-- dirSource = '/home/chih-yao/'
 end
 
-dirModel = dirSource..'Models-TwoStreamConvNets/ResNet-'..dirVideoIn..'-sgd-sp'..idSplit..'/'
+dirModel = dirSource..'Models-UCF101/Models-TwoStreamConvNets/ResNet-'..dirVideoIn..'-sgd-sp'..idSplit..'/'
 pathVideoIn = dirSource..'dataset/'..nameDatabase..'/'..dirVideoIn..'/'
 
 dataFolder = paths.basename(pathVideoIn)
