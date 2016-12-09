@@ -331,8 +331,8 @@ timerAll = torch.Timer() -- count the whole processing time
 if Tr.countClass == numClass and Te.countClass == numClass then
 	print('The feature data of split '..sp..' is already in your folder!!!!!!')
 else
-	for c=Te.countClass+1, numClassAcm[idPart] do
-	-- for c=72, 72 do		
+	-- for c=Te.countClass+1, numClassAcm[idPart] do
+	for c=69, 69 do		
 		print('Current Class: '..c..'. '..nameClass[c])
 
 		Tr.countClass = Tr.countClass + 1
@@ -356,8 +356,8 @@ else
 
 	  	local timerClass = torch.Timer() -- count the processing time for one class
 			  	
-	  	for sv=1, numSubVideoTotal do
-	  	-- for sv=68, 68 do
+	  	-- for sv=1, numSubVideoTotal do
+	  	for sv=21, 21 do
 	      	--------------------
 	      	-- Load the video --
 	      	--------------------  
@@ -417,7 +417,6 @@ else
 			local numFrameInterval = sampleAll and 1 or torch.floor(numFrameAvailable/numFrameSample)
 			numFrameInterval = torch.Tensor({{1,numFrameInterval}}):max() -- make sure larger than 0
 			local numFrameUsed = sampleAll and numFrameAvailable or numFrameSample -- choose frame # for one video
-
 			--== Extract Features ==--
 			local featMatsVideo = torch.DoubleTensor(nCrops,dimFeat,numFrameUsed):zero() -- 1x2048x25 or 10x2048x25
 			--print '==> Generating the feature matrix......'
@@ -426,7 +425,7 @@ else
 				f = torch.Tensor({{f,numFrame-5}}):min() -- make sure we can extract the corresponding 10-stack optcial flow
 
 				local inFrames = vidTensor[{{torch.floor(f-numStack/2)+1,torch.floor(f+numStack/2)},{3-(nChannel-1),3},{},{}}]					              	
-				local netInput = torch.Tensor(inFrames:size(1)*nChannel,opt.height,opt.width):zero() -- 20x240x320
+				local netInput = torch.Tensor(inFrames:size(1)*nChannel,height,width):zero() -- 20x240x320
 				for x=0,numStack-1 do
 					netInput[{{x*nChannel+1,(x+1)*nChannel}}] = inFrames[{{x+1},{},{},{}}]
 				end
@@ -439,7 +438,6 @@ else
 				featMatsVideo[{{},{},{i}}] = feat_now:double()
 
 			end
-
 			-- print(featMatsVideo:size())
 
 	        ----------------------------------------------
