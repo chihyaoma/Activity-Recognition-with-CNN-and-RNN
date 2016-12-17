@@ -8,7 +8,7 @@
 -- contact:
 -- Min-Hung (Steve) Chen at <cmhungsteve@gatech.edu>
 -- Chih-Yao Ma at <cyma@gatech.edu>
--- Last updated: 12/07/2016
+-- Last updated: 12/16/2016
 
 require 'xlua'
 require 'torch'
@@ -190,8 +190,8 @@ if dataFolder == 'RGB' then
 		meanstd =  {mean = { 0.392, 0.376, 0.348 },
 	   				std = { 0.241, 0.234, 0.231 }}
 	elseif fpsTr == 25 then
-		meanstd = {mean = {0.39743499656438, 0.38846055375943, 0.35173909269078},
-		std = {0.24145608138375, 0.23480329347676, 0.2306657093885}}
+		meanstd = {mean = { 0.39234371606738, 0.37576219443075, 0.34801909196893 },
+		std = { 0.24149100687454, 0.23453123289779, 0.23117322727131 }}
 	else
 		meanstd = {mean = {0.39743499656438, 0.38846055375943, 0.35173909269078},
 		std = {0.24145608138375, 0.23480329347676, 0.2306657093885}}
@@ -227,8 +227,8 @@ elseif dataFolder == 'FlowMap-TVL1-crop20' then
 		meanstd = {mean = { 0.0078286737613148, 0.49277467447062, 0.42283539438139 },
 	                std = { 0.0049402251681559, 0.060421647049655, 0.058913364961995 }}
 	elseif fpsTr == 25 then
-		meanstd = {mean = { 0.0077904963214443, 0.49308556329956, 0.42114283484146 },
-		std = { 0.0049190714163826, 0.060068045559535, 0.058203296730741 }}
+		meanstd = {mean = { 0.0078368888567733, 0.49304171615406, 0.42294166284263 },
+	                  std = { 0.0049412518723573, 0.060508027119622, 0.058952390342379 }}
 	else
 		meanstd = {mean = { 0.0077904963214443, 0.49308556329956, 0.42114283484146 },
 		std = { 0.0049190714163826, 0.060068045559535, 0.058203296730741 }}
@@ -331,8 +331,8 @@ timerAll = torch.Timer() -- count the whole processing time
 if Tr.countClass == numClass and Te.countClass == numClass then
 	print('The feature data of split '..sp..' is already in your folder!!!!!!')
 else
-	-- for c=Te.countClass+1, numClassAcm[idPart] do
-	for c=69, 69 do		
+	for c=Te.countClass+1, numClassAcm[idPart] do
+	-- for c=69, 69 do		
 		print('Current Class: '..c..'. '..nameClass[c])
 
 		Tr.countClass = Tr.countClass + 1
@@ -356,8 +356,8 @@ else
 
 	  	local timerClass = torch.Timer() -- count the processing time for one class
 			  	
-	  	-- for sv=1, numSubVideoTotal do
-	  	for sv=21, 21 do
+	  	for sv=1, numSubVideoTotal do
+	  	-- for sv=21, 21 do
 	      	--------------------
 	      	-- Load the video --
 	      	--------------------  
@@ -397,7 +397,7 @@ else
    					break
 				end
 				countFrame = countFrame + 1
-   				local frameTensor = torch.reshape(inFrame, 1, 3, height, width):double()
+   				local frameTensor = torch.reshape(inFrame, 1, 3, height, width):double():div(255)
 
    				if countFrame == 1 then -- the first frame
 	        		vidTensor = frameTensor
@@ -414,9 +414,9 @@ else
 			local numFrame = vidTensor:size(1)
 
 			local numFrameAvailable = numFrame - (numStack-1) -- for 10-stacking
-			local numFrameInterval = sampleAll and 1 or torch.floor(numFrameAvailable/numFrameSample)
+			local numFrameInterval = opt.sampleAll and 1 or torch.floor(numFrameAvailable/numFrameSample)
 			numFrameInterval = torch.Tensor({{1,numFrameInterval}}):max() -- make sure larger than 0
-			local numFrameUsed = sampleAll and numFrameAvailable or numFrameSample -- choose frame # for one video
+			local numFrameUsed = opt.sampleAll and numFrameAvailable or numFrameSample -- choose frame # for one video
 			--== Extract Features ==--
 			local featMatsVideo = torch.DoubleTensor(nCrops,dimFeat,numFrameUsed):zero() -- 1x2048x25 or 10x2048x25
 			--print '==> Generating the feature matrix......'
