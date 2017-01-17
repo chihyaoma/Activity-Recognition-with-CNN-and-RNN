@@ -16,7 +16,11 @@ require 'image'
 ----------------------------------------------------------------------
 -- Model + Loss:
 local t
-if opt.model == 'model-1L-MultiFlow' then
+if opt.model == 'model-Conv' then
+  t = require 'model-Conv'
+elseif opt.model == 'model-Conv-MultiFlow' then
+  t = require 'model-Conv-MultiFlow'
+elseif opt.model == 'model-1L-MultiFlow' then
   t = require 'model-1L-MultiFlow'
 elseif opt.model == 'model-1L-SplitST' then
   t = require 'model-1L-SplitST'
@@ -167,6 +171,7 @@ local function train(trainData)
          yt[{{(idx-1)*nCrops+1,idx*nCrops}}] = trainData.labels[{{(i_shuf-1)*nCrops+1,i_shuf*nCrops}}]
          idx = idx + 1
       end
+
          -- create closure to evaluate f(X) and df/dX
          local eval_E = function(w)
             -- reset gradients
@@ -174,26 +179,32 @@ local function train(trainData)
 
             -- evaluate function for complete mini batch
             local y
+            local x_final
             if opt.model == 'model-1L-SplitST' then
-              y = model:forward{x[{{},{},{1,nfeature/2},{}}],x[{{},{},{nfeature/2+1,nfeature},{}}]}
+              x_final = x[{{},{},{1,nfeature/2},{}}],x[{{},{},{nfeature/2+1,nfeature},{}}]
             else
-              y = model:forward(x)
-	      --print(x:size())
-	      --print(y:size())
-	      --input()
+              x_final = x
             end
-             
+            -- x_final = x_final:transpose(2,3)-- transpose (BN x 1 x 4096 x 25 --> BN x 4096 x 1 x 25)
+            y = model:forward(x_final)
+
             local E = loss:forward(y,yt)
 
             -- estimate df/dW
             local dE_dy = loss:backward(y,yt)   
-            model:backward(x,dE_dy)
+            model:backward(x_final,dE_dy)
 
             -- update confusion
             for i = 1,batchSize do
                confusion:add(y[i],yt[i])
             end
 
+            local yProb, yLabels = y:topk(1, true, true)
+
+            -- print(y)
+            -- print(yProb)
+            -- print(yLabels, yt)
+            
             -- return f and df/dX
             return E,dE_dw
          end
@@ -208,7 +219,8 @@ local function train(trainData)
          elseif opt.optMethod == 'asgd' then
             run_passed = run_passed + 1
             mean_dfdx  = asgd(eval_E, w, run_passed, mean_dfdx, optimState)
-     end
+         end
+         -- error(test)
    end
 
    -- time taken

@@ -44,7 +44,11 @@ print(sys.COLORS.red .. '==> defining some tools')
 
 -- model:
 local t
-if opt.model == 'model-1L-MultiFlow' then
+if opt.model == 'model-Conv' then
+  t = require 'model-Conv'
+elseif opt.model == 'model-Conv-MultiFlow' then
+  t = require 'model-Conv-MultiFlow'
+elseif opt.model == 'model-1L-MultiFlow' then
   t = require 'model-1L-MultiFlow'
 elseif opt.model == 'model-1L-SplitST' then
   t = require 'model-1L-SplitST'
@@ -130,14 +134,21 @@ function test(testData, classes, epo)
 
       -- test sample
       local preds
+      local input_final
       if opt.model == 'model-1L-SplitST' then
-         preds = model:forward{inputs[{{},{},{1,nfeature/2},{}}],inputs[{{},{},{nfeature/2+1,nfeature},{}}]}
+         input_final = inputs[{{},{},{1,nfeature/2},{}}],inputs[{{},{},{nfeature/2+1,nfeature},{}}]
       else
-         preds = model:forward(inputs)
+         input_final = inputs
       end
+      -- input_final = input_final:transpose(2,3)-- transpose (BN x 1 x 4096 x 25 --> BN x 4096 x 1 x 25)
+      preds = model:forward(input_final)
 
       preds = preds[{{1,bSize*nCrops}}] -- for the last few test data
       targets_batch = targets[{{1,bSize*nCrops}}] -- for the last few test data
+
+      -- print(inputs[{{},1,1,{}}])
+      -- print(preds)
+      -- print(targets_batch)
 
       ---- Compute n-Crop score ----
       preds = preds:view(preds:size(1) / nCrops, nCrops, preds:size(2)):exp():mean(2):squeeze(2)
@@ -147,6 +158,9 @@ function test(testData, classes, epo)
       local N = 3
       local probLog, predLabels = preds:topk(N, true, true)
 
+      -- print(predLabels)
+      -- error(test)
+      
       -- Convert log probabilities back to [0, 1]
       -- probLog:exp()
 
