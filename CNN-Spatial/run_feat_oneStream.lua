@@ -8,7 +8,7 @@
 -- contact:
 -- Min-Hung (Steve) Chen at <cmhungsteve@gatech.edu>
 -- Chih-Yao Ma at <cyma@gatech.edu>
--- Last updated: 12/16/2016
+-- Last updated: 01/08/2017
 
 require 'xlua'
 require 'torch'
@@ -26,19 +26,27 @@ local videoDecoder = assert(require("libvideo_decoder")) -- package 3
 ----------------
 op = xlua.OptionParser('%prog [options]')
 
+op:option{'-bS', '--bSize', action='store', dest='bSize',
+          help='batch size of the inputs', default=25} 
 op:option{'-sP', '--sourcePath', action='store', dest='sourcePath',
           help='source path (local | workstation)', default='local'}
 op:option{'-dB', '--nameDatabase', action='store', dest='nameDatabase',
-          help='used database (UCF-101 | HMDB-51)', default='UCF-101'}
+          help='used database (UCF-101 | HMDB-51)', default='HMDB-51'}
 op:option{'-sT', '--stream', action='store', dest='stream',
-          help='type of stream (RGB | FlowMap-TVL1-crop20 | FlowMap-Brox)', default='FlowMap-TVL1-crop20'}
+          help='type of stream (RGB | FlowMap-TVL1-crop20 | FlowMap-Brox)', default='RGB'}
 op:option{'-iSp', '--idSplit', action='store', dest='idSplit',
           help='index of the split set', default=1}
           
 op:option{'-iP', '--idPart', action='store', dest='idPart',
           help='index of the divided part', default=1}
 op:option{'-nP', '--numPart', action='store', dest='numPart',
-          help='number of parts to divide', default=1}
+          help='number of parts to divide', default=2}
+op:option{'-mD', '--manualDivide', action='store', dest='manualDivide',
+          help='manually set the range', default=false}
+op:option{'-iS', '--idStart', action='store', dest='idStart',
+          help='manually set the starting class', default=1}
+op:option{'-iE', '--idEnd', action='store', dest='idEnd',
+          help='manually set the ending class', default=101}
 
 op:option{'-mC', '--methodCrop', action='store', dest='methodCrop',
           help='cropping method (tenCrop | centerCrop)', default='centerCrop'}
@@ -72,9 +80,13 @@ op:option{'-t', '--time', action='store', dest='seconds',
 
 opt,args = op:parse()
 -- convert strings to numbers --
+bSize = tonumber(opt.bSize)
 idPart = tonumber(opt.idPart)
 numPart = tonumber(opt.numPart)
 idSplit = tonumber(opt.idSplit)
+idStart = tonumber(opt.idStart)
+idEnd = tonumber(opt.idEnd)
+
 frame = tonumber(opt.frame)
 -- fpsTr = tonumber(opt.fpsTr)
 -- fpsTe = tonumber(opt.fpsTe)
@@ -87,8 +99,8 @@ dirVideoIn = opt.stream
 print('Split #: '..idSplit)
 print('threads #: '..threads)
 print('source path: '..opt.sourcePath)
-print('Database: '..opt.nameDatabase)
-print('Stream: '..opt.stream)
+print('Database: '..nameDatabase)
+print('Stream: '..dirVideoIn)
 
 -- print('fps for training: '..fpsTr)
 -- print('fps for testing: '..fpsTe)
@@ -106,8 +118,17 @@ elseif source == 'workstation' then
 	-- dirSource = '/home/chih-yao/'
 end
 
-dirModel = dirSource..'Models-UCF101/Models-TwoStreamConvNets/ResNet-'..dirVideoIn..'-sgd-sp'..idSplit..'/'
-pathVideoIn = dirSource..'dataset/'..nameDatabase..'/'..dirVideoIn..'/'
+if nameDatabase == 'UCF-101' then
+	dirDatabase = 'Models-UCF101/'
+elseif nameDatabase == 'HMDB-51' then	
+	 dirDatabase = 'Models-HMDB51/'
+end
+
+dirModel = dirSource..dirDatabase..'Models-TwoStreamConvNets/ResNet-'..dirVideoIn..'-sgd-sp'..idSplit..'/'
+pathDatabase = dirSource..'dataset/'..nameDatabase..'/'
+pathVideoIn = pathDatabase..dirVideoIn..'/'
+pathTxtSplit = pathDatabase..'testTrainMulti_7030_splits/' -- for HMDB-51
+
 
 dataFolder = paths.basename(pathVideoIn)
 print('Video type: '..dataFolder)
@@ -117,7 +138,7 @@ print('Video type: '..dataFolder)
 ----------------------------------------------
 -- nb of threads and fixed seed (for repeatable experiments)
 torch.setnumthreads(threads)
-torch.manualSeed(1)
+torch.manualSeed(0)
 torch.setdefaulttensortype('torch.FloatTensor')
 
 ----------------------------------------------
@@ -154,7 +175,7 @@ print('')
 
 print('Using '..opt.methodCrop)
 
--- Train/Test split
+-- Train/Test split (UCF-101)
 groupSplit = {}
 for sp=1,numSplit do
 	if sp==1 then
@@ -186,16 +207,21 @@ modelPath = dirModel..modelName
 -- 					Functions 				--
 ----------------------------------------------
 if dataFolder == 'RGB' then
-	if fpsTr == 10 then
-		meanstd =  {mean = { 0.392, 0.376, 0.348 },
-	   				std = { 0.241, 0.234, 0.231 }}
-	elseif fpsTr == 25 then
-		meanstd = {mean = { 0.39234371606738, 0.37576219443075, 0.34801909196893 },
-		std = { 0.24149100687454, 0.23453123289779, 0.23117322727131 }}
-	else
+	-- if fpsTr == 10 then
+	-- 	meanstd =  {mean = { 0.392, 0.376, 0.348 },
+	--    				std = { 0.241, 0.234, 0.231 }}
+	-- elseif fpsTr == 25 then
+	-- 	meanstd = {mean = { 0.39234371606738, 0.37576219443075, 0.34801909196893 },
+	-- 	std = { 0.24149100687454, 0.23453123289779, 0.23117322727131 }}
+	-- else
+	if nameDatabase == 'UCF-101' then
 		meanstd = {mean = {0.39743499656438, 0.38846055375943, 0.35173909269078},
-		std = {0.24145608138375, 0.23480329347676, 0.2306657093885}}
+					std = {0.24145608138375, 0.23480329347676, 0.2306657093885}}
+	elseif nameDatabase == 'HMDB-51' then
+		meanstd = {mean = {0.36410178082273, 0.36032826208483, 0.31140866484224},
+  					std = {0.20658244577568, 0.20174469333003, 0.19790770088352}}
 	end
+	-- end
 elseif dataFolder == 'FlowMap-Brox' then
     if fpsTr == 10 then
 		meanstd = {mean = { 0.0091950063390791, 0.4922446721625, 0.49853131534726}, 
@@ -223,16 +249,26 @@ elseif dataFolder == 'FlowMap-FlowNet-M' then
     meanstd = {mean = { 0.951, 0.918, 0.955 },
                 std = { 0.043, 0.052, 0.044 }}
 elseif dataFolder == 'FlowMap-TVL1-crop20' then
-    if fpsTr == 10 then
-		meanstd = {mean = { 0.0078286737613148, 0.49277467447062, 0.42283539438139 },
-	                std = { 0.0049402251681559, 0.060421647049655, 0.058913364961995 }}
-	elseif fpsTr == 25 then
-		meanstd = {mean = { 0.0078368888567733, 0.49304171615406, 0.42294166284263 },
-	                  std = { 0.0049412518723573, 0.060508027119622, 0.058952390342379 }}
-	else
-		meanstd = {mean = { 0.0077904963214443, 0.49308556329956, 0.42114283484146 },
-		std = { 0.0049190714163826, 0.060068045559535, 0.058203296730741 }}
+ --    if fpsTr == 10 then
+	-- 	meanstd = {mean = { 0.0078286737613148, 0.49277467447062, 0.42283539438139 },
+	--                 std = { 0.0049402251681559, 0.060421647049655, 0.058913364961995 }}
+	-- elseif fpsTr == 25 then
+	-- 	meanstd = {mean = { 0.0078368888567733, 0.49304171615406, 0.42294166284263 },
+	--                   std = { 0.0049412518723573, 0.060508027119622, 0.058952390342379 }}
+	-- else
+	if nameDatabase == 'UCF-101' then
+		-- if idSplit == 2
+		-- 	meanstd = {mean = {0.0077500744698257, 0.49250124870187, 0.41921449413675},
+  --                  		std = {0.0049062763442844, 0.059868330437194, 0.057967578047986}}
+		-- else
+			meanstd = {mean = {0.0077904963214443, 0.49308556329956, 0.42114283484146},
+						std = {0.0049190714163826, 0.060068045559535, 0.058203296730741}}
+		-- end
+	elseif nameDatabase == 'HMDB-51' then
+		meanstd = {mean = { 0.0018654796792839, 0.34654865925634, 0.49215155492952 },
+                  std = {0.0037040848522728, 0.050646484297722, 0.073084135799887 }}
 	end
+	-- end
 else
     error('no mean and std defined ... ')
 end
@@ -255,6 +291,7 @@ numClass = #nameClass -- 101 classes
 
 
 ---- divide the whole dataset into several parts ----
+if not opt.manualDivide then
 numClassSub = torch.floor(numClass/numPart)
 rangeClassPart = {}
 numClassAcm = torch.zeros(numPart)
@@ -269,6 +306,7 @@ for i=1,numPart do
 	Acm = Acm + rangeClassPart[i]:nElement()
 	numClassAcm[i] = Acm
 end
+end
 
 ----------------------------------------------
 -- 					Models		        	--
@@ -279,14 +317,16 @@ print '==> Loading the model...'
 -- Torch model
 print(modelPath)
 net = torch.load(modelPath):cuda()
+--net_pred = torch.load(modelPath):cuda()
 
------- model modification ------
+---- model modification ------
 -- Remove the fully connected layer
 assert(torch.type(net:get(#net.modules)) == 'nn.Linear')
 net:remove(#net.modules)
 
 -- -- Evaluate mode
 net:evaluate()
+--net_pred:evaluate()
 
 print ' '
 
@@ -307,7 +347,11 @@ if not (opt.save and paths.filep(outTrain[sp].name)) then
 	Tr.featMats = torch.DoubleTensor()
 	Tr.labels = torch.DoubleTensor()
 	Tr.countVideo = 0
-	Tr.countClass = rangeClassPart[idPart][1]-1
+	if opt.manualDivide then
+		Tr.countClass = idStart - 1
+	else
+		Tr.countClass = rangeClassPart[idPart][1]-1
+	end
 else
 	Tr = torch.load(outTrain[sp].name) -- output
 end
@@ -320,7 +364,11 @@ if not (opt.save and paths.filep(outTest[sp].name)) then
 	Te.featMats = torch.DoubleTensor()
 	Te.labels = torch.DoubleTensor()
 	Te.countVideo = 0
-	Te.countClass = rangeClassPart[idPart][1]-1
+	if opt.manualDivide then
+		Te.countClass = idStart - 1
+	else
+		Te.countClass = rangeClassPart[idPart][1]-1
+	end
 else
 	Te = torch.load(outTest[sp].name) -- output
 end
@@ -331,7 +379,16 @@ timerAll = torch.Timer() -- count the whole processing time
 if Tr.countClass == numClass and Te.countClass == numClass then
 	print('The feature data of split '..sp..' is already in your folder!!!!!!')
 else
-	for c=Te.countClass+1, numClassAcm[idPart] do
+local classStart, classEnd
+if opt.manualDivide then
+	classStart = idStart
+	classEnd = idEnd
+else
+	classStart = Te.countClass+1
+	classEnd = numClassAcm[idPart]
+end
+	for c=classStart, classEnd do
+--	for c=Te.countClass+1, numClassAcm[idPart] do
 	-- for c=69, 69 do		
 		print('Current Class: '..c..'. '..nameClass[c])
 
@@ -340,6 +397,8 @@ else
 
 	  	------ Data paths ------
 	  	local pathClassIn = pathVideoIn..nameClass[c]..'/' 
+
+	  	local nameSubVideo = {}
 	  	if nameDatabase == 'UCF-101' then
 		  	nameSubVideo = paths.dir(pathClassIn)
 			table.sort(nameSubVideo) -- ascending order
@@ -387,6 +446,7 @@ else
 			--           Process with the video         --
 			----------------------------------------------
 			--== Read the Video ==--
+			print(videoName)
 		    -- print('==> Loading the video: '..videoPath)
 		    local vidTensor
 		    local inFrame = torch.ByteTensor(3, height, width)
@@ -419,26 +479,46 @@ else
 			local numFrameUsed = opt.sampleAll and numFrameAvailable or numFrameSample -- choose frame # for one video
 			--== Extract Features ==--
 			local featMatsVideo = torch.DoubleTensor(nCrops,dimFeat,numFrameUsed):zero() -- 1x2048x25 or 10x2048x25
+			local I_all -- concatenate all sampled frames for a video
 			--print '==> Generating the feature matrix......'
 			for i=1, numFrameUsed do
 				local f = (i-1)*numFrameInterval+5 -- current frame sample
 				f = torch.Tensor({{f,numFrame-5}}):min() -- make sure we can extract the corresponding 10-stack optcial flow
-
 				local inFrames = vidTensor[{{torch.floor(f-numStack/2)+1,torch.floor(f+numStack/2)},{3-(nChannel-1),3},{},{}}]					              	
 				local netInput = torch.Tensor(inFrames:size(1)*nChannel,height,width):zero() -- 20x240x320
 				for x=0,numStack-1 do
 					netInput[{{x*nChannel+1,(x+1)*nChannel}}] = inFrames[{{x+1},{},{},{}}]
 				end
 				local I = transform(netInput) -- 20x224x224 or 10x20x224x224 (tenCrop)
-				I = I:view(nCrops, table.unpack(I:size():totable())) -- 20x224x224 --> 1x20x224x224
-				local feat_now = net:forward(I:cuda()):float() -- 1x2048 or 10x2048
+				-- I = I:view(nCrops, table.unpack(I:size():totable())) -- 20x224x224 --> 1x20x224x224
+				I = I:view(1, table.unpack(I:size():totable())) -- 20x224x224 --> 1x20x224x224
 
-				-- store the feature matrix for this video
-				feat_now:resize(nCrops,dimFeat,1)
-				featMatsVideo[{{},{},{i}}] = feat_now:double()
+				-- concatenation
+				if i==1 then
+					I_all = I
+				else
+					I_all = torch.cat(I_all,I,1)
+				end
+
+				-- local feat_now = net:forward(I:cuda()):float() -- 1x2048 or 10x2048
+
+				-- -- store the feature matrix for this video
+				-- feat_now:resize(nCrops,dimFeat,1)
+				-- featMatsVideo[{{},{},{i}}] = feat_now:double()
 
 			end
 			-- print(featMatsVideo:size())
+			
+			--local scores = net_pred:forward(I_all:cuda()):double() -- 25x101
+			--scores = torch.mean(scores,1)
+			--local probLog, predLabels = scores:topk(1, true, true)
+			--print(c, predLabels[1][1])
+
+			local feat_now = net:forward(I_all:cuda()):float() -- 25x2048
+			-- store the feature matrix for this video
+			feat_now = feat_now:transpose(1,2)
+
+			local featMatsVideo = feat_now:reshape(1, table.unpack(feat_now:size():totable())):double() -- 1x2048x25
 
 	        ----------------------------------------------
 	       	--          Train/Test feature split        --
