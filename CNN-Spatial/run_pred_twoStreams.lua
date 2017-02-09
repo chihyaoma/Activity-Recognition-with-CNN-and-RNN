@@ -15,7 +15,6 @@
 
 require 'xlua'
 require 'torch'
-require 'ffmpeg'
 require 'image'
 require 'nn'
 require 'cudnn' 
@@ -33,7 +32,7 @@ op = xlua.OptionParser('%prog [options]')
 op:option{'-sP', '--sourcePath', action='store', dest='sourcePath',
           help='source path (local | workstation)', default='workstation'}
 op:option{'-dB', '--nameDatabase', action='store', dest='nameDatabase',
-          help='used database (UCF-101 | HMDB-51)', default='UCF-101'}
+          help='used database (UCF-101 | HMDB-51)', default='HMDB-51'}
 op:option{'-sT', '--stream', action='store', dest='stream',
           help='type of optical stream (FlowMap-TVL1-crop20 | FlowMap-Brox)', default='FlowMap-TVL1-crop20'}
 op:option{'-iSp', '--idSplit', action='store', dest='idSplit',
@@ -62,7 +61,7 @@ op:option{'-i1', '--devid1', action='store', dest='devid1',
 op:option{'-i2', '--devid2', action='store', dest='devid2',
           help='2nd GPU', default=2}      
 op:option{'-s', '--save', action='store', dest='save',
-          help='save the intermediate data or not', default=false}
+          help='save the intermediate data or not', default=true}
 
 op:option{'-t', '--time', action='store', dest='seconds',
           help='length to process (in seconds)', default=2}
@@ -106,15 +105,24 @@ elseif source == 'workstation' then
 	dirSource = '/home/chih-yao/Downloads/'
 end
 
+if nameDatabase == 'UCF-101' then
+	dirDatabase = 'Models-UCF101/'
+elseif nameDatabase == 'HMDB-51' then	
+	 dirDatabase = 'Models-HMDB51/'
+end
+
 DIR = {}
 dataFolder = {}
+pathDatabase = dirSource..'dataset/'..nameDatabase..'/'
 ---- Temporal ----
-table.insert(DIR, {dirModel = dirSource..'Models-UCF101/Models-TwoStreamConvNets/ResNet-'..methodOF..'-sgd-sp'..idSplit..'/', 
-		pathVideoIn = dirSource..'dataset/'..nameDatabase..'/'..methodOF..'/'})
+table.insert(DIR, {dirModel = dirSource..dirDatabase..'Models-TwoStreamConvNets/ResNet-'..methodOF..'-sgd-sp'..idSplit..'/', 
+		pathVideoIn = pathDatabase..methodOF..'/'})
 
 ---- Spatial ----
-table.insert(DIR, {dirModel = dirSource..'Models-UCF101/Models-TwoStreamConvNets/ResNet-RGB-sgd-sp'..idSplit..'/', 
-	pathVideoIn = dirSource..'dataset/'..nameDatabase..'/RGB/'})
+table.insert(DIR, {dirModel = dirSource..dirDatabase..'Models-TwoStreamConvNets/ResNet-RGB-sgd-sp'..idSplit..'/', 
+	pathVideoIn = pathDatabase..'/RGB/'})
+
+pathTxtSplit = pathDatabase..'testTrainMulti_7030_splits/' -- for HMDB-51
 
 for nS=1,numStream do
 	table.insert(dataFolder, paths.basename(DIR[nS].pathVideoIn))
@@ -132,7 +140,7 @@ torch.setdefaulttensortype('torch.FloatTensor')
 --         Input/Output information         --
 ----------------------------------------------
 -- select the number of classes, groups & videos you want to use
-numClass = 101
+-- numClass = 101
 dimFeat = 2048
 numTopN = 5
 
@@ -161,11 +169,11 @@ if softMax then
 end
 print('Using '..opt.methodCrop)
 
-nameOutFile = 'acc_video_'..numFrameSample..'Frames'..'-'..opt.methodCrop..'sp'..idSplit..'.txt' -- output the video accuracy
+nameOutFile = 'acc_video_'..numFrameSample..'Frames'..'-'..opt.methodCrop..'-sp'..idSplit..'.txt' -- output the video accuracy
 
-----------------------------------------------
---  			Train/Test split			--
-----------------------------------------------
+------------------------------------------
+--  	Train/Test split (UCF-101)		--
+------------------------------------------
 groupSplit = {}
 for sp=1,numSplit do
 	if sp==1 then
@@ -231,32 +239,47 @@ elseif dataFolder[1] == 'FlowMap-FlowNet-M' then
 	table.insert(meanstd, {mean = { 0.951, 0.918, 0.955 },
                 std = { 0.043, 0.052, 0.044 }})
 elseif dataFolder[1] == 'FlowMap-TVL1-crop20' then
-	if fpsTr == 10 then
-		table.insert(meanstd, {mean = { 0.0078286737613148, 0.49277467447062, 0.42283539438139 },
-	                 std = { 0.0049402251681559, 0.060421647049655, 0.058913364961995 }})
-	elseif fpsTr == 25 then
-		table.insert(meanstd, {mean = { 0.0078368888567733, 0.49304171615406, 0.42294166284263 },
-	                  std = { 0.0049412518723573, 0.060508027119622, 0.058952390342379 }})
-	else
-		table.insert(meanstd, {mean = { 0.0077904963214443, 0.49308556329956, 0.42114283484146 },
-		std = { 0.0049190714163826, 0.060068045559535, 0.058203296730741 }})
+	-- if fpsTr == 10 then
+	-- 	table.insert(meanstd, {mean = { 0.0078286737613148, 0.49277467447062, 0.42283539438139 },
+	--                  std = { 0.0049402251681559, 0.060421647049655, 0.058913364961995 }})
+	-- elseif fpsTr == 25 then
+	-- 	table.insert(meanstd, {mean = { 0.0078368888567733, 0.49304171615406, 0.42294166284263 },
+	--                   std = { 0.0049412518723573, 0.060508027119622, 0.058952390342379 }})
+	-- else
+	if nameDatabase == 'UCF-101' then
+		-- if idSplit == 2
+		-- 	table.insert(meanstd, {mean = {0.0077500744698257, 0.49250124870187, 0.41921449413675},
+  --                  			std = {0.0049062763442844, 0.059868330437194, 0.057967578047986}})
+		-- else
+			table.insert(meanstd, {mean = { 0.0077904963214443, 0.49308556329956, 0.42114283484146 },
+							std = { 0.0049190714163826, 0.060068045559535, 0.058203296730741 }})
+		-- end
+	elseif nameDatabase == 'HMDB-51' then
+		table.insert(meanstd, {mean = { 0.0018654796792839, 0.34654865925634, 0.49215155492952 },
+                  		std = {0.0037040848522728, 0.050646484297722, 0.073084135799887 }})
 	end
+	-- end
 else
     error('no mean and std defined for temporal network... ')
 end
 
 -- Spatial
 if dataFolder[2] == 'RGB' then
-	if fpsTr == 10 then
-		table.insert(meanstd, {mean = { 0.392, 0.376, 0.348 },
-	   				std = { 0.241, 0.234, 0.231 }})
-	elseif fpsTr == 25 then
-		table.insert(meanstd, {mean = { 0.39234371606738, 0.37576219443075, 0.34801909196893 },
-	               std = { 0.24149100687454, 0.23453123289779, 0.23117322727131 }})
-	else
+	-- if fpsTr == 10 then
+	-- 	table.insert(meanstd, {mean = { 0.392, 0.376, 0.348 },
+	--    				std = { 0.241, 0.234, 0.231 }})
+	-- elseif fpsTr == 25 then
+	-- 	table.insert(meanstd, {mean = { 0.39234371606738, 0.37576219443075, 0.34801909196893 },
+	--                std = { 0.24149100687454, 0.23453123289779, 0.23117322727131 }})
+	-- else
+	if nameDatabase == 'UCF-101' then
 		table.insert(meanstd, {mean = {0.39743499656438, 0.38846055375943, 0.35173909269078},
-		std = {0.24145608138375, 0.23480329347676, 0.2306657093885}})
+								std = {0.24145608138375, 0.23480329347676, 0.2306657093885}})
+	elseif nameDatabase == 'HMDB-51' then
+		table.insert(meanstd, {mean = {0.36410178082273, 0.36032826208483, 0.31140866484224},
+  								std = {0.20658244577568, 0.20174469333003, 0.19790770088352}})
 	end
+	-- end
 else
     error('no mean and std defined for spatial network... ')
 end
@@ -270,7 +293,7 @@ nameClass = paths.dir(DIR[1].pathVideoIn)
 table.sort(nameClass)
 table.remove(nameClass,1) -- remove "."
 table.remove(nameClass,1) -- remove ".."
-numClassTotal = #nameClass -- 101 classes 
+numClass = #nameClass -- 101 classes 
 
 ----------------------------------------------
 -- 					Models		        	--
@@ -389,12 +412,13 @@ sp = idSplit
 		print('The feature data of split '..sp..' is already in your folder!!!!!!')
 	else
 
-		for c=Te.c_finished+1, numClassTotal do
+		for c=Te.c_finished+1, numClass do
 
-				local hitTestFrameClass = 0
 				local numTestFrameClass = 0
-				local hitTestVideoClass = 0
 				local numTestVideoClass = 0
+
+				local hitTestFrameClassB = 0
+				local hitTestVideoClassB = 0
 
 				--==== Separate Spatial & Temporal ====--
 				local hitTestFrameClassT = 0
@@ -413,12 +437,20 @@ sp = idSplit
 
 			  	for nS=1,numStream do
 			  		pathClassInTemp = DIR[nS].pathVideoIn..nameClass[c]..'/'
-			  		nameSubVideoTemp = paths.dir(pathClassInTemp)
-				  	table.sort(nameSubVideoTemp)
-				  	table.remove(nameSubVideoTemp,1) -- remove "."
-					table.remove(nameSubVideoTemp,1) -- remove ".."
-
 			  		table.insert(pathClassIn, pathClassInTemp)
+
+			  		local nameSubVideoTemp = {}
+				  	if nameDatabase == 'UCF-101' then
+					  	nameSubVideoTemp = paths.dir(pathClassInTemp)
+						table.sort(nameSubVideo) -- ascending order
+						table.remove(nameSubVideoTemp,1) -- remove "."
+						table.remove(nameSubVideoTemp,1) -- remove ".."
+					elseif nameDatabase == 'HMDB-51' then
+						local nameTxt = pathTxtSplit..nameClass[c]..'_test_split'..idSplit..'.txt'
+						for l in io.lines(nameTxt) do
+							table.insert(nameSubVideoTemp,l)
+						end
+					end
 			  		table.insert(nameSubVideo, nameSubVideoTemp)
 			  	end
 
@@ -431,206 +463,238 @@ sp = idSplit
 			      	--------------------
 			      	-- Load the video --
 			      	--------------------  
-			      		local videoName = {}
+			   		local videoName = {}
+			   		local videoPath = {}
+			   		local videoIndex -- for HMDB-51
 
-			        	for nS=1,numStream do
-				        	local videoNameTemp = paths.basename(nameSubVideo[nS][sv],'avi')				        
-			        		table.insert(videoName, videoNameTemp)
+			      	for nS=1,numStream do
+			      		local videoNameTemp
+			      		local videoPathTemp
+			       		if nameDatabase == 'UCF-101' then
+							videoNameTemp = paths.basename(nameSubVideo[nS][sv],'avi')
+							videoPathTemp = pathClassIn[nS]..videoNameTemp..'.avi'
+						elseif nameDatabase == 'HMDB-51' then
+							local i,j = string.find(nameSubVideo[nS][sv],' ') -- find the location of the group info in the string
+						   	videoNameTemp = string.sub(nameSubVideo[nS][sv],1,j-5) -- get the video name
+							videoIndex = tonumber(string.sub(nameSubVideo[nS][sv],j+1)) -- get the index for training/testing
+							if nS == 2 then
+						       	videoPathTemp = pathClassIn[nS]..videoNameTemp..'.avi'
+						    else
+						    	videoPathTemp = pathClassIn[nS]..videoNameTemp..'_flow.avi'
+						    end
 						end
 
-			        	-- extract the group name
-			            local i,j = string.find(videoName[1],'_g') -- find the location of the group info in the string
-			            local videoGroup = tonumber(string.sub(videoName[1],j+1,j+2)) -- get the group#
-			            -- local videoPathLocalT = nameClass[c]..'/'..videoName[1]
+		        		table.insert(videoName, videoNameTemp)
+		        		table.insert(videoPath, videoPathTemp)
+					end
+
+					----------------------------------------------
+			       	--          Train/Test feature split        --
+			       	----------------------------------------------
+			        -- find out whether the video is in training set or testing set
+					local flagTrain, flagTest = false
+					if nameDatabase == 'UCF-101' then
+						local i,j = string.find(videoName[1],'_g') -- find the location of the group info in the string
+					    local videoGroup = tonumber(string.sub(videoName[1],j+1,j+2)) -- get the group#
+					    local videoPathLocal = nameClass[c] .. '/' .. videoName .. '.avi'
+
+					    if groupSplit[idSplit].setTe:eq(videoGroup):sum() == 0 then -- training data
+					    	flagTrain = true
+					    	flagTest = false
+					    else -- testing data
+					    	flagTrain = false
+					    	flagTest = true
+					    end
+					elseif nameDatabase == 'HMDB-51' then
+						if videoIndex == 1 then -- training data
+							flagTrain = true
+							flagTest = false
+						elseif videoIndex == 2 then -- testing data
+							flagTrain = false
+							flagTest = true
+						else
+							flagTrain = false
+							flagTest = false
+						end
+					end
 	
-			          	----------------------------------------------
-			          	--           	Process the video           --
-			          	----------------------------------------------
-				          	if groupSplit[sp].setTe:eq(videoGroup):sum() == 1 then -- testing data
-				          		--== Read the video ==--
-					        	local vidTensor = {}
+					--=========================================--
+			        --            Process the video            --
+					--=========================================--
+			        if not flagTrain and flagTest then -- testing data
+				    	--== Read the video ==--
+						local vidTensor = {}
 
-					        	for nS=1,numStream do
-print(videoName[nS])
-					        		local videoPath = pathClassIn[nS]..videoName[nS]..'.avi'
-						        	
-					        		---- read the video to a tensor ----
-									local status, height, width, length, fps = videoDecoder.init(videoPath)
-									local vidTensorTemp
-		    							local inFrame = torch.ByteTensor(3, height, width)
-		    							local countFrame = 0
-									while true do
-										status = videoDecoder.frame_rgb(inFrame)
-										if not status then
-						   					break
-										end
-										countFrame = countFrame + 1
-						   				local frameTensor = torch.reshape(inFrame, 1, 3, height, width):double():div(255)
-										
-										
-						   				if countFrame == 1 then -- the first frame
-							        		vidTensorTemp = frameTensor
-							        	else -- from the second or the following videos
-							            	vidTensorTemp = torch.cat(vidTensorTemp,frameTensor,1)	            	
-							            end			      
-										
-									end
-									videoDecoder.exit()
-									
-									--local video = ffmpeg.Video{path=videoPath, fps=25, delete=true, destFolder='out_frames',silent=true}
-									--vidTensorTemp = video:totensor{}
-									--print(vidTensorTemp:size())
-									--error(test)
-									table.insert(vidTensor, vidTensorTemp) -- read the whole video & turn it into a 4D tensor (e.g. 150x3x240x320)
+					    for nS=1,numStream do
+							print(videoName[nS])
+
+							---- read the video to a tensor ----
+							local status, height, width, length, fps = videoDecoder.init(videoPath[nS])
+							local vidTensorTemp
+		    				local inFrame = torch.ByteTensor(3, height, width)
+		    				local countFrame = 0
+							while true do
+								status = videoDecoder.frame_rgb(inFrame)
+								if not status then
+						   			break
 								end
+								countFrame = countFrame + 1
+						   		local frameTensor = torch.reshape(inFrame, 1, 3, height, width):double():div(255)
+											
+						   		if countFrame == 1 then -- the first frame
+							        vidTensorTemp = frameTensor
+							    else -- from the second or the following videos
+							        vidTensorTemp = torch.cat(vidTensorTemp,frameTensor,1)	            	
+							    end			      
+										
+							end
+							videoDecoder.exit()
+									
+							table.insert(vidTensor, vidTensorTemp) -- read the whole video & turn it into a 4D tensor (e.g. 150x3x240x320)
+						end
 					        	
-					        	local numFrame = vidTensor[1]:size(1) -- same frame # for two streams
+					    local numFrame = vidTensor[1]:size(1) -- same frame # for two streams
+					    local height =  vidTensor[1]:size(3)
+					    local width = vidTensor[1]:size(4)
 					        	
-					        	------ Video prarmeters (same for two streams) ------				        	
-				        		local numFrameAvailable = numFrame - numStack[1] + 1 -- for 10-stacking
-				        		local numFrameInterval = opt.sampleAll and 1 or torch.floor(numFrameAvailable/numFrameSample)
-				        		numFrameInterval = torch.Tensor({{1,numFrameInterval}}):max() -- make sure larger than 0
-				        		local numFrameUsed = opt.sampleAll and numFrameAvailable or numFrameSample -- choose frame # for one video
-				        		--== Prediction ==--
-				          		Te.countVideo = Te.countVideo + 1
+					    ------ Video prarmeters (same for two streams) ------				        	
+				        local numFrameAvailable = numFrame - numStack[1] + 1 -- for 10-stacking
+				        local numFrameInterval = opt.sampleAll and 1 or torch.floor(numFrameAvailable/numFrameSample)
+				       	numFrameInterval = torch.Tensor({{1,numFrameInterval}}):max() -- make sure larger than 0
+				        local numFrameUsed = opt.sampleAll and numFrameAvailable or numFrameSample -- choose frame # for one video
+				        --== Prediction ==--
+				        Te.countVideo = Te.countVideo + 1
 					          	
-				          		------ Initialization of the prediction ------
-				          		local predFrames = torch.Tensor(numFrameUsed):zero() -- e.g. 25
-				          		local scoreFrames = torch.Tensor(numFrameUsed,numClass):zero() -- e.g. 25x101
+				        ------ Initialization of the prediction ------
+				        local predFramesB = torch.Tensor(numFrameUsed):zero() -- e.g. 25
+				        local scoreFramesB = torch.Tensor(numFrameUsed,numClass):zero() -- e.g. 25x101
 
-				          		--==== Separate Spatial & Temporal ====--
-				          		local predFramesT = torch.Tensor(numFrameUsed):zero() -- e.g. 25
-				          		local predFramesS = torch.Tensor(numFrameUsed):zero() -- e.g. 25
-				          		local scoreFramesT = torch.Tensor(numFrameUsed,numClass):zero() -- e.g. 25x101
-				          		local scoreFramesS = torch.Tensor(numFrameUsed,numClass):zero() -- e.g. 25x101
+				        --==== Separate Spatial & Temporal ====--
+				        local predFramesT = torch.Tensor(numFrameUsed):zero() -- e.g. 25
+				        local predFramesS = torch.Tensor(numFrameUsed):zero() -- e.g. 25
+				        local scoreFramesT = torch.Tensor(numFrameUsed,numClass):zero() -- e.g. 25x101
+				        local scoreFramesS = torch.Tensor(numFrameUsed,numClass):zero() -- e.g. 25x101
 
-				            	-- print '==> Begin predicting......'
-				            	for i=1, numFrameUsed do
-				            		local scoreFrame2S = torch.Tensor(numStream,numClass):zero() -- 2x101
-				            		local f = (i-1)*numFrameInterval+5 -- current frame sample (middle in 10-stacking)
-				            		f = torch.Tensor({{f,numFrame-5}}):min() -- make sure we can extract the corresponding 10-stack optcial flow
-				            		for nS=1,numStream do
-				            			cutorch.setDevice(devID[nS])
-					        			--- transform ---
-					        			transform = t.Compose{t.Scale(256), t.ColorNormalize(meanstd[nS], nChannel[nS]), Crop(224)}
+				        local scoreFrameTS = torch.Tensor(numStream,numFrameUsed,numClass):zero() -- 2x25x101
+				        ----------------------
+				        -- Frame Prediction --
+				        ----------------------
+				        -- print '==> Begin predicting......'
+				        for nS=1,numStream do
+				        	cutorch.setDevice(devID[nS])
+					    	--- transform ---
+					    	transform = t.Compose{t.Scale(256), t.ColorNormalize(meanstd[nS], nChannel[nS]), Crop(224)}
 
-					              		-- extract the input
-					              		-- Temporal:	2-channel, 10-stacking
-					              		-- Spatial:		3-channel, none-stacking
-					              		local inFrames = vidTensor[nS][{{torch.floor(f-numStack[nS]/2)+1,torch.floor(f+numStack[nS]/2)},
+					    	local I_all -- concatenate all sampled frames for a video
+						    
+						    for i=1, numFrameUsed do
+				        		local f = (i-1)*numFrameInterval+5 -- current frame sample (middle in 10-stacking)
+				        		f = torch.Tensor({{f,numFrame-5}}):min() -- make sure we can extract the corresponding 10-stack optcial flow
+				        	
+					       		-- extract the input
+					       		-- Temporal:	2-channel, 10-stacking
+					       		-- Spatial:		3-channel, none-stacking
+					       		local inFrames = vidTensor[nS][{{torch.floor(f-numStack[nS]/2)+1,torch.floor(f+numStack[nS]/2)},
 					              		{3-(nChannel[nS]-1),3},{},{}}]
 
-					              		-- change the dimension for the input to "transform" 
-					              		-- Temporal:	20x240x320
-					              		-- Spatial:		3x240x320					              		
-					              		local netInput = torch.Tensor(inFrames:size(1)*nChannel[nS],opt.height,opt.width):zero()
-					              		for x=0,numStack[nS]-1 do
-					              			netInput[{{x*nChannel[nS]+1,(x+1)*nChannel[nS]}}] = inFrames[{{x+1},{},{},{}}]
-					              		end
+					       		-- change the dimension for the input to "transform" 
+					       		-- Temporal:	20x240x320
+					       		-- Spatial:		3x240x320					              		
+					       		local netInput = torch.Tensor(inFrames:size(1)*nChannel[nS],height,width):zero()
+					       		for x=0,numStack[nS]-1 do
+					       			netInput[{{x*nChannel[nS]+1,(x+1)*nChannel[nS]}}] = inFrames[{{x+1},{},{},{}}]
+					       		end
 
-					         			local I = transform(netInput) -- e.g. 20x224x224 or 10x20x224x224 (tenCrop)
-										local scoreFrame_now = torch.Tensor(1,numClass):zero() -- 1x101
-					              		if (opt.methodCrop == 'tenCrop') then
-						              		local outputTen = net[nS]:forward(I:cuda()):float() -- 10x101
-					              			scoreFrame_now = torch.mean(outputTen,1) -- 1x101
-					              		else
-					              			I = I:view(1, table.unpack(I:size():totable())) -- 1x20x224x224
-					              			local output = net[nS]:forward(I:cuda()) -- 1x101
-					              			scoreFrame_now = output
-					              		end
-					              		-- scoreFrame_now = cudnn.SoftMax():cuda():forward(scoreFrame_now)	-- add a softmax layer to convert the value to probability				              		
-					              		scoreFrame2S[nS] = scoreFrame_now:float()					              		
+					    		local I = transform(netInput) -- e.g. 20x224x224 or 10x20x224x224 (tenCrop)
+								I = I:view(1, table.unpack(I:size():totable())) -- 20x224x224 --> 1x20x224x224
 
-					              	end
-									scoreFrame2S_fusion = torch.mean(scoreFrame2S,1) -- 101 probabilities of the frame
-									scoreFrames[i] = scoreFrame2S_fusion 
-									local probLog, predLabels = scoreFrame2S_fusion:topk(numTopN, true, true) -- 5 (probabilities + labels)        
-									local predFrame = predLabels[1][1] -- predicted label of the frame
-									-- frame prediction
-					            	local labelFrame = ucf101Label[predFrame]
-					            	Te.countFrame = Te.countFrame + 1
-
-					            	-- accumulate the score for frame prediction
-					            	numTestFrameClass = numTestFrameClass + 1
-					            	if labelFrame == nameClass[c] then
-					            		hitTestFrameClass = hitTestFrameClass  + 1
-					            	end
-									predFrames[i] = predFrame
-
-									--==== Separate Spatial & Temporal ====--
-									--== Temporal
-									scoreFramesT[i] = scoreFrame2S[1] 
-									local probLogT, predLabelsT = scoreFrame2S[1]:topk(numTopN, true, true) -- 5 (probabilities + labels)        
-									local predFrameT = predLabelsT[1] -- predicted label of the frame
-									-- frame prediction
-					            	local labelFrameT = ucf101Label[predFrameT]
-			
-					            	-- accumulate the score for frame prediction
-					            	if labelFrameT == nameClass[c] then
-					            		hitTestFrameClassT = hitTestFrameClassT  + 1
-					            	end
-									predFramesT[i] = predFrameT
-
-									--== Spatial
-									scoreFramesS[i] = scoreFrame2S[2] 
-									local probLogS, predLabelsS = scoreFrame2S[2]:topk(numTopN, true, true) -- 5 (probabilities + labels)        
-									local predFrameS = predLabelsS[1] -- predicted label of the frame
-									-- frame prediction
-					            	local labelFrameS = ucf101Label[predFrameS]
-			
-					            	-- accumulate the score for frame prediction
-					            	if labelFrameS == nameClass[c] then
-					            		hitTestFrameClassS = hitTestFrameClassS  + 1
-					            	end
-									predFramesS[i] = predFrameS			
-
-					            end
-
-					            -- prediction of this video
-					            local predVideo
-
-					            --==== Separate Spatial & Temporal ====--
-					            local predVideoT
-								local predVideoS
-
-					            if opt.methodPred == 'classVoting' then 
-					            	local predVideoTensor = torch.mode(predFrames)
-					            	predVideo = predVideoTensor[1]
-								elseif opt.methodPred == 'scoreMean' then
-									local scoreMean = torch.mean(scoreFrames,1)
-									local probLog, predLabels = scoreMean:topk(numTopN, true, true) -- 5 (probabilities + labels)
-						           	predVideo = predLabels[1][1]
-
-						           	--==== Separate Spatial & Temporal ====--
-						           	--== Temporal
-									local scoreMeanT = torch.mean(scoreFramesT,1)
-									local probLogT, predLabelsT = scoreMeanT:topk(numTopN, true, true) -- 5 (probabilities + labels)
-						           	predVideoT = predLabelsT[1][1]
-						           	--== Spatial
-						           	local scoreMeanS = torch.mean(scoreFramesS,1)
-									local probLogS, predLabelsS = scoreMeanS:topk(numTopN, true, true) -- 5 (probabilities + labels)
-						           	predVideoS = predLabelsS[1][1]
+								-- concatenation
+								if i==1 then
+									I_all = I
+								else
+									I_all = torch.cat(I_all,I,1)
 								end
 
-					            local labelVideo = ucf101Label[predVideo]
-					            --==== Separate Spatial & Temporal ====--
-					            local labelVideoT = ucf101Label[predVideoT]
-					            local labelVideoS = ucf101Label[predVideoS]
+					        end
 
-				            	-- accumulate the score for video prediction
-				            	numTestVideoClass = numTestVideoClass + 1
-				            	if labelVideo == nameClass[c] then
-				            		hitTestVideoClass = hitTestVideoClass  + 1
-				            	end
-				            	--==== Separate Spatial & Temporal ====--
-				            	if labelVideoT == nameClass[c] then
-				            		hitTestVideoClassT = hitTestVideoClassT  + 1
-				            	end
-				            	if labelVideoS == nameClass[c] then
-				            		hitTestVideoClassS = hitTestVideoClassS  + 1
-				            	end
-				            	
-				            end				        
+					        local scoreFrame_now = torch.Tensor(numFrameUsed,numClass):zero() -- 25x101
+				        	if (opt.methodCrop == 'tenCrop') then
+					    		local outputTen = net[nS]:forward(I_all:cuda()) -- 25x10x101
+				            	scoreFrame_now = torch.mean(outputTen,1) -- 25x101
+				            else
+				            	--I = I:view(1, table.unpack(I:size():totable())) -- 25x20x224x224
+				            	local output = net[nS]:forward(I_all:cuda()) -- 25x101
+				            	scoreFrame_now = output
+				            end
+
+				            -- scoreFrame_now = cudnn.SoftMax():cuda():forward(scoreFrame_now)	-- add a softmax layer to convert the value to probability				              		
+				            scoreFrameTS[nS] = scoreFrame_now:float()					              		
+				        end
+						
+						-- scores --> prediction --
+						Te.countFrame = Te.countFrame + numFrameUsed
+						numTestFrameClass = numTestFrameClass + numFrameUsed
+						
+						--==== Baseline ====--
+						scoreFramesB = torch.mean(scoreFrameTS,1):squeeze(1) -- 101 probabilities of the frame (baseline)
+						local probLogB, predLabelsB = scoreFramesB:topk(numTopN, true, true) -- 5 (probabilities + labels)     
+						local predFramesB = predLabelsB[{{},1}] -- predicted label of the frame
+				        hitTestFrameClassB = hitTestFrameClassB + predFramesB:eq(c):sum() -- accumulate the score for frame prediction
+						--==== Separate Spatial & Temporal ====--
+						--== Temporal
+						scoreFramesT = scoreFrameTS[1] 
+
+						local probLogT, predLabelsT = scoreFramesT:topk(numTopN, true, true) -- 5 (probabilities + labels)        
+
+						local predFramesT = predLabelsT[{{},1}] -- predicted label of the frame
+
+						hitTestFrameClassT = hitTestFrameClassT + predFramesT:eq(c):sum() -- accumulate the score for frame prediction
+					    
+						--== Spatial
+						scoreFramesS = scoreFrameTS[2] 
+						local probLogS, predLabelsS = scoreFramesS:topk(numTopN, true, true) -- 5 (probabilities + labels)        
+						local predFramesS = predLabelsS[{{},1}] -- predicted label of the frame
+						
+						hitTestFrameClassS = hitTestFrameClassS + predFramesS:eq(c):sum() -- accumulate the score for frame prediction
+				
+					print(predFramesB:eq(c):sum(),predFramesT:eq(c):sum(),predFramesS:eq(c):sum())	
+					    ----------------------
+				        -- Video Prediction --
+				        ----------------------
+					    local predVideoB
+
+					    --==== Separate Spatial & Temporal ====--
+					    local predVideoT
+						local predVideoS
+
+					    if opt.methodPred == 'classVoting' then 
+					       	local predVideoTensor = torch.mode(predFramesB)
+					    	predVideoB = predVideoTensor[1]
+						elseif opt.methodPred == 'scoreMean' then
+							local scoreMean = torch.mean(scoreFramesB,1) -- 1x101
+							local probLogB, predLabelsB = scoreMean:topk(numTopN, true, true) -- 5 (probabilities + labels)
+						   	predVideoB = predLabelsB[{{},1}]
+							
+
+							--==== Separate Spatial & Temporal ====--
+							--== Temporal
+							local scoreMeanT = torch.mean(scoreFramesT,1)
+							local probLogT, predLabelsT = scoreMeanT:topk(numTopN, true, true) -- 5 (probabilities + labels)
+
+							predVideoT = predLabelsT[{{},1}]
+							
+							--== Spatial
+							local scoreMeanS = torch.mean(scoreFramesS,1)
+							local probLogS, predLabelsS = scoreMeanS:topk(numTopN, true, true) -- 5 (probabilities + labels)
+							predVideoS = predLabelsS[{{},1}]
+						end
+					    
+				        -- accumulate the score for video prediction
+				        numTestVideoClass = numTestVideoClass + 1
+				        hitTestVideoClassB = hitTestVideoClassB + predVideoB:eq(c):sum() -- baseline
+						hitTestVideoClassT = hitTestVideoClassT + predVideoT:eq(c):sum() -- temporal
+				        hitTestVideoClassS = hitTestVideoClassS + predVideoS:eq(c):sum() -- spatial
+				    end				        
 			      	collectgarbage()
 			    end
 				Te.c_finished = c -- save the index
@@ -638,8 +702,8 @@ print(videoName[nS])
 	          	----------------------------------------------
 	          	--       Print the prediction results       --
 	          	----------------------------------------------
-					Te.hitTestFrameAll = Te.hitTestFrameAll + hitTestFrameClass
-					local acc_frame_class_ST = hitTestFrameClass/numTestFrameClass
+					Te.hitTestFrameAll = Te.hitTestFrameAll + hitTestFrameClassB
+					local acc_frame_class_ST = hitTestFrameClassB/numTestFrameClass
 					acc_frame_all_ST = Te.hitTestFrameAll/Te.countFrame
 					print('Class frame accuracy: '..acc_frame_class_ST)
 					print('Accumulated frame accuracy: '..acc_frame_all_ST)
@@ -647,8 +711,8 @@ print(videoName[nS])
 					Te.accFrameAll = acc_frame_all_ST
 
 					-- video prediction
-					Te.hitTestVideoAll = Te.hitTestVideoAll + hitTestVideoClass
-					local acc_video_class_ST = hitTestVideoClass/numTestVideoClass
+					Te.hitTestVideoAll = Te.hitTestVideoAll + hitTestVideoClassB
+					local acc_video_class_ST = hitTestVideoClassB/numTestVideoClass
 					acc_video_all_ST = Te.hitTestVideoAll/Te.countVideo
 					print('Class video accuracy: '..acc_video_class_ST)
 					print('Accumulated video accuracy: '..acc_video_all_ST)
