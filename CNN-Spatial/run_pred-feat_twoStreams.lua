@@ -204,8 +204,8 @@ for sp=1,numSplit do
 end
 
 -- Output information --
-namePredTr = 'data_pred_train_'..opt.methodCrop..'_'..numFrameSample..'f_sp'..idSplit..'.t7'
-namePredTe = 'data_pred_test_'..opt.methodCrop..'_'..numFrameSample..'f_sp'..idSplit..'.t7'
+namePredTr = 'data_pred_train_'..opt.methodCrop..'_'..numFrameSample..'f_sp'..idSplit..'_part'..idPart..'.t7'
+namePredTe = 'data_pred_test_'..opt.methodCrop..'_'..numFrameSample..'f_sp'..idSplit..'_part'..idPart..'.t7'
 
 nameFeatTr = {}
 nameFeatTe = {}
@@ -399,8 +399,10 @@ print '==> Processing all the videos...'
 sp = idSplit
 	-- Training data --
 	existTr = opt.save and paths.filep(namePredTr) and paths.filep(nameFeatTr[1]) and paths.filep(nameFeatTr[2])
+	Tr = {} -- output prediction & info
+	featTr = {}
 	if not existData then
-		Tr = {} -- output prediction & info
+	--	Tr = {} -- output prediction & info
 		Tr.countVideo = 0
 		if opt.manualDivide then
 			Tr.countClass = idStart - 1
@@ -410,7 +412,7 @@ sp = idSplit
 		Tr.c_finished = 0 
 
 		--==== Feature (Spatial & Temporal) ====--
-		featTr = {}
+	--	featTr = {}
 		--== Temporal
 		table.insert(featTr,{name = {}, path = {}, featMats = torch.DoubleTensor(), labels = torch.DoubleTensor()})
 		--== Spatial
@@ -424,8 +426,10 @@ sp = idSplit
 
 	existTe = opt.save and paths.filep(namePredTe) and paths.filep(nameFeatTe[1]) and paths.filep(nameFeatTe[2])
 	-- Testing data --
+	Te = {} -- output prediction & info
+        featTe = {}
 	if not existTe then
-		Te = {} -- output prediction & info
+	--	Te = {} -- output prediction & info
 		Te.countFrame = 0
 		Te.countVideo = 0
 		if opt.manualDivide then
@@ -460,7 +464,7 @@ sp = idSplit
 		Te.hitTestVideoAllS = 0
 
 		--==== Feature (Spatial & Temporal) ====--
-		featTe = {}
+		--featTe = {}
 		--== Temporal
 		table.insert(featTe, {name = {}, path = {}, featMats = torch.DoubleTensor(), labels = torch.DoubleTensor()})
 		--== Spatial
