@@ -749,10 +749,10 @@ sp = idSplit
 							featTe[nS].name[Te.countVideo] = videoName[nS]
 							featTe[nS].path[Te.countVideo] = videoPathLocal[nS]
 							if Te.countVideo == 1 then -- the first video
-				        		featTe[nS].featMats = featFrameTS[nS]
+				        		featTe[nS].featMats = featFrameTS[{{nS},{},{}}]
 				        		featTe[nS].labels = torch.DoubleTensor(nCrops):fill(Te.countClass)
 					        else 					-- from the second or the following videos
-					        	featTe[nS].featMats = torch.cat(featTe[nS].featMats,featFrameTS[nS],1)
+					        	featTe[nS].featMats = torch.cat(featTe[nS].featMats,featFrameTS[{{nS},{},{}}],1)
 					        	featTe[nS].labels = torch.cat(featTe[nS].labels,torch.DoubleTensor(nCrops):fill(Te.countClass),1)
 					        end
 						end
@@ -901,6 +901,11 @@ sp = idSplit
 			  		torch.save(namePredTe, Te)
 
 			  		for nS=1,numStream do
+			  			print(featTr[nS].featMats:size())
+			  			print(featTr[nS].labels:size())
+			  			print(featTe[nS].featMats:size())
+			  			print(featTe[nS].labels:size())
+			  			
 				  		torch.save(nameFeatTr[nS], featTr[nS])
 				  		torch.save(nameFeatTe[nS], featTe[nS])
 			  		end
