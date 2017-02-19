@@ -2,16 +2,16 @@
 --  Activity-Recognition-with-CNN-and-RNN
 --  https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN
 --
--- 
---  This is a testing code for implementing the RNN model with LSTM 
---  written by Chih-Yao Ma. 
--- 
---  The code will take feature vectors (from CNN model) from contiguous 
---  frames and train against the ground truth, i.e. the labeling of video classes. 
--- 
+--
+--  This is a testing code for implementing the RNN model with LSTM
+--  written by Chih-Yao Ma.
+--
+--  The code will take feature vectors (from CNN model) from contiguous
+--  frames and train against the ground truth, i.e. the labeling of video classes.
+--
 --  Contact: Chih-Yao Ma at <cyma@gatech.edu>
 ----------------------------------------------------------------
-
+local nn = require 'nn'
 local sys = require 'sys'
 local xlua = require 'xlua'    -- xlua provides useful tools, like progress bars
 local optim = require 'optim'
@@ -25,7 +25,7 @@ local model = m.model
 local criterion = m.criterion
 
 -- This matrix records the current confusion across classes
-local confusion = optim.ConfusionMatrix(classes) 
+local confusion = optim.ConfusionMatrix(classes)
 
 -- Logger:
 local testLogger = optim.Logger(paths.concat(opt.save,'test.log'))
@@ -37,31 +37,44 @@ local targets = torch.Tensor(opt.batchSize)
 local labels = {}
 local prob = {}
 
-if opt.averagePred == true then 
-	predsFrames = torch.Tensor(opt.batchSize, nClass, opt.rho-1)
-end
+-- if opt.averagePred == true then
+-- predsFrames = torch.Tensor(opt.batchSize, nClass, opt.rho-1)
+predsFrames = torch.Tensor(opt.batchSize, nClass, opt.rho - opt.numSegment + 1)
+-- end
 
 if opt.cuda == true then
 	inputs = inputs:cuda()
 	targets = targets:cuda()
-	if opt.averagePred == true then 
-	   predsFrames = predsFrames:cuda()
-	end
 end
 
 -- test function
 function test(testData, testTarget)
 
 	-- local vars
-	local time = sys.clock() 
+	local time = sys.clock()
 	local timer = torch.Timer()
 	local dataTimer = torch.Timer()
+
+	-- replace the JoinTable in model with CAddTable
+	-- model:remove(1)
+	-- model:insert(nn.View(#opt.hiddenSize, opt.batchSize, opt.inputSize, -1),1)
+	-- model:remove(#model.modules)
+	-- model:add(nn.CAddTable())
+
+	if opt.cuda == true then
+		model:cuda()
+	end
+
 	-- Sets Dropout layer to have a different behaviour during evaluation.
-	model:evaluate() 
+	model:evaluate()
 
 	-- test over test data
 	print(sys.COLORS.red .. '==> testing on test set:')
-	
+
+	if opt.testOnly then
+		epoch = 1
+	end
+
 	local top1Sum, top3Sum, lossSum = 0.0, 0.0, 0.0
 	local N = 0
 	for t = 1,testData:size(1),opt.batchSize do
@@ -69,74 +82,132 @@ function test(testData, testTarget)
 		-- disp progress
 		xlua.progress(t, testData:size(1))
 
-		-- batch fits?
-		if (t + opt.batchSize - 1) > testData:size(1) then
-			break
-		end
-
 		-- create mini batch
 		local idx = 1
+		inputs:fill(0)
+		targets:fill(0)
+
 		for i = t,t+opt.batchSize-1 do
-			inputs[idx] = testData[i]:float()
-			targets[idx] = testTarget[i]
-			idx = idx + 1
+			if i <= testData:size(1) then
+				inputs[idx] = testData[i]--:float()
+				targets[idx] = testTarget[i]
+				idx = idx + 1
+			end
 		end
+		local idxBound = idx - 1
 
 		local top1, top3
-		if opt.averagePred == true then 
+		if opt.averagePred == true then
 			-- make prediction for each of the images frames, start from frame #2
 			idx = 1
 			for i = 2, opt.rho do
-				-- extract various length of frames 
+				-- extract various length of frames
 				local Index = torch.range(1, i)
 				local indLong = torch.LongTensor():resize(Index:size()):copy(Index)
 				local inputsPreFrames = inputs:index(3, indLong)
 
+				-- inputsPreFrames = inputsPreFrames:transpose(2,3):transpose(1,2)
+
+				-- enable this when use tri-data method
+				-- replicate the testing data and feed into LSTM cells seperately
+				-- inputsPreFrames = torch.repeatTensor(inputsPreFrames,#opt.hiddenSize,1,1)
+
 				-- feedforward pass the trained model
+				-- print(inputsPreFrames:size())
+				-- local temp = model:forward(inputsPreFrames)
+				-- print(temp)
+				-- error('test')
 				predsFrames[{{},{},idx}] = model:forward(inputsPreFrames)
 
 				idx = idx + 1
 			end
-			-- average all the prediction across all frames
-			preds = torch.mean(predsFrames, 3):squeeze()
-			-- preds = torch.max(predsFrames, 3):squeeze()
-
-			top1, top3 = computeScore(preds, targets, 1)
-			top1Sum = top1Sum + top1*opt.batchSize
-			top3Sum = top3Sum + top3*opt.batchSize
-			N = N + opt.batchSize
-
-			print((' | Test: [%d][%d/%d]    Time %.3f  Data %.3f  top1 %7.3f (%7.3f)  top3 %7.3f (%7.3f)'):format(
-				epoch-1, t, testData:size(1), timer:time().real, dataTime, top1, top1Sum / N, top3, top3Sum / N))
-
-			-- Get the top N class indexes and probabilities
-			local topN = 1
-			local probLog, predLabels = preds:topk(topN, true, true)
 
 			-- Convert log probabilities back to [0, 1]
-			probLog:exp()
+			-- need to fix here
+			predsFrames:exp()
+			-- average all the prediction across all frames
+			preds = torch.mean(predsFrames, 3):squeeze()
+		else
+			-- make prediction for each of the images frames, start depends on # of numSegment
+			-- idx = 1
+			-- for i = opt.numSegment, opt.rho do
+			-- 	-- extract various length of frames
+			-- 	local Index = torch.range(1, i)
+			-- 	local indLong = torch.LongTensor():resize(Index:size()):copy(Index)
+			-- 	local inputsPreFrames = inputs:index(3, indLong)
+			--
+			-- 	local inputsSegments = {}
+			-- 	local segmentBasis = math.floor(i/opt.numSegment)
+			--
+			-- 	for s = 1, opt.numSegment do
+			-- 		table.insert(inputsSegments, inputsPreFrames[{{}, {}, {segmentBasis*(s-1) + 1,segmentBasis*s}}])
+			-- 	end
+			--
+			-- 	predsFrames[{{},{},idx}] = model:forward(inputsSegments):float()
+			--
+			-- 	idx = idx + 1
+			-- end
+			--
+			-- predsFrames:exp()
+			-- -- average all the prediction across all frames
+			-- preds = torch.mean(predsFrames, 3):squeeze()
 
-			idx = 1
-			for i = t,t+opt.batchSize-1 do
+			-- inputsSegments = {inputs[{{}, {}, {1,8}}], inputs[{{}, {}, {9,17}}], inputs[{{}, {}, {18,25}}]}
+			-- inputsSegments = {inputs[{{}, {}, {1,5}}], inputs[{{}, {}, {6,10}}], inputs[{{}, {}, {11,15}}], inputs[{{}, {}, {16,20}}], inputs[{{}, {}, {21,25}}]}
+
+			local inputsSegments = {}
+			local segmentBasis = math.floor(inputs:size(3)/opt.numSegment)
+			for s = 1, opt.numSegment do
+				 table.insert(inputsSegments, inputs[{{}, {}, {segmentBasis*(s-1) + 1,segmentBasis*s}}])
+			end
+
+			preds = model:forward(inputsSegments)
+			preds:exp()
+		end
+
+		-- discard the redundant predictions and targets
+		if (t + opt.batchSize - 1) > testData:size(1) then
+			preds = preds:sub(1,idxBound)
+		end
+
+		top1, top3 = computeScore(preds, targets:sub(1,idxBound), 1)
+		top1Sum = top1Sum + top1*idxBound
+		top3Sum = top3Sum + top3*idxBound
+		N = N + idxBound
+
+		print(('%.3f | Test: [%d][%d/%d] | Time %.3f  Data %.3f  top1 %7.3f (%7.3f)  top3 %7.3f (%7.3f)'):format(
+			bestAcc, epoch-1, t, testData:size(1), timer:time().real, dataTime, top1, top1Sum / N, top3, top3Sum / N))
+
+		-- Get the top N class indexes and probabilities
+		local topN = 3
+		local probLog, predLabels = preds:topk(topN, true, true)
+
+		idx = 1
+		for i = t,t+opt.batchSize-1 do
+			if i <= testData:size(1) then
 				labels[i] = {}
 				prob[i] = {}
 				for j = 1, topN do
-					-- local indClass = predLabels[idx][j]
 					labels[i][j] = classes[predLabels[idx][j]]
 					prob[i][j] = probLog[idx][j]
 				end
 				idx = idx + 1
 			end
-
-		else
-			-- test sample
-			preds = model:forward(inputs)
 		end
 
 		-- confusion
-		for i = 1,opt.batchSize do
-			confusion:add(preds[i], targets[i])
+		for i = 1,idxBound do
+			confusion:add(preds[i], targets:sub(1,idxBound)[i])
 		end
+	end
+
+	-- revert back to the original model for training again
+	-- model:remove(1)
+	-- model:insert(nn.View(#opt.hiddenSize, opt.batchSize/#opt.hiddenSize, opt.inputSize, -1),1)
+	-- model:remove(#model.modules)
+	-- model:add(nn.JoinTable(1))
+	if opt.cuda == true then
+		model:cuda()
 	end
 
 	-- timing
@@ -150,17 +221,21 @@ function test(testData, testTarget)
   	-- print confusion matrix
   	print(confusion)
 
+  	assert(#labels == testData:size(1), 'predictions dimension mismatch with testing data..')
+
   	-- if the performance is so far the best..
   	local bestModel = false
 	if confusion.totalValid * 100 >= bestAcc then
 		bestModel = true
 		bestAcc = confusion.totalValid * 100
 		-- save the labels and probabilities into file
-		torch.save('labels.txt', labels,'ascii')
-		torch.save('prob.txt', prob,'ascii')
+		torch.save(opt.save .. '/labels.txt', labels,'ascii')
+		torch.save(opt.save .. '/prob.txt', prob,'ascii')
 
 		if opt.saveModel == true then
-			checkpoints.save(epoch-1, model, optimState, bestModel)
+			if confusion.totalValid * 100 >= 92 then
+				checkpoints.save(epoch-1, model, optimState, bestModel, confusion.totalValid*100)
+			end
 		end
 	end
 	print(sys.COLORS.red .. '==> Best testing accuracy = ' .. bestAcc .. '%')
@@ -178,6 +253,7 @@ function test(testData, testTarget)
 		testLogger:plot()
 	end
 	confusion:zero()
+
 end
 
 function computeScore(output, target)
@@ -203,4 +279,3 @@ end
 
 -- Export:
 return test
-

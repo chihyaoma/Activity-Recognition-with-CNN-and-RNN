@@ -2,12 +2,8 @@
 --  Activity-Recognition-with-CNN-and-RNN
 --  https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN
 --
--- 
---  This is a testing code for implementing the RNN model with LSTM 
---  written by Chih-Yao Ma. 
--- 
---  The code will take feature vectors (from CNN model) from contiguous 
---  frames and train against the ground truth, i.e. the labeling of video classes. 
+--  Temporal Dynamic Model: Multidimensional LSTM and Temporal ConvNet
+--  
 -- 
 --  Contact: Chih-Yao Ma at <cyma@gatech.edu>
 ----------------------------------------------------------------
@@ -15,7 +11,6 @@
 local sys = require 'sys'
 local xlua = require 'xlua'    -- xlua provides useful tools, like progress bars
 local optim = require 'optim'
-local pastalog = require 'pastalog'
 
 print(sys.COLORS.red .. '==> defining some tools')
 
@@ -51,7 +46,7 @@ optimState = optimState or {
 -- Retrieve parameters and gradients:
 -- this extracts and flattens all the trainable parameters of the mode
 -- into a 1-dim vector
-local params, gradParams = model:getParameters()
+local w,dE_dw = model:getParameters()
 
 function train(trainData, trainTarget)
 
@@ -65,23 +60,17 @@ function train(trainData, trainTarget)
 
    -- shuffle at each epoch
    local shuffle = torch.randperm(trainData:size(1))
-   -- local shuffle = torch.linspace(1, trainData:size(1), trainData:size(1)) -- no random for testing
-
-   local function feval()
-      -- clip gradient element-wise
-      gradParams:clamp(-opt.gradClip, opt.gradClip)
-      return criterion.output, gradParams
-   end
-
-   local top1Sum, top3Sum, lossSum = 0.0, 0.0, 0.0
-   local N = 0
 
    print(sys.COLORS.green .. '==> doing epoch on training data:') 
    print("==> online epoch # " .. epoch .. ' [batchSize = ' .. opt.batchSize .. ']')
 
    -- adjust learning rate
    optimState.learningRate = adjustLR(opt.learningRate, epoch)
+
    print(sys.COLORS.yellow ..  '==> Learning rate is: ' .. optimState.learningRate .. '')
+
+   local top1Sum, top3Sum, lossSum = 0.0, 0.0, 0.0
+   local N = 0
 
    for t = 1,trainData:size(1),opt.batchSize do
       local dataTime = dataTimer:time().real
@@ -100,65 +89,57 @@ function train(trainData, trainTarget)
       -- create mini batch
       local idx = 1
       for i = t,t+opt.batchSize-1 do
-         inputs[idx] = trainData[shuffle[i]]--:float()
+         inputs[idx] = trainData[shuffle[i]]:float()
          targets[idx] = trainTarget[shuffle[i]]
          idx = idx + 1
       end
 
-      -- local repeatTarget = {}
-      -- if opt.seqCriterion == true then
-      --    repeatTarget = torch.repeatTensor(targets,opt.rho,1):transpose(1,2)
-      -- end
-
-      -- local inputs_SeqLSTM = inputs:transpose(2,3):transpose(1,2)
-
-      local inputsSegments = {}
-      local segmentBasis = math.floor(inputs:size(3)/opt.numSegment)
-      for s = 1, opt.numSegment do
-         table.insert(inputsSegments, inputs[{{}, {}, {segmentBasis*(s-1) + 1,segmentBasis*s}}])
-      end
-      
-      local output = model:forward(inputsSegments):float()
-      local batchSize = output:size(1)
-      local loss = criterion:forward(model.output, targets)
-
-      model:zeroGradParameters()
-      criterion:backward(model.output, targets)
-      model:backward(inputsSegments, criterion.gradInput)
-
-      local top1, top3 = computeScore(output, targets, 1)
-      top1Sum = top1Sum + top1*batchSize
-      top3Sum = top3Sum + top3*batchSize
-      lossSum = lossSum + loss*batchSize
-      N = N + batchSize
-
       --------------------------------------------------------
       -- Using optim package for training
       --------------------------------------------------------
+      local loss, top1, top3
+      local eval_E = function(w)
+         -- reset gradients
+         dE_dw:zero()
+
+         -- evaluate function for complete mini batch
+         local outputs = model:forward(inputs)
+         loss = criterion:forward(outputs,targets)
+
+         -- estimate df/dW
+         local dE_dy = criterion:backward(outputs,targets)
+         model:backward(inputs,dE_dy)
+
+         top1, top3 = computeScore(outputs, targets, 1)
+         top1Sum = top1Sum + top1*opt.batchSize
+         top3Sum = top3Sum + top3*opt.batchSize
+         lossSum = lossSum + loss*opt.batchSize
+         N = N + opt.batchSize
+
+         -- return f and df/dX
+         return loss,dE_dw
+      end
+
       -- optimize on current mini-batch
       if opt.optimizer == 'sgd' then
          -- use SGD
-         optim.sgd(feval, params, optimState)
+         optim.sgd(eval_E, w, optimState)
       elseif opt.optimizer == 'adam' then
          -- use adam
-         optim.adam(feval, params, optimState)
+         optim.adam(eval_E, w, optimState)
       elseif opt.optimizer == 'adamax' then
          -- use adamax
-         optim.adamax(feval, params, optimState)
+         optim.adamax(eval_E, w, optimState)
       elseif opt.optimizer == 'rmsprop' then
          -- use RMSProp
-         optim.rmsprop(feval, params, optimState)
-      end 
+         optim.rmsprop(eval_E, w, optimState)
+      end    
 
-      print(('%.3f | Epoch: [%d][%d/%d]    Time %.3f  Data %.3f  Err %1.4f  top1 %7.3f  top3 %7.3f'):format(
-         bestAcc, epoch, t, trainData:size(1), timer:time().real, dataTime, loss, top1, top3))
-
-      local modelName = 'DropOut=' .. opt.dropout
-      local trainSeriesName = 'train-top1-' .. opt.pastalogName
-      pastalog(modelName, trainSeriesName, top1, (epoch-1)*trainData:size(1) + t, 'http://ct5250-12.ece.gatech.edu:8120/data')
+      print((' | Epoch: [%d][%d/%d]    Time %.3f  Data %.3f  Err %1.4f  top1 %7.3f  top3 %7.3f'):format(
+         epoch, t, trainData:size(1), timer:time().real, dataTime, loss, top1, top3))
 
       -- check that the storage didn't get changed do to an unfortunate getParameters call
-      assert(params:storage() == model:parameters()[1]:storage())
+      assert(w:storage() == model:parameters()[1]:storage())
 
       timer:reset()
       dataTimer:reset()
