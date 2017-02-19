@@ -47,20 +47,17 @@ CNN as baseline, CNN + RNN [(LRCN)](http://jeffdonahue.com/lrcn/), Temporal CNN
 alt="IMAGE ALT TEXT HERE" width="360" height="270" border="10" /></a>
 </p>
 
-The above YouTube video demonstrates the top-3 predictions results of our LRCN and temporal CNN model. The text on the top is the ground truth, three texts are the predictions for each of the method, and the bar right next to the predictions are how confident the model makes predictions.  
+The above YouTube video demonstrates the top-3 predictions results of our LRCN and temporal CNN model. The text on the top is the ground truth, three texts are the predictions for each of the method, and the bar right next to the predictions are how confident the model makes predictions. 
 
+
+<p align="center">
+<img src="https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/figures/demo.gif?raw=true" width="250">
+<img src="https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/figures/demo-1.gif?raw=true" width="250">
+<img src="https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/figures/demo-2.gif?raw=true" width="250">
+</p>
 ---
 ## Dataset
-We are currently using [UCF101](http://crcv.ucf.edu/data/UCF101.php) dataset for our project. This dataset has 13320 videos from 101 action categories.
-<p align="center">
-<img src="http://crcv.ucf.edu/images/slideshow/UCF101.png" alt="UCF101 Dataset" height="200" align="middle">
-</p>
-
-We will move onto [Sports-1M](http://cs.stanford.edu/people/karpathy/deepvideo/) dataset to see how much our performance will be changed in the near future.
-
-<p align="center">
-<img src="/figures/Sport1M.jpg" alt="SPORTS-1M Dataset" height="200">
-</p>
+We are currently using [UCF101](http://crcv.ucf.edu/data/UCF101.php) and [HMDB51](http://serre-lab.clps.brown.edu/resource/hmdb-a-large-human-motion-database/) dataset for our project.
 
 
 ---
@@ -147,9 +144,9 @@ After you downloaded the feature vectors, please modify the code in *./RNN/data.
 
 To start the training process, go to *./RNN* and simply execute:
 ```bash
-$ th RNN_LSTM.lua
+$ th main.lua
 ```
-The training and testing performance will be plotted, and the results will be saved into log files. The learning rate and best testing accuracy will be reported each epoch if there is any update.
+The training and testing loss will be reported, and the results will be saved into log files. The learning rate and best testing accuracy will be reported each epoch if there is any update.
 
 #### Temporal CNN
 To start the training process, go to *./TCNN* and simply execute:
@@ -168,7 +165,7 @@ This work was initialized as a class project for deep learning class in Georgia 
 
 #### This is an ongoing project. Please contact us if you have any questions.
 
-[Chih-Yao Ma](http://shallowdown.wix.com/chih-yao-ma) at <cyma@gatech.edu> or [[LinkedIn]](https://www.linkedin.com/in/chih-yao-ma-9b5b3063)
+[Chih-Yao Ma](http://shallowdown.wix.com/chih-yao-ma/me) at <cyma@gatech.edu> or [[LinkedIn]](https://www.linkedin.com/in/chih-yao-ma-9b5b3063)
 
 [Min-Hung Chen](https://www.linkedin.com/in/chensteven) at <cmhungsteve@gatech.edu>
 
