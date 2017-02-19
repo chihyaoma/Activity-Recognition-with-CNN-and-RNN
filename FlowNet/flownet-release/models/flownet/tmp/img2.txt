@@ -1,1 +1,0 @@
-data/frame2.png
