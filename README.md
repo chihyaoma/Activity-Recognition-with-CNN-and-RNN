@@ -1,8 +1,11 @@
-# LRCN and Temporal CNN for Activity Recognition #
+# Activity Recognition with RNN and Temporal-ConvNet
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 [Chih-Yao Ma](http://shallowdown.wixsite.com/chih-yao-ma/me)\*, [Min-Hung Chen](https://www.linkedin.com/in/chensteven)\*
 
 (\* equal contribution)
+
+
 
 
 ### This project will soon be largely revised and updated. Please stay tuned.
@@ -47,7 +50,7 @@ CNN as baseline, CNN + RNN [(LRCN)](http://jeffdonahue.com/lrcn/), Temporal CNN
 alt="IMAGE ALT TEXT HERE" width="360" height="270" border="10" /></a>
 </p>
 
-The above YouTube video demonstrates the top-3 predictions results of our LRCN and temporal CNN model. The text on the top is the ground truth, three texts are the predictions for each of the method, and the bar right next to the predictions are how confident the model makes predictions. 
+The above YouTube video demonstrates the top-3 predictions results of our LRCN and temporal CNN model. The text on the top is the ground truth, three texts are the predictions for each of the method, and the bar right next to the predictions are how confident the model makes predictions.
 
 
 <p align="center">
