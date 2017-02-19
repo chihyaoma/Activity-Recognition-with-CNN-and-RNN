@@ -27,9 +27,9 @@ CNN as baseline, CNN + RNN [(LRCN)](http://jeffdonahue.com/lrcn/), Temporal CNN
   <td align = "center"> Temporal CNN </td>
 </tr>
 <tr>
-<td> <img src="/figures/cnn.png" alt="CNN as baseline" height="120"></td>
-<td> <img src="/figures/lrcn.png" alt="CNN + RNN (LRCN)" height="120"></td>
-<td> <img src="/figures/tnn.png" alt="Temporal CNN" height="120"> </td>
+<td> <img src="https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/figures/cnn.png?raw=true" alt="CNN as baseline" height="120"></td>
+<td> <img src="https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/figures/lrcn.png?raw=true" alt="CNN + RNN (LRCN)" height="120"></td>
+<td> <img src="https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/figures/tnn.png?raw=true" alt="Temporal CNN" height="120"> </td>
 </tr>
 </table>
 
@@ -64,7 +64,7 @@ We are currently using [UCF101](http://crcv.ucf.edu/data/UCF101.php) and [HMDB51
 ## Installation
 Our work is currently implemented in Torch, and depends on the following packages: torch/torch7, torch/nn, torch/nngraph, torch/image, cudnn ...
 
-If you are on Ubuntu, please follow the instruction here to install Torch. For a more comprehensive installation guilde, please check [Torch installation](http://torch.ch/docs/getting-started.html).
+If you are on Ubuntu, please follow the instruction here to install Torch. For a more comprehensive installation guilde, please check [Torch installation](http://torch.ch/docs/getting-started.html) or [Self-contained Torch installation](https://github.com/torch/distro).
 
 ```bash
 $ git clone https://github.com/torch/distro.git ~/torch --recursive
@@ -88,17 +88,17 @@ $ luarocks install xlua
 $ luarocks install optim
 ```
 If you would like to use CUDA on your NVIDIA graphic card, you will need to install [CUDA toolkit](https://developer.nvidia.com/cuda-toolkit) and some additional packages.
-For installing CUDA 7.5 on Ubuntu:
+For installing CUDA 8.0 on Ubuntu:
 ```bash
 # cd to where the downloaded file located, and then
-$ sudo dpkg -i cuda-repo-ubuntu1404_7.5-18_amd64.deb
+$ sudo dpkg -i cuda-repo-ubuntu1404-8-0-local_8.0.44-1_amd64.deb
 $ sudo apt-get update
 # install cuda using apt-get
 $ sudo apt-get install cuda
 ```
 add the following lines to your ~/.bashrc file
 ```bash
-export CUDA_HOME=/usr/local/cuda-7.5
+export CUDA_HOME=/usr/local/cuda-8.0
 export LD_LIBRARY_PATH=${CUDA_HOME}/lib64
 
 PATH=${CUDA_HOME}/bin:${PATH}
@@ -118,10 +118,10 @@ You **need to** install the CUDNN package properly since we use the pre-trained 
 Then, follow this instruction:
 ```bash
 # cd to where the downloaded file located, and then
-$ tar -xzvf cudnn-7.5-linux-x64-v5.0-ga.tgz
+$ tar -zxf cudnn-8.0-linux-x64-v5.1.tgz
 $ cd cuda
-$ sudo cp lib64* /usr/local/cuda/lib64/
-$ sudo cp include/cudnn.h /usr/local/cuda/include/
+$ sudo cp -a lib64/* /usr/local/cuda/lib64/
+$ sudo cp include/* /usr/local/cuda/include/
 $ luarocks install cudnn
 ```
 
@@ -148,7 +148,7 @@ $ th main.lua
 ```
 The training and testing loss will be reported, and the results will be saved into log files. The learning rate and best testing accuracy will be reported each epoch if there is any update.
 
-#### Temporal CNN
+#### Temporal-ConvNet
 To start the training process, go to *./TCNN* and simply execute:
 ```bash
 $ qlua run.lua -r 15e-5
@@ -168,5 +168,3 @@ This work was initialized as a class project for deep learning class in Georgia 
 [Chih-Yao Ma](http://shallowdown.wix.com/chih-yao-ma/me) at <cyma@gatech.edu> or [[LinkedIn]](https://www.linkedin.com/in/chih-yao-ma-9b5b3063)
 
 [Min-Hung Chen](https://www.linkedin.com/in/chensteven) at <cmhungsteve@gatech.edu>
-
-Last updated: 06/27/2016
