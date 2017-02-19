@@ -1,12 +1,16 @@
 # LRCN and Temporal CNN for Activity Recognition #
 
-[Chih-Yao Ma](http://shallowdown.wix.com/chih-yao-ma)\*, [Min-Hung Chen](https://www.linkedin.com/in/chensteven)\*
+[Chih-Yao Ma](http://shallowdown.wixsite.com/chih-yao-ma/me)\*, [Min-Hung Chen](https://www.linkedin.com/in/chensteven)\*
 
 (\* equal contribution)
 
+
+### This project will soon be largely revised and updated. Please stay tuned.
+
+
+
 ---
 ## Abstract
-This is an ongoing project.
 
 We examine and implement several leading deep learning techniques for Human Activity Recognition (video classification), while proposing and investigating a novel convolution on temporally-constructed feature vectors.
 

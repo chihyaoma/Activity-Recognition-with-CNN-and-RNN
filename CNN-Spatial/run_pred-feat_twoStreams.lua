@@ -36,7 +36,7 @@ op:option{'-dB', '--nameDatabase', action='store', dest='nameDatabase',
 op:option{'-sT', '--stream', action='store', dest='stream',
           help='type of optical stream (FlowMap-TVL1-crop20 | FlowMap-Brox)', default='FlowMap-TVL1-crop20'}
 op:option{'-iSp', '--idSplit', action='store', dest='idSplit',
-          help='index of the split set', default=2}
+          help='index of the split set', default=1}
 
 op:option{'-iP', '--idPart', action='store', dest='idPart',
           help='index of the divided part', default=1}
@@ -715,10 +715,10 @@ sp = idSplit
 
 				        --====== feature ======--
 				        local feat_now = net[nS].modules[10].output:float() -- 25x2048
-				        feat_now = feat_now:transpose(1,2)
+					feat_now = feat_now:transpose(1,2)
 				        local featFrame_now = feat_now:reshape(1, table.unpack(feat_now:size():totable())):double() -- 1x2048x25
 				        featFrameTS[nS] = featFrame_now
-
+					
 				    end
 					
 				    ------------------------------------------------------------------
@@ -733,10 +733,10 @@ sp = idSplit
 							featTr[nS].name[Tr.countVideo] = videoName[nS]
 							featTr[nS].path[Tr.countVideo] = videoPathLocal[nS]
 							if Tr.countVideo == 1 then -- the first video
-				        		featTr[nS].featMats = featFrameTS[nS]
+				        		featTr[nS].featMats = featFrameTS[{{nS},{},{}}]
 				        		featTr[nS].labels = torch.DoubleTensor(nCrops):fill(Tr.countClass)
 					        else 					-- from the second or the following videos
-					        	featTr[nS].featMats = torch.cat(featTr[nS].featMats,featFrameTS[nS],1)
+					        	featTr[nS].featMats = torch.cat(featTr[nS].featMats,featFrameTS[{{nS},{},{}}],1)
 					        	featTr[nS].labels = torch.cat(featTr[nS].labels,torch.DoubleTensor(nCrops):fill(Tr.countClass),1)
 					        end
 						end
@@ -749,10 +749,10 @@ sp = idSplit
 							featTe[nS].name[Te.countVideo] = videoName[nS]
 							featTe[nS].path[Te.countVideo] = videoPathLocal[nS]
 							if Te.countVideo == 1 then -- the first video
-				        		featTe[nS].featMats = featFrameTS[nS]
+				        		featTe[nS].featMats = featFrameTS[{{nS},{},{}}]
 				        		featTe[nS].labels = torch.DoubleTensor(nCrops):fill(Te.countClass)
 					        else 					-- from the second or the following videos
-					        	featTe[nS].featMats = torch.cat(featTe[nS].featMats,featFrameTS[nS],1)
+					        	featTe[nS].featMats = torch.cat(featTe[nS].featMats,featFrameTS[{{nS},{},{}}],1)
 					        	featTe[nS].labels = torch.cat(featTe[nS].labels,torch.DoubleTensor(nCrops):fill(Te.countClass),1)
 					        end
 						end
@@ -901,6 +901,11 @@ sp = idSplit
 			  		torch.save(namePredTe, Te)
 
 			  		for nS=1,numStream do
+			  			print(featTr[nS].featMats:size())
+			  			print(featTr[nS].labels:size())
+			  			print(featTe[nS].featMats:size())
+			  			print(featTe[nS].labels:size())
+			  			
 				  		torch.save(nameFeatTr[nS], featTr[nS])
 				  		torch.save(nameFeatTe[nS], featTe[nS])
 			  		end
@@ -915,13 +920,13 @@ sp = idSplit
 
 	-- Final Outputs --
 	print('Total frame numbers: '..Te.countFrame)
-	print('Total frame accuracy for the whole dataset: '..acc_frame_all_ST)
-	print('Total frame accuracy for the whole dataset (Temporal): '..acc_frame_all_T)
-	print('Total frame accuracy for the whole dataset (Spatial): '..acc_frame_all_S)
+	print('Total frame accuracy for the whole dataset: '..Te.accFrameAll)
+	print('Total frame accuracy for the whole dataset (Temporal): '..Te.accFrameAllT)
+	print('Total frame accuracy for the whole dataset (Spatial): '..Te.accFrameAllS)
 	print('Total video numbers: '..Te.countVideo)
-	print('Total video accuracy for the whole dataset: '..acc_video_all_ST)
-	print('Total video accuracy for the whole dataset (Temporal): '..acc_video_all_T)
-	print('Total video accuracy for the whole dataset (Spatial): '..acc_video_all_S)
+	print('Total video accuracy for the whole dataset: '..Te.accVideoAll)
+	print('Total video accuracy for the whole dataset (Temporal): '..Te.accVideoAllT)
+	print('Total video accuracy for the whole dataset (Spatial): '..Te.accVideoAllS)
 	
 	fd:write(acc_frame_all_S, ' ', acc_video_all_S, ' ', acc_frame_all_T, ' ', acc_video_all_T, ' ', acc_frame_all_ST, ' ', acc_video_all_ST, '\n')
 		
