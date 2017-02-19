@@ -109,8 +109,8 @@ local spaTrainData, spaTestData, spaTrainTarget, spaTestTarget
 
 if opt.spatial == true then
    -- training and testing data from UCF101 website
-   assert(paths.filep(paths.concat(opt.spatFeatDir, 'data_feat_train_RGB_centerCrop_25f_sp3.t7')), 'no spatial training feature file found.')
-   local spaTrainFeatureLabels = torch.load(paths.concat(opt.spatFeatDir, 'data_feat_train_RGB_centerCrop_25f_sp3.t7'))
+   assert(paths.filep(paths.concat(opt.spatFeatDir, 'data_feat_train_RGB_centerCrop_25f_sp1.t7')), 'no spatial training feature file found.')
+   local spaTrainFeatureLabels = torch.load(paths.concat(opt.spatFeatDir, 'data_feat_train_RGB_centerCrop_25f_sp1.t7'))
    spaTrainData = spaTrainFeatureLabels.featMats
 
    -- check if there are enough frames to extract and extract
@@ -122,8 +122,8 @@ if opt.spatial == true then
    end
    spaTrainTarget = spaTrainFeatureLabels.labels
 
-   assert(paths.filep(paths.concat(opt.spatFeatDir, 'data_feat_test_RGB_centerCrop_25f_sp3.t7')), 'no spatial testing feature file found.')
-   local spaTestFeatureLabels = torch.load(paths.concat(opt.spatFeatDir, 'data_feat_test_RGB_centerCrop_25f_sp3.t7'))
+   assert(paths.filep(paths.concat(opt.spatFeatDir, 'data_feat_test_RGB_centerCrop_25f_sp1.t7')), 'no spatial testing feature file found.')
+   local spaTestFeatureLabels = torch.load(paths.concat(opt.spatFeatDir, 'data_feat_test_RGB_centerCrop_25f_sp1.t7'))
    spaTestData = spaTestFeatureLabels.featMats
 
    if opt.averagePred == false then 
@@ -144,8 +144,8 @@ local tempTrainData, tempTestData, tempTrainTarget, tempTestTarget
 
 if opt.temporal == true then
    -- training and testing data from UCF101 website
-   assert(paths.filep(paths.concat(opt.tempFeatDir, 'data_feat_train_FlowMap-TVL1-crop20_centerCrop_25f_sp3.t7')), 'no temporal training feature file found.')
-   local tempTrainFeatureLabels = torch.load(paths.concat(opt.tempFeatDir, 'data_feat_train_FlowMap-TVL1-crop20_centerCrop_25f_sp3.t7'))
+   assert(paths.filep(paths.concat(opt.tempFeatDir, 'data_feat_train_FlowMap-TVL1-crop20_centerCrop_25f_sp1.t7')), 'no temporal training feature file found.')
+   local tempTrainFeatureLabels = torch.load(paths.concat(opt.tempFeatDir, 'data_feat_train_FlowMap-TVL1-crop20_centerCrop_25f_sp1.t7'))
    tempTrainData = tempTrainFeatureLabels.featMats
 
    -- check if there are enough frames to extract and extract
@@ -158,8 +158,8 @@ if opt.temporal == true then
 
    tempTrainTarget = tempTrainFeatureLabels.labels
 
-   assert(paths.filep(paths.concat(opt.tempFeatDir, 'data_feat_test_FlowMap-TVL1-crop20_centerCrop_25f_sp3.t7')), 'no temporal testing feature file found.')
-   local tempTestFeatureLabels = torch.load(paths.concat(opt.tempFeatDir, 'data_feat_test_FlowMap-TVL1-crop20_centerCrop_25f_sp3.t7'))
+   assert(paths.filep(paths.concat(opt.tempFeatDir, 'data_feat_test_FlowMap-TVL1-crop20_centerCrop_25f_sp1.t7')), 'no temporal testing feature file found.')
+   local tempTestFeatureLabels = torch.load(paths.concat(opt.tempFeatDir, 'data_feat_test_FlowMap-TVL1-crop20_centerCrop_25f_sp1.t7'))
    tempTestData = tempTestFeatureLabels.featMats
 
    if opt.averagePred == false then 

@@ -65,6 +65,7 @@ function train(trainData, trainTarget)
 
    -- shuffle at each epoch
    local shuffle = torch.randperm(trainData:size(1))
+   -- local shuffle = torch.linspace(1, trainData:size(1), trainData:size(1)) -- no random for testing
 
    local function feval()
       -- clip gradient element-wise
@@ -99,7 +100,7 @@ function train(trainData, trainTarget)
       -- create mini batch
       local idx = 1
       for i = t,t+opt.batchSize-1 do
-         inputs[idx] = trainData[shuffle[i]]:float()
+         inputs[idx] = trainData[shuffle[i]]--:float()
          targets[idx] = trainTarget[shuffle[i]]
          idx = idx + 1
       end
@@ -111,16 +112,19 @@ function train(trainData, trainTarget)
 
       -- local inputs_SeqLSTM = inputs:transpose(2,3):transpose(1,2)
 
-      -- print(inputs:size())
-      -- error('test')
-
-      local output = model:forward(inputs):float()
+      local inputsSegments = {}
+      local segmentBasis = math.floor(inputs:size(3)/opt.numSegment)
+      for s = 1, opt.numSegment do
+         table.insert(inputsSegments, inputs[{{}, {}, {segmentBasis*(s-1) + 1,segmentBasis*s}}])
+      end
+      
+      local output = model:forward(inputsSegments):float()
       local batchSize = output:size(1)
       local loss = criterion:forward(model.output, targets)
 
       model:zeroGradParameters()
       criterion:backward(model.output, targets)
-      model:backward(inputs, criterion.gradInput)
+      model:backward(inputsSegments, criterion.gradInput)
 
       local top1, top3 = computeScore(output, targets, 1)
       top1Sum = top1Sum + top1*batchSize
@@ -146,8 +150,8 @@ function train(trainData, trainTarget)
          optim.rmsprop(feval, params, optimState)
       end 
 
-      print((' | Epoch: [%d][%d/%d]    Time %.3f  Data %.3f  Err %1.4f  top1 %7.3f  top3 %7.3f'):format(
-         epoch, t, trainData:size(1), timer:time().real, dataTime, loss, top1, top3))
+      print(('%.3f | Epoch: [%d][%d/%d]    Time %.3f  Data %.3f  Err %1.4f  top1 %7.3f  top3 %7.3f'):format(
+         bestAcc, epoch, t, trainData:size(1), timer:time().real, dataTime, loss, top1, top3))
 
       local modelName = 'DropOut=' .. opt.dropout
       local trainSeriesName = 'train-top1-' .. opt.pastalogName
