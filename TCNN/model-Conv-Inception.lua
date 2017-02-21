@@ -50,22 +50,17 @@ local nstate_CNN_2 = {nstate_CNN_1[1]*2, nstate_CNN_1[1]*2} -- neuron # after co
 local nstate_CNN_3 = {nstate_CNN_2[1]*2, nstate_CNN_2[1]*2} -- neuron # after convolution
 local nstate_CNN_4 = {nstate_CNN_3[1]*2, nstate_CNN_3[1]*2} -- neuron # after convolution
 local nstate_FC = 1024 -- neuron # after 1st FC & 2nd FC
--- local nstate_FC_all = 1024 -- neuron # after the last FC
 
 local convsize = {5,7} 
 local convpad  = {(convsize[1]-1)/2,(convsize[2]-1)/2}
 local convstep_1 = {1,1}
 local convstep_2 = {2,2}
--- local convpad  = {0,(convsize[2]-convsize[1])/2}
 
 --local poolsize = {3,4}
 local poolsize_1 = 2
 local poolstep_1 = poolsize_1
 local poolsize_2 = 3
 local poolstep_2 = poolsize_2
-
--- local numConvLayer = torch.log(nframeUse)/torch.log(poolsize)
--- local numConvLayer = torch.floor(nframeUse/(convsize[1]-1))
 
 local numFlow = #convsize
 -- local numFlow = 1
@@ -89,11 +84,6 @@ if opt.model == 'model-Conv-Inception' then
    		local CNN_flows = nn.ConcatTable()
 	   	for n=1,numFlow do
 	      	local CNN_1L = nn.Sequential()
-
-	     --  	CNN_1L:add(nn.SpatialConvolutionMM(inDim,outDim[n],1,1,1,1,0,0)) -- 25 --> 25 
-		    -- if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(outDim[n])) end
-		    -- CNN_1L:add(nn.ReLU())
-		    -- -- if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(outDim[n])) end
 
 		    CNN_1L:add(nn.SpatialConvolutionMM(inDim,outDim[n],convSize[n],1,convStep[n],1,convPad[n],0)) -- 25 --> 25 
 		    if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(outDim[n])) end
@@ -135,10 +125,8 @@ if opt.model == 'model-Conv-Inception' then
 	local ninputFC = (nstate_CNN_4[1]*numFlow)*nfeature
     model:add(nn.Reshape(ninputFC))
     model:add(nn.Linear(ninputFC,nstate_FC))
-    -- if opt.batchNormalize == 'Yes' then model:add(nn.BatchNormalization(nstate_FC)) end
     model:add(nn.BatchNormalization(nstate_FC))
     model:add(nn.ReLU())
-    -- if opt.batchNormalize == 'Yes' then model:add(nn.BatchNormalization(nstate_FC)) end
 
    	model:add(nn.Linear(nstate_FC,noutputs)) -- output layer (output: 101 prediction probability)	
    	-- stage 4 : log probabilities
