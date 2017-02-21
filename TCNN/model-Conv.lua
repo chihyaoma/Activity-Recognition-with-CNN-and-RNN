@@ -2,8 +2,8 @@
 -- CS8803DL Spring 2016 (Instructor: Zsolt Kira)
 -- Final Project: Video Classification
 
--- 2-flow
--- by pooling with size 2 ==> dim. for frame: 25 --> 12 --> 6 --> 3 --> 1
+-- single-flow
+-- reduce dim. by convolution (25 --> 23 --> 21 --> ... --> 1)
 
 -- TODO:
 -- 1. change nstate
@@ -44,30 +44,22 @@ local dimMap = 1
 
 -- hidden units, filter sizes  	
 ---- 2-flow	
--- local nstate_CNN = {dimMap, dimMap} -- neuron # after convolution
-local nstate_CNN_1 = {4, 4} -- neuron # after convolution
-local nstate_CNN_2 = {8, 8} -- neuron # after convolution
-local nstate_CNN_3 = {16, 16} -- neuron # after convolution
-local nstate_CNN_4 = {32, 32} -- neuron # after convolution
-local nstate_FC = {1024, 1024} -- neuron # after 1st FC
+local nstate_CNN = dimMap -- neuron # after convolution
+local nstate_FC = 1024 -- neuron # after 1st FC
 -- local nstate_FC_all = 1024 -- neuron # after the last FC
 
-local convsize_1 = {1,9} 
-local convpad_1  = {(convsize_1[1]-1)/2,(convsize_1[2]-1)/2}
-local convsize_2 = {3,9} 
-local convpad_2  = {(convsize_2[1]-1)/2,(convsize_2[2]-1)/2}
-local convstep_1 = {1,1}
-local convstep_2 = {2,2}
--- local convpad  = {0,(convsize[2]-convsize[1])/2}
+local convsize = 3
+-- local convpad  = (convsize-1)/2 -- size don't change after convolution
+local convpad  = 0
+local convstep_1 = 1
 
---local poolsize = {3,4}
-local poolsize_1 = 2
-local poolstep_1 = poolsize_1
-local poolsize_2 = 3
-local poolstep_2 = poolsize_2
+-- local poolsize_1 = 2
+-- local poolstep_1 = poolsize_1
+-- local poolsize_2 = 3
+-- local poolstep_2 = poolsize_2
 
 -- local numConvLayer = torch.log(nframeUse)/torch.log(poolsize)
--- local numConvLayer = torch.floor(nframeUse/(convsize[1]-1))
+local numConvLayer = torch.floor(nframeUse/(convsize-1))
 
 -- local numFlow = #convsize
 local numFlow = 1
@@ -85,7 +77,7 @@ if opt.model == 'model-Conv' then
    	model_name = 'model_best'
 
    	-------------------------------------
-   	--  Multi-Flow 1-layer CNN  --
+   	--  Single-Flow Multi-Conv CNN  --
    	-------------------------------------
    	local CNN_flows = nn.ConcatTable()
 
@@ -93,60 +85,37 @@ if opt.model == 'model-Conv' then
    	for n=1,numFlow do
       	-- local ninputFC = nstate_CNN[n]*nfeature*torch.floor(nframeUse/torch.pow(poolsize,numConvLayer)) -- temporal kernel
       	-- local ninputFC = nstate_CNN[n]*nfeature*(nframeUse-(convsize[1]-1)*numConvLayer) -- temporal kernel
-      	local ninputFC = nstate_CNN_4[n]*nfeature
+      	local ninputFC = nstate_CNN*nfeature
 
       	local CNN_1L = nn.Sequential()
 
-	    CNN_1L:add(nn.SpatialConvolutionMM(dimMap,nstate_CNN_1[n],convsize_2[n],1,convstep_1[n],1,convpad_2[n],0)) -- 25 --> 25 
-	    if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN_1[n])) end
-	    CNN_1L:add(nn.ReLU())
-	    -- -- if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN[n])) end
-	    CNN_1L:add(nn.SpatialMaxPooling(poolsize_1,1,poolstep_1,1)) -- 25 --> 12
+      	-- stage 0: input --> first layer
+      	CNN_1L:add(nn.SpatialConvolutionMM(dimMap,nstate_CNN,convsize,1,convstep,1,convpad,0)) -- 25 --> 23
+		if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN)) end
+		CNN_1L:add(nn.ReLU())
+	    -- if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN[n])) end
 	    -- CNN_1L:add(nn.SpatialDropout(dropout1)) -- dropout
 
-	    CNN_1L:add(nn.SpatialConvolutionMM(nstate_CNN_1[n],nstate_CNN_2[n],convsize_2[n],1,convstep_1[n],1,convpad_2[n],0)) -- 12 --> 12 
-	    if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN_2[n])) end
-	    CNN_1L:add(nn.ReLU())
-	    -- if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN[n])) end
-	    CNN_1L:add(nn.SpatialMaxPooling(poolsize_1,1,poolstep_1,1)) -- 12 --> 6
-	    -- CNN_1L:add(nn.SpatialDropout(dropout1)) -- dropout
-
-	    CNN_1L:add(nn.SpatialConvolutionMM(nstate_CNN_2[n],nstate_CNN_3[n],convsize_2[n],1,convstep_1[n],1,convpad_2[n],0)) -- 6 --> 6
-	    if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN_3[n])) end
-	    CNN_1L:add(nn.ReLU())
-	    -- if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN[n])) end
-	    -- CNN_1L:add(nn.SpatialConvolutionMM(nstate_CNN_3[n],nstate_CNN_3[n],convsize_2[n],1,convstep_1[n],1,convpad_2[n],0)) -- 6 --> 6
-	    -- if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN_3[n])) end
-	    -- CNN_1L:add(nn.ReLU())
-	    -- -- if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN[n])) end
-	    CNN_1L:add(nn.SpatialMaxPooling(poolsize_1,1,poolstep_1,1)) -- 6 --> 3
-	    -- CNN_1L:add(nn.SpatialDropout(dropout1)) -- dropout
-
-		CNN_1L:add(nn.SpatialConvolutionMM(nstate_CNN_3[n],nstate_CNN_4[n],convsize_2[n],1,convstep_1[n],1,convpad_2[n],0)) -- 3 --> 3
-	    if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN_4[n])) end
-	    CNN_1L:add(nn.ReLU())
-	    -- if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN[n])) end
-	    -- CNN_1L:add(nn.SpatialConvolutionMM(nstate_CNN_4[n],nstate_CNN_4[n],convsize_2[n],1,convstep_1[n],1,convpad_2[n],0)) -- 3 --> 3
-	    -- if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN_4[n])) end
-	    -- CNN_1L:add(nn.ReLU())
-	    -- -- if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN[n])) end
-	    CNN_1L:add(nn.SpatialMaxPooling(poolsize_2,1,poolstep_2,1)) -- 3 --> 1
+      	-- stage 1: (conv --> BN --> ReLU)*(numConvLayer-1)
+      	for m=1,numConvLayer-1 do
+      		CNN_1L:add(nn.SpatialConvolutionMM(nstate_CNN,nstate_CNN,convsize,1,convstep,1,convpad,0)) -- size - 2 
+		    if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN)) end
+		    CNN_1L:add(nn.ReLU())
+	    	-- -- if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN[n])) end
+	    	-- CNN_1L:add(nn.SpatialDropout(dropout1)) -- dropout
+      	end
 	    CNN_1L:add(nn.SpatialDropout(dropout1)) -- dropout
-
-	    -- CNN_1L:add(nn.SpatialAveragePooling(poolsize_2,1,poolstep_2,1)) -- 3 --> 1
-	    -- CNN_1L:add(nn.SpatialDropout(dropout1)) -- dropout
-      	
-
+	    
       	-- stage 2: linear -> ReLU
       	CNN_1L:add(nn.Reshape(ninputFC))
-      	CNN_1L:add(nn.Linear(ninputFC,nstate_FC[n]))
-      	-- if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.BatchNormalization(nstate_FC[n])) end
+      	CNN_1L:add(nn.Linear(ninputFC,nstate_FC))
+      	if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.BatchNormalization(nstate_FC)) end
       	CNN_1L:add(nn.ReLU())
-		if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.BatchNormalization(nstate_FC[n])) end
+		-- if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.BatchNormalization(nstate_FC)) end
       	-- CNN_1L:add(nn.Dropout(dropout2)) -- dropout
       	
     	CNN_flows:add(CNN_1L)
-   		noutput_1L[n] = nstate_FC[n]
+   		noutput_1L[n] = nstate_FC
    		-- noutput_1L[n] = ninputFC
    	end
       

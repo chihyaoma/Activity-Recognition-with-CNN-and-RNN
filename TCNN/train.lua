@@ -18,8 +18,14 @@ require 'image'
 local t
 if opt.model == 'model-Conv' then
   t = require 'model-Conv'
-elseif opt.model == 'model-Conv-MultiFlow' then
-  t = require 'model-Conv-MultiFlow'
+elseif opt.model == 'model-Conv-VGG' then
+  t = require 'model-Conv-VGG'
+elseif opt.model == 'model-Conv-Inception' then
+  t = require 'model-Conv-Inception'
+elseif opt.model == 'model-Conv-Inception-TemSeg3' then
+  t = require 'model-Conv-Inception-TemSeg3'
+elseif opt.model == 'model-Conv-Inception-TemSeg5' then
+  t = require 'model-Conv-Inception-TemSeg5'
 elseif opt.model == 'model-1L-MultiFlow' then
   t = require 'model-1L-MultiFlow'
 elseif opt.model == 'model-1L-SplitST' then
@@ -129,17 +135,45 @@ local epoch
 local function data_augmentation(inputs)
 		-- TODO: appropriate augmentation methods
         -- DATA augmentation (only random 1-D cropping here)
-		local i = torch.random(1,nframeAll-nframeUse+1)
-		local outputs = inputs[{{},{},{i,i+nframeUse-1}}]
+    local frameSkip = nframeAll - nframeUse
+		-- -- 1. crop a clip of video
+  --   local i = torch.random(1,frameSkip+1)
+		-- local outputs = inputs[{{},{},{i,i+nframeUse-1}}]
+		-- return outputs
+
+    -- 2. randomly drop frames
+    local nframe = nframeAll
+    local outputs = inputs:clone()
+    for t = 1,frameSkip do      
+      local id = torch.random(nframe)
+      nframe = nframe-1
+
+      if id == 1 then
+        outputs = outputs[{{},{},{2,nframe+1}}]
+      elseif id == nframe+1 then
+        outputs = outputs[{{},{},{1,nframe}}]
+      else
+        local clip_1 = outputs[{{},{},{1,id-1}}]
+        local clip_2 = outputs[{{},{},{id+1,nframe+1}}]
+        outputs = torch.cat(clip_1,clip_2,3)
+      end      
+    end
 		return outputs
-		
 end
+
+local LR_ini = optimState.learningRate
 
 local function train(trainData)
    model:training()
 
    -- epoch tracker
    epoch = epoch or 1
+
+   -- update the learning rate
+   local decayPower = math.floor((epoch-1)/9)
+   local LR_new = LR_ini * math.pow(0.1,decayPower)
+   optimState.learningRate = LR_new
+   print(optimState)
 
    -- local vars
    local time = sys.clock()
@@ -166,9 +200,13 @@ local function train(trainData)
       local idx = 1
       for i = t,t+batchSize-1 do
       	 local i_shuf = shuffle[i]
-         x[{{(idx-1)*nCrops+1,idx*nCrops},1}] = data_augmentation(trainData.data[{{(i_shuf-1)*nCrops+1,i_shuf*nCrops}}])
+         
+         x[{{(idx-1)*nCrops+1,idx*nCrops}}] = data_augmentation(trainData.data[{{(i_shuf-1)*nCrops+1,i_shuf*nCrops}}])
+
+         -- print(x:size())
          -- x[{idx,1}] = trainData.data[shuffle[i]]
          yt[{{(idx-1)*nCrops+1,idx*nCrops}}] = trainData.labels[{{(i_shuf-1)*nCrops+1,i_shuf*nCrops}}]
+
          idx = idx + 1
       end
 
@@ -181,13 +219,20 @@ local function train(trainData)
             local y
             local x_final
             if opt.model == 'model-1L-SplitST' then
-              x_final = x[{{},{},{1,nfeature/2},{}}],x[{{},{},{nfeature/2+1,nfeature},{}}]
+              x_final = {x[{{},{},{1,nfeature/2},{}}],x[{{},{},{nfeature/2+1,nfeature},{}}]}
+            elseif opt.model == 'model-Conv-Inception-TemSeg3' then
+              x_final = {x[{{},{},{},{1,8}}],x[{{},{},{},{9,17}}],x[{{},{},{},{18,25}}]}
+            elseif opt.model == 'model-Conv-Inception-TemSeg5' then
+              x_final = {x[{{},{},{},{1,5}}],x[{{},{},{},{6,10}}],x[{{},{},{},{11,15}}],x[{{},{},{},{16,20}}],x[{{},{},{},{21,25}}]}
+              -- print(x_final)
+              -- error(test)
             else
               x_final = x
             end
             -- x_final = x_final:transpose(2,3)-- transpose (BN x 1 x 4096 x 25 --> BN x 4096 x 1 x 25)
             y = model:forward(x_final)
-
+            -- print(y:size())
+            -- error(test)
             local E = loss:forward(y,yt)
 
             -- estimate df/dW
