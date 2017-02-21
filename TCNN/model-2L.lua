@@ -2,8 +2,8 @@
 -- CS8803DL Spring 2016 (Instructor: Zsolt Kira)
 -- Final Project: Video Classification
 
--- Create CNN and loss to optimize.
--- parameters for the Res-101 network
+-- 2-flow
+-- by pooling with size 2 ==> dim. for frame: 25 --> 12 --> 6 --> 3 --> 1
 
 -- TODO:
 -- 1. change nstate
@@ -11,7 +11,7 @@
 
 -- modified by Min-Hung Chen
 -- contact: cmhungsteve@gatech.edu
--- Last updated: 10/11/2016
+-- Last updated: 01/14/2017
 
 require 'torch'   -- torch
 require 'nn'      -- provides all sorts of trainable modules/layers
@@ -30,7 +30,7 @@ print '==> processing options'
 print(sys.COLORS.red ..  '==> define parameters')
 
 -- 101 classes problem
-local noutputs = 101
+local noutputs = #data.classes
 
 -- input: 
 local frameSkip = 0
@@ -38,93 +38,117 @@ local nframeAll = data.trainData.data:size(3)
 local nframeUse = nframeAll - frameSkip
 local nfeature = data.trainData.data:size(2)
 local bSize = tonumber(opt.batchSize)
-local dropout = tonumber(opt.dropout)
+local dropout1 = tonumber(opt.dropout1)
+local dropout2 = tonumber(opt.dropout2)
 local dimMap = 1
 
+-- hidden units, filter sizes  	
+---- 2-flow	
+-- local nstate_CNN = {dimMap, dimMap} -- neuron # after convolution
+local nstate_CNN_1 = {1, 1} -- neuron # after convolution
+local nstate_CNN_2 = {nstate_CNN_1[1], nstate_CNN_1[1]} -- neuron # after convolution
+local nstate_CNN_3 = {nstate_CNN_2[1], nstate_CNN_2[1]} -- neuron # after convolution
+local nstate_CNN_4 = {nstate_CNN_3[1], nstate_CNN_3[1]} -- neuron # after convolution
+local nstate_FC = {1024, 1024} -- neuron # after 1st FC & 2nd FC
+-- local nstate_FC_all = 1024 -- neuron # after the last FC
 
--- hidden units, filter sizes (for ConvNet only): 		
-local nstates = {4,32,768}
-local convsize = {5,13} 
-local convstep = {1,1}
-local convpad  = {(convsize[1]-1)/2, (convsize[2]-1)/2}
-local poolsize = {2, 2}
-local poolstep = {2, 2}
+local convsize_1 = {1,9} 
+local convpad_1  = {(convsize_1[1]-1)/2,(convsize_1[2]-1)/2}
+local convsize_2 = {5,7} 
+local convpad_2  = {(convsize_2[1]-1)/2,(convsize_2[2]-1)/2}
+local convstep_1 = {1,1}
+local convstep_2 = {2,2}
+-- local convpad  = {0,(convsize[2]-convsize[1])/2}
+
+--local poolsize = {3,4}
+local poolsize_1 = 2
+local poolstep_1 = poolsize_1
+local poolsize_2 = 3
+local poolstep_2 = poolsize_2
+
+-- local numConvLayer = torch.log(nframeUse)/torch.log(poolsize)
+-- local numConvLayer = torch.floor(nframeUse/(convsize[1]-1))
+
+-- local numFlow = #convsize_2
+local numFlow = 1
 
 ----------------------------------------------------------------------
 local model = nn.Sequential()
 local model_name = "model"
 
--- ------------------------------------
--- -- Full-connected layer for input --
--- ------------------------------------
--- local batch_FC = nn.Sequential()
--- -- 1. dispart the mini-patch feature maps to lots of feature vectors
--- batch_FC:add(nn.SplitTable(1)) -- split the mini-batches into single feature maps
-
--- local vectorTable = nn.ParallelTable()
--- for b=1,bSize do 
---    vectorTable:add(nn.SplitTable(-1)) -- split one feature map into feature vectors
--- end
--- batch_FC:add(vectorTable)
-
--- -- 2. duplicate thr fully-connected layer to fit the input
--- local mapFC = nn.MapTable():add(nn.MapTable():add(nn.Linear(nfeature,nfeature)))
--- batch_FC:add(mapFC)
-
--- -- 3. convert the whole table back to the original mini-batch
--- local combineTable = nn.ParallelTable()
--- for b=1,bSize do 
---    combineTable:add(nn.JoinTable(-1)) -- merge all the vectors back to map
--- end
--- batch_FC:add(combineTable)
-
--- local viewTable = nn.ParallelTable()
--- for b=1,bSize do 
---    viewTable:add(nn.View(dimMap,nfeature,nframeUse)) -- (1,4096*25) --> (1,4096,25)
--- end
--- batch_FC:add(viewTable)
-
--- batch_FC:add(nn.JoinTable(1)) -- merge all the maps back to mini-batch
--- batch_FC:add(nn.View(bSize,dimMap,nfeature,nframeUse)) -- 32x1x4096x25
-
 -----------------------
 -- Main Architecture --
 -----------------------
 if opt.model == 'model-2L' then
-   print(sys.COLORS.red ..  '==> construct 2-layer T-CNN')
+   	print(sys.COLORS.red ..  '==> construct T-CNN w/o dropout and pooling')
 
-   model_name = 'model_best'
+   	model_name = 'model_best'
 
-   ---- stage 0: mini-batch FC
-   --model:add(batch_FC)
+   	-------------------------------------
+   	--  Multi-Flow 1-layer CNN  --
+   	-------------------------------------
+   	local CNN_flows = nn.ConcatTable()
 
-   -- stage 1: conv -> ReLU -> Pooling
-   model:add(nn.SpatialConvolutionMM(dimMap,nstates[1],convsize[1],1,convstep[1],1,convpad[1],0))
-   if opt.batchNormalize == 'Yes' then model:add(nn.SpatialBatchNormalization(nstates[1])) end
-   model:add(nn.ReLU())
-   model:add(nn.SpatialMaxPooling(poolsize[1],1,poolstep[1],1))
-   model:add(nn.SpatialDropout(0.3)) -- dropout
+   	local noutput_1L = torch.zeros(numFlow)
+   	for n=1,numFlow do
+      	-- local ninputFC = nstate_CNN[n]*nfeature*torch.floor(nframeUse/torch.pow(poolsize,numConvLayer)) -- temporal kernel
+      	-- local ninputFC = nstate_CNN[n]*nfeature*(nframeUse-(convsize[1]-1)*numConvLayer) -- temporal kernel
+      	local ninputFC = nstate_CNN_2[n]*nfeature*6
 
-   -- stage 2: conv -> ReLU -> Pooling   
-   model:add(nn.SpatialConvolutionMM(nstates[1],nstates[2],convsize[2],1,convstep[2],1,convpad[2],0))
-   if opt.batchNormalize == 'Yes' then model:add(nn.SpatialBatchNormalization(nstates[2])) end
-   model:add(nn.ReLU()) 
-   model:add(nn.SpatialMaxPooling(poolsize[2],1,poolstep[2],1))
-   model:add(nn.SpatialDropout(0.3)) -- dropout
-   
-   -- stage 3: linear -> ReLU -> linear
-   local ninputFC = nstates[2]*nfeature*torch.floor(torch.floor(nframeUse/poolsize[1])/poolsize[2]) -- temporal kernel
+      	local CNN_1L = nn.Sequential()
 
-   model:add(nn.Reshape(ninputFC))
-   model:add(nn.Linear(ninputFC,nstates[3]))
-   if opt.batchNormalize == 'Yes' then model:add(nn.BatchNormalization(nstates[3])) end
-   model:add(nn.ReLU())
-   model:add(nn.Dropout(0.8)) -- dropout
+	    CNN_1L:add(nn.SpatialConvolutionMM(dimMap,nstate_CNN_1[n],convsize_2[n],1,convstep_1[n],1,convpad_2[n],0)) -- 25 --> 25 
+	    if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN_1[n])) end
+	    CNN_1L:add(nn.ReLU())
+	    -- -- if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN[n])) end
+	    CNN_1L:add(nn.SpatialMaxPooling(poolsize_1,1,poolstep_1,1)) -- 25 --> 12
+	    -- CNN_1L:add(nn.SpatialDropout(dropout1)) -- dropout
 
-   model:add(nn.Linear(nstates[3],noutputs))
+	    CNN_1L:add(nn.SpatialConvolutionMM(nstate_CNN_1[n],nstate_CNN_2[n],convsize_2[n],1,convstep_1[n],1,convpad_2[n],0)) -- 12 --> 12 
+	    if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN_2[n])) end
+	    CNN_1L:add(nn.ReLU())
+	    -- if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.SpatialBatchNormalization(nstate_CNN[n])) end
+	    CNN_1L:add(nn.SpatialMaxPooling(poolsize_1,1,poolstep_1,1)) -- 12 --> 6
+	    -- CNN_1L:add(nn.SpatialDropout(dropout1)) -- dropout
 
-   -- stage 4 : log probabilities
-   model:add(nn.LogSoftMax())
+	   
+	    CNN_1L:add(nn.SpatialDropout(dropout1)) -- dropout
+
+	    -- CNN_1L:add(nn.SpatialAveragePooling(poolsize_2,1,poolstep_2,1)) -- 3 --> 1
+	    -- CNN_1L:add(nn.SpatialDropout(dropout1)) -- dropout
+      	
+
+      	-- stage 2: linear -> ReLU
+      	CNN_1L:add(nn.Reshape(ninputFC))
+      	CNN_1L:add(nn.Linear(ninputFC,nstate_FC[n]))
+      	-- if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.BatchNormalization(nstate_FC[n])) end
+         CNN_1L:add(nn.BatchNormalization(nstate_FC[n])) 
+      	CNN_1L:add(nn.ReLU())
+		-- if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.BatchNormalization(nstate_FC[n])) end
+      --    CNN_1L:add(nn.Linear(nstate_FC[n],nstate_FC[n]))
+      --    if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.BatchNormalization(nstate_FC[n])) end
+      --    CNN_1L:add(nn.ReLU())
+      -- -- if opt.batchNormalize == 'Yes' then CNN_1L:add(nn.BatchNormalization(nstate_FC[n])) end
+      	-- CNN_1L:add(nn.Dropout(dropout2)) -- dropout
+      	
+    	CNN_flows:add(CNN_1L)
+   		noutput_1L[n] = nstate_FC[n]
+   		-- noutput_1L[n] = ninputFC
+   	end
+      
+   	model:add(CNN_flows)
+
+   	------------------------------
+
+   	
+   	--  Combine multiple flows  --
+   	------------------------------
+   	model:add(nn.JoinTable(2)) -- merge two streams: bSizex(dim1+dim2+dim3)
+   	-- model:add(nn.Dropout(opt.dropout)) -- dropout
+   	local ninputFC_all = noutput_1L:sum()
+   	model:add(nn.Linear(ninputFC_all,noutputs)) -- output layer (output: 101 prediction probability)	
+   	-- stage 4 : log probabilities
+	model:add(nn.LogSoftMax())
 
 end
    
@@ -134,6 +158,7 @@ loss = nn.ClassNLLCriterion()
 ----------------------------------------------------------------------
 print(sys.COLORS.red ..  '==> here is the network:')
 print(model)
+print('Multi-Flow method: '..opt.typeMF)
 
 if opt.type == 'cuda' then
    model:cuda()

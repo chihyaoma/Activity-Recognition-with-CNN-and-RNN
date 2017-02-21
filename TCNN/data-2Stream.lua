@@ -31,7 +31,7 @@ elseif source == 'workstation' then
 	dirSource = '/home/chih-yao/Downloads/'
 end
 
-dirFeature = dirSource..'Features/'
+dirFeature = dirSource..'Features/'..opt.dataset..'/'
 -- dirFeature = dirSource..'Features/feat-10fps/'
 
 ----------------------------------------------
@@ -125,15 +125,47 @@ end
 dataTrain = nil
 collectgarbage()
 
+-- --------------------
+-- -- pre-processing --
+-- --------------------
+-- -- calculate residual
+-- local dataTr_rshift = torch.zeros(trainData.data:size())
+-- dataTr_rshift[{{},{},{2,numFrame}}] = trainData.data[{{},{},{1,numFrame-1}}]
+-- dataTr_rshift[{{},{},{1}}] = trainData.data[{{},{},{numFrame}}]
+-- trainData.data = trainData.data - dataTr_rshift
+
+-- local dataTe_rshift = torch.zeros(testData.data:size())
+-- dataTe_rshift[{{},{},{2,numFrame}}] = testData.data[{{},{},{1,numFrame-1}}]
+-- dataTe_rshift[{{},{},{1}}] = testData.data[{{},{},{numFrame}}]
+-- testData.data = testData.data - dataTe_rshift
+
+
+-- -- calculate mean, std
+-- local dataMean = trainData.data:mean(1):mean(3)
+-- local dataStd = trainData.data:std(1):std(3)
+-- -- replicate to match the dimension
+-- local dataMean_repTr = dataMean:expand(trsize, dimFeat, numFrame)
+-- local dataStd_repTr = dataStd:expand(trsize, dimFeat, numFrame)
+-- local dataMean_repTe = dataMean:expand(tesize, dimFeat, numFrame)
+-- local dataStd_repTe = dataStd:expand(tesize, dimFeat, numFrame)
+
+-- trainData.data = torch.cdiv((trainData.data - dataMean_repTr),dataStd_repTr)
+-- testData.data = torch.cdiv((testData.data - dataMean_repTe),dataStd_repTe)
+
 print(trainData)
 print(testData)
-
------- classes in UCF-11 ----
+print(trainData.data:mean())
+print(testData.data:mean())
+----------------------------
+--         Classes        --
+----------------------------
+------ UCF-11 ----
 -- classes = {'basketball','biking','diving','golf_swing','horse_riding','soccer_juggling',
 -- 			'swing','tennis_swing','trampoline_jumping','volleyball_spiking','walking'}
 
----- classes in UCF-101 ----
-classes = {
+------ UCF-101 & HMDB-51 ----
+if opt.dataset == 'UCF-101' then
+  classes = {
 "BoxingSpeedBag", "Surfing", "FloorGymnastics", "IceDancing", "Lunges", "Swing", "SkyDiving", "MilitaryParade", "PlayingPiano", "Punch",
 "HulaHoop", "VolleyballSpiking", "Skijet", "JavelinThrow", "LongJump", "Mixing", "Shotput", "BandMarching", "Kayaking", "StillRings",
 "PushUps", "Archery", "FieldHockeyPenalty", "BoxingPunchingBag", "PlayingCello", "FrontCrawl", "Billiards", "Rowing", "ApplyLipstick", "TrampolineJumping",
@@ -146,6 +178,16 @@ classes = {
 "SalsaSpin", "ShavingBeard", "Basketball", "Knitting", "RockClimbingIndoor", "Haircut", "Biking", "Fencing", "Rafting", "PlayingDaf",
 "HammerThrow"
 }
+elseif opt.dataset == 'HMDB-51' then
+  classes = {
+  "brush_hair", "kick_ball", "ride_horse", "pour", "jump", "smile", "stand", "shake_hands", "flic_flac", 
+  "golf", "wave", "cartwheel", "clap", "dive", "ride_bike", "turn", "chew", "draw_sword", "push", "hug", 
+  "shoot_gun", "pullup", "sit", "smoke", "somersault", "shoot_bow", "kick", "kiss", "shoot_ball", "run", 
+  "walk", "situp", "sword", "drink", "pushup", "fall_floor", "climb", "hit", "laugh", "eat", "pick", 
+  "swing_baseball", "dribble", "talk", "climb_stairs", "catch", "fencing", "punch", "throw", 
+  "sword_exercise", "handstand"
+}
+end
 table.sort(classes)
 
 return {

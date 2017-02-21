@@ -46,8 +46,14 @@ print(sys.COLORS.red .. '==> defining some tools')
 local t
 if opt.model == 'model-Conv' then
   t = require 'model-Conv'
-elseif opt.model == 'model-Conv-MultiFlow' then
-  t = require 'model-Conv-MultiFlow'
+elseif opt.model == 'model-Conv-VGG' then
+  t = require 'model-Conv-VGG'
+elseif opt.model == 'model-Conv-Inception' then
+  t = require 'model-Conv-Inception'
+elseif opt.model == 'model-Conv-Inception-TemSeg3' then
+  t = require 'model-Conv-Inception-TemSeg3'
+elseif opt.model == 'model-Conv-Inception-TemSeg5' then
+  t = require 'model-Conv-Inception-TemSeg5'
 elseif opt.model == 'model-1L-MultiFlow' then
   t = require 'model-1L-MultiFlow'
 elseif opt.model == 'model-1L-SplitST' then
@@ -136,7 +142,11 @@ function test(testData, classes, epo)
       local preds
       local input_final
       if opt.model == 'model-1L-SplitST' then
-         input_final = inputs[{{},{},{1,nfeature/2},{}}],inputs[{{},{},{nfeature/2+1,nfeature},{}}]
+         input_final = {inputs[{{},{},{1,nfeature/2},{}}],inputs[{{},{},{nfeature/2+1,nfeature},{}}]}
+      elseif opt.model == 'model-Conv-Inception-TemSeg3' then
+         input_final = {inputs[{{},{},{},{1,8}}],inputs[{{},{},{},{9,17}}],inputs[{{},{},{},{18,25}}]}
+      elseif opt.model == 'model-Conv-Inception-TemSeg5' then
+         input_final = {inputs[{{},{},{},{1,5}}],inputs[{{},{},{},{6,10}}],inputs[{{},{},{},{11,15}}],inputs[{{},{},{},{16,20}}],inputs[{{},{},{},{21,25}}]}
       else
          input_final = inputs
       end

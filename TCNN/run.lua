@@ -23,26 +23,27 @@ require 'nn'      -- provides all sorts of trainable modules/layers
 print(sys.COLORS.red ..  '==> processing options')
 
 opt = lapp[[
-   -e,--epoch	 	         (default 50)			   epoch number
+   -e,--epoch	 	         (default 15)			   epoch number
    -z,--sourcePath         (default local)         source path (local | workstation)
-   -r,--learningRate       (default 1e-3)          learning rate
+   -r,--learningRate       (default 1e-4)          learning rate
    -l,--learningRateDecay  (default 1e-7)          learning rate decay (in # samples)
-   -w,--weightDecay        (default 1e-5)          L2 penalty on the weights
-   -m,--momentum           (default 0.1)           momentum
-   -b,--batchSize          (default 16)            batch size
+   -w,--weightDecay        (default 1e-1)          L2 penalty on the weights
+   -m,--momentum           (default 0.9)           momentum
+   -b,--batchSize          (default 32)            batch size
    -t,--threads            (default 2)             number of threads
    -p,--type               (default cuda)          float or cuda
    -i,--devid              (default 1)             device ID (if using CUDA)
    -o,--save               (default results)       save directory
-   -s,--splitId            (default 3)             split number
-   -d,--dropout1           (default 0.3)           dropout amount (spatial dropout)
+   -s,--splitId            (default 1)             split number
+   -d,--dropout1           (default 0.1)           dropout amount (spatial dropout)
+      --dataset            (default UCF-101)       datset (UCF-101 | HMDB-51)
       --idPart             (default 0)             part of data (0 means full-data)
-	   --dropout2           (default 0.3)           dropout amount (dropout)
-      --model              (default model-Conv)      network model (model-Conv | model-Conv-MultiFlow | model-1L-MultiFlow | model-1L | model-2L | model-1L-SplitST)
+	   --dropout2           (default 0)           dropout amount (dropout)
+      --model              (default model-Conv-Inception)      network model (model-Conv | model-Conv-VGG | model-Conv-Inception | model-Conv-Inception-TemSeg | model-1L | model-2L)
       --typeMF             (default Joint-LS)        multi-flow type (LS-Add | S-Add-L | Add-LS | Add-S | Joint-LS | Joint-S | Joint-FC-LS | Joint-FC-S | LS-Joint-LS)
       --batchNormalize	   (default Yes)		   do batch-normalization or not
       --methodCrop         (default centerCrop)    cropping method (tenCrop | centerCrop | centerCropMirror | centerCropFlip)
-      --optMethod          (default sgd)           optimization method
+      --optMethod          (default adam)           optimization method
       --plot               (default No)       	   plot the training and test accuracies (Yes | No)
       --saveModel          (default No)            save the model or not (Yes | No)
 ]]
