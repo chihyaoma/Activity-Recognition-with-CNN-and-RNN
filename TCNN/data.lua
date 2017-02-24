@@ -1,12 +1,7 @@
 -- Georgia Institute of Technology 
--- CS8803DL Spring 2016 (Instructor: Zsolt Kira)
--- Final Project: Video Classification
+-- Deep Learning for Video Classification
 
 -- Load Data and separate training and testing samples
-
--- TODO:
--- 1. subtract by mean (?)
--- 2. cross-validation 
 
 -- modified by Min-Hung Chen
 -- contact: cmhungsteve@gatech.edu

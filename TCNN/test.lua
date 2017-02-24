@@ -1,16 +1,11 @@
 -- Georgia Institute of Technology 
--- CS8803DL Spring 2016 (Instructor: Zsolt Kira)
--- Final Project: Video Classification
+-- Deep Learning for Video Classification
 
 -- This script implements a test procedure, to report accuracy on the test data
 
--- TODO:
--- 1. 
--- 2. 
-
 -- modified by Min-Hung Chen
 -- contact: cmhungsteve@gatech.edu
--- Last updated: 10/22/2016
+-- Last updated: 02/24/2017
 
 
 require 'torch'   -- torch
@@ -80,8 +75,8 @@ local testLogger = optim.Logger(paths.concat(opt.save,'test.log'))
 local nCrops
 if opt.methodCrop == 'centerCropFlip' then
   nCrops = 2
--- elseif opt.methodCrop == 'tenCrop' then
---   nCrops = 10
+elseif opt.methodCrop == 'tenCrop' then
+  nCrops = 10
 else 
   nCrops = 1
 end
@@ -90,7 +85,6 @@ local numTestVideo = testData:size(1)/nCrops
 
 -- Batch test:
 local batchSize = tonumber(opt.batchSize)
--- print('testing batch size: '..batchSize)
 local inputs = torch.Tensor(batchSize*nCrops,1, nfeature, nframeUse) -- get size from data
 local targets = torch.Tensor(batchSize*nCrops)
 if opt.type == 'cuda' then 
@@ -119,7 +113,7 @@ function test(testData, classes, epo)
    local prob = {}
    for t = 1,numTestVideo,batchSize do
       -- disp progress
-	  collectgarbage()
+      collectgarbage()
       xlua.progress(t, numTestVideo)
 
       -- batch fits?
@@ -150,15 +144,10 @@ function test(testData, classes, epo)
       else
          input_final = inputs
       end
-      -- input_final = input_final:transpose(2,3)-- transpose (BN x 1 x 4096 x 25 --> BN x 4096 x 1 x 25)
       preds = model:forward(input_final)
 
       preds = preds[{{1,bSize*nCrops}}] -- for the last few test data
       targets_batch = targets[{{1,bSize*nCrops}}] -- for the last few test data
-
-      -- print(inputs[{{},1,1,{}}])
-      -- print(preds)
-      -- print(targets_batch)
 
       ---- Compute n-Crop score ----
       preds = preds:view(preds:size(1) / nCrops, nCrops, preds:size(2)):exp():mean(2):squeeze(2)
@@ -167,21 +156,8 @@ function test(testData, classes, epo)
       -- Get the top N class indexes and probabilities
       local N = 3
       local probLog, predLabels = preds:topk(N, true, true)
-
-      -- print(predLabels)
-      -- error(test)
-      
-      -- Convert log probabilities back to [0, 1]
-      -- probLog:exp()
-
-      -- --print(preds:size())
-      -- _,indices = torch.sort(preds,2,true)
-      -- predlabels = indices[{{},1}]
-      -- --print(predlabels:size())
-
       
       for i = 1,bSize do
-         --predlabeltxt[i-1+t] = classes[predlabels[i]]
          predlabeltxt[i-1+t] = {}
          prob[i-1+t] = {}
          for j = 1, N do
@@ -190,15 +166,6 @@ function test(testData, classes, epo)
          end
 
       end
-
-      -- idx = 1
-      -- for i = t,t+bSize-1 do
-      --    -- inputs[{idx,1}] = testData.data[{i,{},{1,nframeUse}}]
-      --    -- targets[idx] = testData.labels[i]
-      --    predlabeltxt[i] = classes[predlabels[idx]]
-      --    idx = idx + 1
-      -- end
-
 
       -- confusion
       for i = 1,bSize do
@@ -226,7 +193,6 @@ function test(testData, classes, epo)
       -- save/log current net
       if opt.saveModel == 'Yes' then
          local filename = paths.concat(opt.save, model_name..'.t7')
-         -- os.execute('mkdir -p ' .. sys.dirname(filename))
          print('==> saving model to '..filename)
          --model1 = model:clone()
          --netLighter(model1)

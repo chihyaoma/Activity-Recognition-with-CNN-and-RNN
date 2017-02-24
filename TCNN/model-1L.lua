@@ -1,17 +1,9 @@
 -- Georgia Institute of Technology 
--- CS8803DL Spring 2016 (Instructor: Zsolt Kira)
--- Final Project: Video Classification
-
--- 2-flow
--- by pooling with size 2 ==> dim. for frame: 25 --> 12 --> 6 --> 3 --> 1
-
--- TODO:
--- 1. change nstate
--- 2. change convsize, convstep, poolsize, poolstep
+-- Deep Learning for Video Classification
 
 -- modified by Min-Hung Chen
 -- contact: cmhungsteve@gatech.edu
--- Last updated: 01/14/2017
+-- Last updated: 02/24/2017
 
 require 'torch'   -- torch
 require 'nn'      -- provides all sorts of trainable modules/layers
