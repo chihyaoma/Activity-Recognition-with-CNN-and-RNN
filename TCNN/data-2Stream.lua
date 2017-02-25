@@ -1,16 +1,11 @@
 -- Georgia Institute of Technology 
--- CS8803DL Spring 2016 (Instructor: Zsolt Kira)
--- Final Project: Video Classification
+-- Deep Learning for Video Classification
 
 -- Load Data and separate training and testing samples
 
--- TODO:
--- 1. subtract by mean (?)
--- 2. cross-validation 
-
 -- modified by Min-Hung Chen
 -- contact: cmhungsteve@gatech.edu
--- Last updated: 10/11/2016
+-- Last updated: 02/24/2017
 
 
 require 'torch'   -- torch
@@ -31,7 +26,7 @@ elseif source == 'workstation' then
 	dirSource = '/home/chih-yao/Downloads/'
 end
 
-dirFeature = dirSource..'Features/'
+dirFeature = dirSource..'Features/'..opt.dataset..'/'
 -- dirFeature = dirSource..'Features/feat-10fps/'
 
 ----------------------------------------------
@@ -105,8 +100,6 @@ dataTrainAll = nil
 collectgarbage()
 
 -- information for the data
--- local dimFeat = dataTrain.featMats:size(2)
--- local numFrame = dataTrain.featMats:size(3)
 local trsize = (#dataTrain.labels)[1]
 local shuffleTrain = torch.randperm(trsize)
 
@@ -125,15 +118,20 @@ end
 dataTrain = nil
 collectgarbage()
 
+-- --------------------
+-- -- pre-processing --
+-- --------------------
 print(trainData)
 print(testData)
+print(trainData.data:mean())
+print(testData.data:mean())
+----------------------------
+--         Classes        --
+----------------------------
 
------- classes in UCF-11 ----
--- classes = {'basketball','biking','diving','golf_swing','horse_riding','soccer_juggling',
--- 			'swing','tennis_swing','trampoline_jumping','volleyball_spiking','walking'}
-
----- classes in UCF-101 ----
-classes = {
+------ UCF-101 & HMDB-51 ----
+if opt.dataset == 'UCF-101' then
+  classes = {
 "BoxingSpeedBag", "Surfing", "FloorGymnastics", "IceDancing", "Lunges", "Swing", "SkyDiving", "MilitaryParade", "PlayingPiano", "Punch",
 "HulaHoop", "VolleyballSpiking", "Skijet", "JavelinThrow", "LongJump", "Mixing", "Shotput", "BandMarching", "Kayaking", "StillRings",
 "PushUps", "Archery", "FieldHockeyPenalty", "BoxingPunchingBag", "PlayingCello", "FrontCrawl", "Billiards", "Rowing", "ApplyLipstick", "TrampolineJumping",
@@ -146,6 +144,16 @@ classes = {
 "SalsaSpin", "ShavingBeard", "Basketball", "Knitting", "RockClimbingIndoor", "Haircut", "Biking", "Fencing", "Rafting", "PlayingDaf",
 "HammerThrow"
 }
+elseif opt.dataset == 'HMDB-51' then
+  classes = {
+  "brush_hair", "kick_ball", "ride_horse", "pour", "jump", "smile", "stand", "shake_hands", "flic_flac", 
+  "golf", "wave", "cartwheel", "clap", "dive", "ride_bike", "turn", "chew", "draw_sword", "push", "hug", 
+  "shoot_gun", "pullup", "sit", "smoke", "somersault", "shoot_bow", "kick", "kiss", "shoot_ball", "run", 
+  "walk", "situp", "sword", "drink", "pushup", "fall_floor", "climb", "hit", "laugh", "eat", "pick", 
+  "swing_baseball", "dribble", "talk", "climb_stairs", "catch", "fencing", "punch", "throw", 
+  "sword_exercise", "handstand"
+}
+end
 table.sort(classes)
 
 return {
