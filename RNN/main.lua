@@ -22,6 +22,8 @@ cmd:text('Example:')
 cmd:text("main.lua -cuda -progress -opt.rho 25")
 cmd:text('Options:')
 ------------ General options --------------------
+cmd:option('-dataset', 		        'hmdb51', 	    'which dataset: ucf101 | hmdb51')
+cmd:option('-split', 		        '1', 	        'which split: 1 | 2 | 3')
 cmd:option('-pastalogName', 		'model_RNN', 	'the name of your experiment, e.g. pretrain-fullsize')
 cmd:option('-learningRate', 		1e-4, 			'learning rate at t=0')
 cmd:option('-learningRateDecay', 	0, 				'learningRateDecay')
@@ -54,7 +56,7 @@ cmd:option('-projSize', 			2048, 			'size of the projection layer (number of hid
 cmd:option('-zeroFirst', 			false, 			'first step will forward zero through recurrence (i.e. add bias of recurrence). As opposed to learning bias specifically for first step.')
 cmd:option('-dropout', 				0, 				'apply dropout after each recurrent layer')
 -- testing process
-cmd:option('-averagePred', 			true, 			'average the predictions from each time step per video')
+cmd:option('-averagePred', 			false, 			'average the predictions from each time step per video')
 -- checkpoint
 cmd:option('-testOnly',  			false, 			'Run on validation set only') 
 cmd:option('-resume', 				'none',  		'Path to directory containing checkpoint')
@@ -66,22 +68,20 @@ cmd:option('-trainEpochSize',       -1, 			'number of train examples seen betwee
 cmd:option('-validEpochSize',       -1, 			'number of valid examples used for early stopping and cross-validation') 
 cmd:option('-spatFeatDir', 'none', 'directory of spatial feature vectors')
 cmd:option('-tempFeatDir', 'none', 'directory of temporal feature vectors (from optical flow)')
--- cmd:option('-spatFeatDir', 			'/home/chih-yao/Downloads/Features/', 'directory of spatial feature vectors')
--- cmd:option('-tempFeatDir', 			'/home/chih-yao/Downloads/Features/', 'directory of temporal feature vectors (from optical flow)')
 cmd:option('-plot', 				false, 	'Plot the training and testing accuracy')
 dname,fname = sys.fpath()
 
 cmd:text()
 opt = cmd:parse(arg or {})
 opt.save = 'log' .. '_' ..  opt.pastalogName .. '_' .. opt.fcSize .. '_' .. opt.hiddenSize .. 
-'_' .. opt.projSize .. '_' .. opt.learningRate .. '_' .. opt.weightDecay .. '_' .. opt.dropout
+'_' .. opt.learningRate .. '_' .. opt.weightDecay .. '_' .. opt.dropout
 
 paths.mkdir(opt.save)
 
 -- create log file
 cmd:log(opt.save .. '/log.txt', opt)
 
-opt.pastalogName = opt.pastalogName .. opt.fcSize .. opt.hiddenSize
+opt.pastalogName = opt.pastalogName .. 'split' .. opt.split .. '-' .. opt.fcSize .. opt.hiddenSize
 opt.fcSize = loadstring(" return "..opt.fcSize)()
 opt.hiddenSize = loadstring(" return "..opt.hiddenSize)()
 
@@ -98,6 +98,15 @@ end
 -- check if rgb or flow features wanted to be used
 opt.spatial = paths.dirp(opt.spatFeatDir) and true or false
 opt.temporal = paths.dirp(opt.tempFeatDir) and true or false
+
+if opt.dataset == 'ucf101' then
+	opt.spatFeatDir = opt.spatFeatDir .. 'UCF-101/'
+	opt.tempFeatDir = opt.tempFeatDir .. 'UCF-101/'
+elseif opt.dataset == 'hmdb51' then
+	opt.spatFeatDir = opt.spatFeatDir .. 'HMDB-51/'
+	opt.tempFeatDir = opt.tempFeatDir .. 'HMDB-51/'
+end
+
 assert(opt.spatial or opt.temporal, 'no spatial or temporal features found!')
 
 if opt.spatial and opt.temporal then

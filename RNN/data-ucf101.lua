@@ -14,26 +14,35 @@
 require 'torch'
 require 'sys'
 
--- classes in UCF-101
-classes = {
-"ApplyEyeMakeup", "ApplyLipstick", "Archery", "BabyCrawling", "BalanceBeam", "BandMarching",
-"BaseballPitch", "Basketball", "BasketballDunk", "BenchPress", "Biking", "Billiards",
-"BlowDryHair", "BlowingCandles", "BodyWeightSquats", "Bowling", "BoxingPunchingBag",
-"BoxingSpeedBag", "BreastStroke", "BrushingTeeth", "CleanAndJerk", "CliffDiving",
-"CricketBowling", "CricketShot", "CuttingInKitchen", "Diving", "Drumming", "Fencing",
-"FieldHockeyPenalty", "FloorGymnastics", "FrisbeeCatch", "FrontCrawl", "GolfSwing",
-"Haircut", "HammerThrow", "Hammering", "HandstandPushups", "HandstandWalking",
-"HeadMassage", "HighJump", "HorseRace", "HorseRiding", "HulaHoop", "IceDancing",
-"JavelinThrow", "JugglingBalls", "JumpRope", "JumpingJack", "Kayaking", "Knitting",
-"LongJump", "Lunges", "MilitaryParade", "Mixing", "MoppingFloor", "Nunchucks", "ParallelBars",
-"PizzaTossing", "PlayingCello", "PlayingDaf", "PlayingDhol", "PlayingFlute", "PlayingGuitar",
-"PlayingPiano", "PlayingSitar", "PlayingTabla", "PlayingViolin", "PoleVault", "PommelHorse",
-"PullUps", "Punch", "PushUps", "Rafting", "RockClimbingIndoor", "RopeClimbing", "Rowing",
-"SalsaSpin", "ShavingBeard", "Shotput", "SkateBoarding", "Skiing", "Skijet", "SkyDiving",
-"SoccerJuggling", "SoccerPenalty", "StillRings", "SumoWrestling", "Surfing", "Swing",
-"TableTennisShot", "TaiChi", "TennisSwing", "ThrowDiscus", "TrampolineJumping", "Typing",
-"UnevenBars", "VolleyballSpiking", "WalkingWithDog", "WallPushups", "WritingOnBoard", "YoYo"
-}
+if opt.dataset == 'ucf101' then
+    -- classes in UCF-101
+    classes = {
+    "ApplyEyeMakeup", "ApplyLipstick", "Archery", "BabyCrawling", "BalanceBeam", "BandMarching",
+    "BaseballPitch", "Basketball", "BasketballDunk", "BenchPress", "Biking", "Billiards",
+    "BlowDryHair", "BlowingCandles", "BodyWeightSquats", "Bowling", "BoxingPunchingBag",
+    "BoxingSpeedBag", "BreastStroke", "BrushingTeeth", "CleanAndJerk", "CliffDiving",
+    "CricketBowling", "CricketShot", "CuttingInKitchen", "Diving", "Drumming", "Fencing",
+    "FieldHockeyPenalty", "FloorGymnastics", "FrisbeeCatch", "FrontCrawl", "GolfSwing",
+    "Haircut", "HammerThrow", "Hammering", "HandstandPushups", "HandstandWalking",
+    "HeadMassage", "HighJump", "HorseRace", "HorseRiding", "HulaHoop", "IceDancing",
+    "JavelinThrow", "JugglingBalls", "JumpRope", "JumpingJack", "Kayaking", "Knitting",
+    "LongJump", "Lunges", "MilitaryParade", "Mixing", "MoppingFloor", "Nunchucks", "ParallelBars",
+    "PizzaTossing", "PlayingCello", "PlayingDaf", "PlayingDhol", "PlayingFlute", "PlayingGuitar",
+    "PlayingPiano", "PlayingSitar", "PlayingTabla", "PlayingViolin", "PoleVault", "PommelHorse",
+    "PullUps", "Punch", "PushUps", "Rafting", "RockClimbingIndoor", "RopeClimbing", "Rowing",
+    "SalsaSpin", "ShavingBeard", "Shotput", "SkateBoarding", "Skiing", "Skijet", "SkyDiving",
+    "SoccerJuggling", "SoccerPenalty", "StillRings", "SumoWrestling", "Surfing", "Swing",
+    "TableTennisShot", "TaiChi", "TennisSwing", "ThrowDiscus", "TrampolineJumping", "Typing",
+    "UnevenBars", "VolleyballSpiking", "WalkingWithDog", "WallPushups", "WritingOnBoard", "YoYo"
+    }
+elseif opt.dataset == 'hmdb51' then
+    -- classes in HMDB51
+    classes = {
+    "brush_hair", "kick_ball", "ride_horse", "pour", "jump", "smile", "stand", "shake_hands", "flic_flac", "golf", "wave", "cartwheel", "clap", "dive", "ride_bike", "turn", "chew", "draw_sword", "push", "hug", "shoot_gun", "pullup", "sit", "smoke", "somersault", "shoot_bow", "kick", "kiss", "shoot_ball", "run", "walk", "situp", "sword", "drink", "pushup", "fall_floor", "climb", "hit", "laugh", "eat", "pick", "swing_baseball", "dribble", "talk", "climb_stairs", "catch", "fencing", "punch", "throw", "sword_exercise", "handstand"
+    }
+else
+    error('Unknown dataset: ' .. opt.dataset)
+end
 nClass = #classes -- UCF101 has 101 categories
 
 ------------------------------------------------------------
@@ -109,8 +118,8 @@ local spaTrainData, spaTestData, spaTrainTarget, spaTestTarget
 
 if opt.spatial == true then
    -- training and testing data from UCF101 website
-   assert(paths.filep(paths.concat(opt.spatFeatDir, 'data_feat_train_RGB_centerCrop_25f_sp1.t7')), 'no spatial training feature file found.')
-   local spaTrainFeatureLabels = torch.load(paths.concat(opt.spatFeatDir, 'data_feat_train_RGB_centerCrop_25f_sp1.t7'))
+   assert(paths.filep(paths.concat(opt.spatFeatDir, 'data_feat_train_RGB_centerCrop_25f_sp' .. opt.split .. '.t7')), 'no spatial training feature file found.')
+   local spaTrainFeatureLabels = torch.load(paths.concat(opt.spatFeatDir, 'data_feat_train_RGB_centerCrop_25f_sp' .. opt.split .. '.t7'))
    spaTrainData = spaTrainFeatureLabels.featMats
 
    -- check if there are enough frames to extract and extract
@@ -122,8 +131,8 @@ if opt.spatial == true then
    end
    spaTrainTarget = spaTrainFeatureLabels.labels
 
-   assert(paths.filep(paths.concat(opt.spatFeatDir, 'data_feat_test_RGB_centerCrop_25f_sp1.t7')), 'no spatial testing feature file found.')
-   local spaTestFeatureLabels = torch.load(paths.concat(opt.spatFeatDir, 'data_feat_test_RGB_centerCrop_25f_sp1.t7'))
+   assert(paths.filep(paths.concat(opt.spatFeatDir, 'data_feat_test_RGB_centerCrop_25f_sp' .. opt.split .. '.t7')), 'no spatial testing feature file found.')
+   local spaTestFeatureLabels = torch.load(paths.concat(opt.spatFeatDir, 'data_feat_test_RGB_centerCrop_25f_sp' .. opt.split .. '.t7'))
    spaTestData = spaTestFeatureLabels.featMats
 
    if opt.averagePred == false then 
@@ -144,8 +153,8 @@ local tempTrainData, tempTestData, tempTrainTarget, tempTestTarget
 
 if opt.temporal == true then
    -- training and testing data from UCF101 website
-   assert(paths.filep(paths.concat(opt.tempFeatDir, 'data_feat_train_FlowMap-TVL1-crop20_centerCrop_25f_sp1.t7')), 'no temporal training feature file found.')
-   local tempTrainFeatureLabels = torch.load(paths.concat(opt.tempFeatDir, 'data_feat_train_FlowMap-TVL1-crop20_centerCrop_25f_sp1.t7'))
+   assert(paths.filep(paths.concat(opt.tempFeatDir, 'data_feat_train_FlowMap-TVL1-crop20_centerCrop_25f_sp' .. opt.split .. '.t7')), 'no temporal training feature file found.')
+   local tempTrainFeatureLabels = torch.load(paths.concat(opt.tempFeatDir, 'data_feat_train_FlowMap-TVL1-crop20_centerCrop_25f_sp' .. opt.split .. '.t7'))
    tempTrainData = tempTrainFeatureLabels.featMats
 
    -- check if there are enough frames to extract and extract
@@ -158,8 +167,8 @@ if opt.temporal == true then
 
    tempTrainTarget = tempTrainFeatureLabels.labels
 
-   assert(paths.filep(paths.concat(opt.tempFeatDir, 'data_feat_test_FlowMap-TVL1-crop20_centerCrop_25f_sp1.t7')), 'no temporal testing feature file found.')
-   local tempTestFeatureLabels = torch.load(paths.concat(opt.tempFeatDir, 'data_feat_test_FlowMap-TVL1-crop20_centerCrop_25f_sp1.t7'))
+   assert(paths.filep(paths.concat(opt.tempFeatDir, 'data_feat_test_FlowMap-TVL1-crop20_centerCrop_25f_sp' .. opt.split .. '.t7')), 'no temporal testing feature file found.')
+   local tempTestFeatureLabels = torch.load(paths.concat(opt.tempFeatDir, 'data_feat_test_FlowMap-TVL1-crop20_centerCrop_25f_sp' .. opt.split .. '.t7'))
    tempTestData = tempTestFeatureLabels.featMats
 
    if opt.averagePred == false then 
