@@ -19,14 +19,16 @@ elseif opt.model == 'model-Conv-VGG' then
   t = require 'model-Conv-VGG'
 elseif opt.model == 'model-Conv-Inception' then
   t = require 'model-Conv-Inception'
-elseif opt.model == 'model-Conv-Inception-TemSeg3' then
-  t = require 'model-Conv-Inception-TemSeg3'
-elseif opt.model == 'model-Conv-Inception-TemSeg5' then
-  t = require 'model-Conv-Inception-TemSeg5'
-elseif opt.model == 'model-1L-MultiFlow' then
-  t = require 'model-1L-MultiFlow'
-elseif opt.model == 'model-1L-SplitST' then
-  t = require 'model-1L-SplitST'
+elseif opt.model == 'model-Conv-Inception-dim' then
+  t = require 'model-Conv-Inception-dim'
+-- elseif opt.model == 'model-Conv-Inception-TemSeg3' then
+--   t = require 'model-Conv-Inception-TemSeg3'
+-- elseif opt.model == 'model-Conv-Inception-TemSeg5' then
+--   t = require 'model-Conv-Inception-TemSeg5'
+-- elseif opt.model == 'model-1L-MultiFlow' then
+--   t = require 'model-1L-MultiFlow'
+-- elseif opt.model == 'model-1L-SplitST' then
+--   t = require 'model-1L-SplitST'
 elseif opt.model == 'model-1L' then
   t = require 'model-1L'
 elseif opt.model == 'model-2L' then

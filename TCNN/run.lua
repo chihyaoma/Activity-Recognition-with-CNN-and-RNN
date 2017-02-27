@@ -16,7 +16,7 @@ require 'nn'      -- provides all sorts of trainable modules/layers
 print(sys.COLORS.red ..  '==> processing options')
 
 opt = lapp[[
-   -e,--epoch	 	       (default 15)				epoch number
+   -e,--epoch	 	       (default 30)				epoch number
    -z,--sourcePath         (default local)         	source path (local | workstation)
    -r,--learningRate       (default 1e-4)          	learning rate
    -l,--learningRateDecay  (default 1e-7)          	learning rate decay (in # samples)
