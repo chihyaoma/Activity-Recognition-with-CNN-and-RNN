@@ -81,7 +81,7 @@ paths.mkdir(opt.save)
 -- create log file
 cmd:log(opt.save .. '/log.txt', opt)
 
-opt.pastalogName = opt.pastalogName .. opt.fcSize .. opt.hiddenSize
+opt.pastalogName = opt.pastalogName .. 'split' .. opt.split .. '-' .. opt.fcSize .. opt.hiddenSize
 opt.fcSize = loadstring(" return "..opt.fcSize)()
 opt.hiddenSize = loadstring(" return "..opt.hiddenSize)()
 
@@ -98,6 +98,15 @@ end
 -- check if rgb or flow features wanted to be used
 opt.spatial = paths.dirp(opt.spatFeatDir) and true or false
 opt.temporal = paths.dirp(opt.tempFeatDir) and true or false
+
+if opt.dataset == 'ucf101' then
+	opt.spatFeatDir = opt.spatFeatDir .. 'UCF-101/'
+	opt.tempFeatDir = opt.tempFeatDir .. 'UCF-101/'
+elseif opt.dataset == 'hmdb51' then
+	opt.spatFeatDir = opt.spatFeatDir .. 'HMDB-51/'
+	opt.tempFeatDir = opt.tempFeatDir .. 'HMDB-51/'
+end
+
 assert(opt.spatial or opt.temporal, 'no spatial or temporal features found!')
 
 if opt.spatial and opt.temporal then

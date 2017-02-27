@@ -117,6 +117,9 @@ function train(trainData, trainTarget)
       for s = 1, opt.numSegment do
          table.insert(inputsSegments, inputs[{{}, {}, {segmentBasis*(s-1) + 1,segmentBasis*s}}])
       end
+
+    --   print(model:forward(inputsSegments))
+    --   error('test')
     
       local output = model:forward(inputsSegments):float()
       local batchSize = output:size(1)

@@ -20,8 +20,7 @@ local sys = require 'sys'
 
 print(sys.COLORS.red ..  '==> construct RNN')
 
-
-function model_temporal_BN_FC_max_LSTM_BN_FC()
+function model_temporal_BN_mul_LSTM_BN_FC()
     -- Video Classification model
     local model = nn.Sequential()
     local inputSize = opt.inputSize
@@ -38,16 +37,104 @@ function model_temporal_BN_FC_max_LSTM_BN_FC()
     end
     model:add(pBN)
 
-    -- local pFC = nn.ParallelTable()
-    -- if opt.fcSize ~= nil then
-    --   -- for i,fcSize in ipairs(opt.fcSize) do 
-    --   for i = 1, opt.numSegment do 
-    --      -- add fully connected layers to fuse spatial and temporal features
-    --      pFC:add(nn.Sequencer(nn.Linear(inputSize, opt.fcSize[1])))
-    --   end
-    --   inputSize = opt.fcSize[1]
-    -- end
-    -- model:add(pFC)
+    local poolingTable = nn.ParallelTable()
+
+    for i = 1, opt.numSegment do 
+    --   poolingTable:add(nn.Max(1, -1))
+      poolingTable:add(nn.CMulTable())
+    --   poolingTable:add(nn.Mean(1, -1))
+    end
+    model:add(poolingTable)
+
+    model:add(nn.Sequencer(nn.BatchNormalization(inputSize)))
+
+    model:add(nn.Sequencer(nn.LSTM(inputSize, opt.hiddenSize[1])))
+    -- -- model:add(nn.Sequencer(nn.LSTM(opt.hiddenSize[1], opt.hiddenSize[2])))
+    model:add(nn.SelectTable(-1))
+    inputSize = opt.hiddenSize[1]
+
+    model:add(nn.BatchNormalization(inputSize))
+       
+    -- Dropout layer
+    if opt.dropout > 0 then 
+       model:add(nn.Dropout(opt.dropout))
+    end
+    model:add(nn.Linear(inputSize, nClass))
+
+    return model
+end
+
+function model_BN_LSTM_FC()
+    -- Video Classification model
+    local model = nn.Sequential()
+    local inputSize = opt.inputSize
+
+    local split = nn.ParallelTable()
+    for i = 1, opt.numSegment do 
+      split:add(nn.SplitTable(3,1))
+    end
+    model:add(split)
+
+    local pBN = nn.ParallelTable()
+    for i = 1, opt.numSegment do 
+        pBN:add(nn.Sequencer(nn.BatchNormalization(inputSize)))
+    end
+    model:add(pBN)
+
+    local lstmTable1 = nn.ParallelTable()
+    for i = 1, opt.numSegment do 
+        lstmTable1:add(nn.Sequencer(nn.LSTM(inputSize, opt.hiddenSize[1])))
+    end
+    model:add(lstmTable1)
+
+    local lstmTable2 = nn.ParallelTable()
+    for i = 1, opt.numSegment do 
+        lstmTable2:add(nn.Sequencer(nn.LSTM(opt.hiddenSize[1], opt.hiddenSize[2])))
+    end
+    model:add(lstmTable2)
+    inputSize = opt.hiddenSize[2]
+
+    local s1 = nn.ParallelTable()
+    for i = 1, opt.numSegment do 
+        s1:add(nn.SelectTable(-1))
+    end
+    model:add(s1)
+
+    -- model:add(nn.Sequencer(nn.LSTM(inputSize, opt.hiddenSize[1])))
+    -- model:add(nn.Sequencer(nn.LSTM(opt.hiddenSize[1], opt.hiddenSize[2])))
+
+    -- model:add(nn.SelectTable(-1))
+
+
+    model:add(nn.JoinTable(2))
+
+    model:add(nn.BatchNormalization(inputSize))
+       
+    -- Dropout layer
+    if opt.dropout > 0 then 
+       model:add(nn.Dropout(opt.dropout))
+    end
+    model:add(nn.Linear(inputSize, nClass))
+
+    return model
+end
+
+function model_temporal_BN_max_wideLSTM_BN_FC()
+    -- Video Classification model
+    local model = nn.Sequential()
+    local inputSize = opt.inputSize
+
+    local split = nn.ParallelTable()
+    for i = 1, opt.numSegment do 
+      split:add(nn.SplitTable(3,1))
+    end
+    model:add(split)
+
+    local pBN = nn.ParallelTable()
+    for i = 1, opt.numSegment do 
+        pBN:add(nn.Sequencer(nn.BatchNormalization(inputSize)))
+    end
+    model:add(pBN)
 
     local mergeTable1 = nn.ParallelTable()
     for i = 1, opt.numSegment do 
@@ -69,7 +156,79 @@ function model_temporal_BN_FC_max_LSTM_BN_FC()
     end
     model:add(maxTable)
 
-    -- model:add(nn.Sequencer(nn.BatchNormalization(inputSize)))
+    local fcInputSize = 0
+    local lstmTable = nn.ConcatTable()
+    -- recurrent layer
+    for i,hiddenSize in ipairs(opt.hiddenSize) do 
+        lstmTable:add(nn.Sequencer(nn.LSTM(inputSize, hiddenSize)))
+        fcInputSize = fcInputSize + hiddenSize
+    end
+    inputSize = fcInputSize
+    model:add(lstmTable)
+
+    local selectTable = nn.ParallelTable()
+    -- recurrent layer
+    for i in ipairs(opt.hiddenSize) do 
+      selectTable:add(nn.SelectTable(-1))
+    end
+    model:add(selectTable)
+
+    -- local bnTable = nn.ParallelTable()
+    -- -- recurrent layer
+    -- for i,hiddenSize in ipairs(opt.hiddenSize) do 
+    --   bnTable:add(nn.BatchNormalization(hiddenSize))
+    -- end
+    -- model:add(bnTable)
+
+    model:add(nn.JoinTable(2))
+
+    model:add(nn.BatchNormalization(inputSize))
+       
+    -- Dropout layer
+    if opt.dropout > 0 then 
+       model:add(nn.Dropout(opt.dropout))
+    end
+    model:add(nn.Linear(inputSize, nClass))
+
+    return model
+end
+
+function model_temporal_BN_max_LSTM_BN_FC()
+    -- Video Classification model
+    local model = nn.Sequential()
+    local inputSize = opt.inputSize
+
+    local split = nn.ParallelTable()
+    for i = 1, opt.numSegment do 
+      split:add(nn.SplitTable(3,1))
+    end
+    model:add(split)
+
+    local pBN = nn.ParallelTable()
+    for i = 1, opt.numSegment do 
+        pBN:add(nn.Sequencer(nn.BatchNormalization(inputSize)))
+    end
+    model:add(pBN)
+
+    local mergeTable1 = nn.ParallelTable()
+    for i = 1, opt.numSegment do 
+        mergeTable1:add(nn.MapTable(nn.Unsqueeze(1)))
+    end
+    model:add(mergeTable1)
+
+    local mergeTable2 = nn.ParallelTable()
+    for i = 1, opt.numSegment do 
+        mergeTable2:add(nn.JoinTable(1))
+    end
+    model:add(mergeTable2)
+
+    local poolingTable = nn.ParallelTable()
+
+    for i = 1, opt.numSegment do 
+       poolingTable:add(nn.Max(1, -1))
+    --   poolingTable:add(nn.Mean(1, -1))
+    end
+    model:add(poolingTable)
 
     model:add(nn.Sequencer(nn.LSTM(inputSize, opt.hiddenSize[1])))
     -- model:add(nn.Sequencer(nn.LSTM(opt.hiddenSize[1], opt.hiddenSize[2])))
@@ -667,58 +826,6 @@ function model_seqLSTMP_FC()
     return model
 end
 
-function model_BN_FC_LSTM_FC()
-    -- Video Classification model
-    local model = nn.Sequential()
-    local inputSize = opt.inputSize
-    local fcInputSize = 0
-
-    -- input layer 
-    
-    model:add(nn.SplitTable(3,1)) -- tensor to table of tensors
-
-    model:add(nn.Sequencer(nn.BatchNormalization(inputSize)))
-    model:add(nn.Sequencer(nn.Linear(inputSize, opt.fcSize[1])))
-    inputSize = opt.fcSize[1]
-    
-    -- setup two LSTM cells with different dimensions
-    local lstmTable = nn.ConcatTable()
-    -- recurrent layer
-    for i,hiddenSize in ipairs(opt.hiddenSize) do 
-        lstmTable:add(nn.Sequencer(nn.LSTM(inputSize, hiddenSize)))
-        fcInputSize = fcInputSize + hiddenSize
-    end
-   
-    model:add(lstmTable)
-    inputSize = fcInputSize
-
-    -- output layer
-    local p1 = nn.ParallelTable()
-    for i in ipairs(opt.hiddenSize) do 
-        -- select the last output from each of the LSTM cells
-        p1:add(nn.SelectTable(-1))
-    end
-
-    local p2 = nn.ParallelTable()
-    for i,hiddenSize in ipairs(opt.hiddenSize) do 
-        -- select the last output from each of the LSTM cells
-        p2:add(nn.BatchNormalization(hiddenSize))
-    end
-
-    model:add(p1):add(p2)
-    model:add(nn.JoinTable(2))
-
-    -- model:add(nn.ReLU())
-    
-    -- Dropout layer
-    if opt.dropout > 0 then 
-       model:add(nn.Dropout(opt.dropout))
-    end
-    model:add(nn.Linear(inputSize, nClass))
-
-    return model
-end
-
 function model_BN_3FC_3LSTM_BN_FC()
     -- Video Classification model
     local model = nn.Sequential()
@@ -1021,7 +1128,7 @@ if checkpoint then
 else
 
     -- construct model
-    model = model_temporal_BN_FC_max_LSTM_BN_FC()
+    model = model_temporal_BN_max_wideLSTM_BN_FC()
     -- model:add(nn.LogSoftMax())
 
     if opt.uniform > 0 then
