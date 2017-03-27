@@ -88,9 +88,9 @@ dimFeat = 2048 (you can change it if fine-tuning from the models other than ResN
 
 In each output *data_feat_xxxxxx.t7* file (e.g.data_feat_train_RGB_centerCrop_25f_sp1.t7), there are three main variables inside:
 
-    1. name:    video name
+    1. name:        video name
     2. featMats:    total video# x feature dimension x frame#
-    3. labels:  total video# x 1
+    3. labels:      total video# x 1
 
 * Predictions:
 
