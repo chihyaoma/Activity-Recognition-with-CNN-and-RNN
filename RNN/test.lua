@@ -42,10 +42,15 @@ local prob = {}
 predsFrames = torch.Tensor(opt.batchSize, nClass, opt.rho - opt.numSegment + 1)
 -- end
 
+local logsoftmax = nn.LogSoftMax()
+
 if opt.cuda == true then
 	inputs = inputs:cuda()
 	targets = targets:cuda()
+	logsoftmax = logsoftmax:cuda()
 end
+
+
 
 -- test function
 function test(testData, testTarget)
@@ -162,7 +167,7 @@ function test(testData, testTarget)
 			end
 
 			preds = model:forward(inputsSegments)
-			preds:exp()
+			preds = logsoftmax:forward(preds):exp()
 		end
 
 		-- discard the redundant predictions and targets
@@ -233,7 +238,7 @@ function test(testData, testTarget)
 		torch.save(opt.save .. '/prob.txt', prob,'ascii')
 
 		if opt.saveModel == true then
-			if confusion.totalValid * 100 >= 92 then
+			if confusion.totalValid * 100 >= 94.2 then
 				checkpoints.save(epoch-1, model, optimState, bestModel, confusion.totalValid*100)
 			end
 		end

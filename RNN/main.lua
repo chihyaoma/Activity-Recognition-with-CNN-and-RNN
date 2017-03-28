@@ -45,7 +45,7 @@ cmd:option('-silent', 				false, 			'don`t print anything to stdout')
 cmd:option('-uniform', 				0.1, 			'initialize parameters using uniform distribution between -uniform and uniform. -1 means default initialization')
 cmd:option('-seqCriterion', 		false, 			'use SequencerCriterion or not. Note to use smaller LR')
 -- recurrent layer 
-cmd:option('-lstm', 				true, 			'use Long Short Term Memory (nn.LSTM instead of nn.Recurrent)')
+cmd:option('-lstm', 				false, 			'use Long Short Term Memory (nn.LSTM instead of nn.Recurrent)')
 cmd:option('-bn', 					false, 			'use batch normalization. Only supported with --lstm')
 cmd:option('-gru', 					false, 			'use Gated Recurrent Units (nn.GRU instead of nn.Recurrent)')
 cmd:option('-numSegment',			3, 			    'number of segments for each video')
@@ -128,6 +128,9 @@ local data  = require 'data-ucf101'
 local train = require 'train'
 local test  = require 'test'
 
+-- initialize bestAcc
+bestAcc = 0
+
 if opt.testOnly then
 	-- Begin testing with trained model
 	test(data.testData, data.testTarget)
@@ -137,8 +140,7 @@ end
 ------------------------------------------------------------
 -- Run
 ------------------------------------------------------------
--- initialize bestAcc
-bestAcc = 0
+
 
 print(sys.COLORS.red .. '==> training!')
 for iteration = 1, opt.maxEpoch do

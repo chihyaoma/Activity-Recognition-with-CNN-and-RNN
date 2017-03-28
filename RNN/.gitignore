@@ -2,4 +2,4 @@ gen/
 runjob-fullVideo.sh
 log/
 trash/
-
+.DS_Store
