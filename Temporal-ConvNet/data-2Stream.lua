@@ -1,11 +1,16 @@
 -- Georgia Institute of Technology 
--- Deep Learning for Video Classification
+-- CS8803DL Spring 2016 (Instructor: Zsolt Kira)
+-- Final Project: Video Classification
 
 -- Load Data and separate training and testing samples
 
+-- TODO:
+-- 1. subtract by mean (?)
+-- 2. cross-validation 
+
 -- modified by Min-Hung Chen
 -- contact: cmhungsteve@gatech.edu
--- Last updated: 02/24/2017
+-- Last updated: 10/11/2016
 
 
 require 'torch'   -- torch
@@ -27,7 +32,7 @@ elseif source == 'workstation' then
 end
 
 dirFeature = dirSource..'Features/'..opt.dataset..'/'
--- dirFeature = dirSource..'Features/feat-10fps/'
+--dirFeature = dirSource..'Features/'
 
 ----------------------------------------------
 -- 			User-defined parameters		    --
@@ -100,6 +105,8 @@ dataTrainAll = nil
 collectgarbage()
 
 -- information for the data
+-- local dimFeat = dataTrain.featMats:size(2)
+-- local numFrame = dataTrain.featMats:size(3)
 local trsize = (#dataTrain.labels)[1]
 local shuffleTrain = torch.randperm(trsize)
 
@@ -121,6 +128,30 @@ collectgarbage()
 -- --------------------
 -- -- pre-processing --
 -- --------------------
+-- -- calculate residual
+-- local dataTr_rshift = torch.zeros(trainData.data:size())
+-- dataTr_rshift[{{},{},{2,numFrame}}] = trainData.data[{{},{},{1,numFrame-1}}]
+-- dataTr_rshift[{{},{},{1}}] = trainData.data[{{},{},{numFrame}}]
+-- trainData.data = trainData.data - dataTr_rshift
+
+-- local dataTe_rshift = torch.zeros(testData.data:size())
+-- dataTe_rshift[{{},{},{2,numFrame}}] = testData.data[{{},{},{1,numFrame-1}}]
+-- dataTe_rshift[{{},{},{1}}] = testData.data[{{},{},{numFrame}}]
+-- testData.data = testData.data - dataTe_rshift
+
+
+-- -- calculate mean, std
+-- local dataMean = trainData.data:mean(1):mean(3)
+-- local dataStd = trainData.data:std(1):std(3)
+-- -- replicate to match the dimension
+-- local dataMean_repTr = dataMean:expand(trsize, dimFeat, numFrame)
+-- local dataStd_repTr = dataStd:expand(trsize, dimFeat, numFrame)
+-- local dataMean_repTe = dataMean:expand(tesize, dimFeat, numFrame)
+-- local dataStd_repTe = dataStd:expand(tesize, dimFeat, numFrame)
+
+-- trainData.data = torch.cdiv((trainData.data - dataMean_repTr),dataStd_repTr)
+-- testData.data = torch.cdiv((testData.data - dataMean_repTe),dataStd_repTe)
+
 print(trainData)
 print(testData)
 print(trainData.data:mean())
@@ -128,6 +159,9 @@ print(testData.data:mean())
 ----------------------------
 --         Classes        --
 ----------------------------
+------ UCF-11 ----
+-- classes = {'basketball','biking','diving','golf_swing','horse_riding','soccer_juggling',
+-- 			'swing','tennis_swing','trampoline_jumping','volleyball_spiking','walking'}
 
 ------ UCF-101 & HMDB-51 ----
 if opt.dataset == 'UCF-101' then
