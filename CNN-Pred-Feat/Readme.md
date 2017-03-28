@@ -43,8 +43,8 @@ We provided the fine-tuned models:
 
 |                 | UCF101          | HMDB51      |
 |:-------------:|:-------------:|:---------:|
-| RGB      | [sp1]() [sp2]() [sp3]() | [sp1]() [sp2]() [sp3]() |
-| TV-L1       | [sp1]() [sp2]() [sp3]()      |  [sp1]() [sp2]() [sp3]()  |
+| RGB      | [sp1](https://www.dropbox.com/s/g9elu4oo7s47pag/model_best.t7?dl=0) [sp2](https://www.dropbox.com/s/c8vsa15ldtj3la2/model_best.t7?dl=0) [sp3](https://www.dropbox.com/s/s3keajiby54hzzr/model_best.t7?dl=0) | [sp1](https://www.dropbox.com/s/ccl5r021kxe8ifl/model_best.t7?dl=0) [sp2](https://www.dropbox.com/s/w45h31s0o8967g4/model_best.t7?dl=0) [sp3](https://www.dropbox.com/s/doilqlex7yuwwyx/model_best.t7?dl=0) |
+| TV-L1       | [sp1](https://www.dropbox.com/s/oi5gdzgpw20pk5x/model_best.t7?dl=0) [sp2](https://www.dropbox.com/s/7nr2k2542cmpwas/model_best.t7?dl=0) [sp3](https://www.dropbox.com/s/flafxau5elvd2nk/model_best.t7?dl=0)      |  [sp1](https://www.dropbox.com/s/coleft75y2z0deq/model_best.t7?dl=0) [sp2](https://www.dropbox.com/s/sb6xdvygisu0bjj/model_best.t7?dl=0) [sp3](https://www.dropbox.com/s/uzp33k0iu1sbgzb/model_best.t7?dl=0)  |
 
 
 You may need to change the directory paths of the model and dataset (*dirModel* and *dirDatabase*) in the code (around line 116-144).
