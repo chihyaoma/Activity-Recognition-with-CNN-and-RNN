@@ -2,25 +2,15 @@
 
 ---
 ### Installation
-
+We use OpenCV with the IDE Eclipse.
+Click [here](http://docs.opencv.org/2.4/doc/tutorials/introduction/linux_eclipse/linux_eclipse.html) for the installation instruction.
 ---
 ### Usage
----
-### Note
-
-
----
-TODO:
-- [x] setup Eclipse + OpenCV 3.0
-- [x] use the OpenCV build-in function to compute the optical flow for two frames (with CUDA)
-- [x] compute the optical flow video for one single video
-- [x] compute the optical flow videos for the whole UCF-101
-- [x] 2-channel optical flow output for Brox
-- [ ] 2-channel optical flow output for Flownet
+After building the project, directly **Run** the project in Eclipse.
 
 ---
 #### Contact:
 
 [Min-Hung Chen](https://www.linkedin.com/in/chensteven) at <cmhungsteve@gatech.edu>
 
-Last updated: 07/12/2016
+Last updated: 03/27/2017
