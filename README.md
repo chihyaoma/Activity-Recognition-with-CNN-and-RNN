@@ -49,9 +49,12 @@ The above YouTube video demonstrates the top-3 predictions results of our LRCN a
 
 
 <p align="center">
-<img src="https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/figures/demo.gif?raw=true" width="250">
 <img src="https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/figures/demo-1.gif?raw=true" width="250">
 <img src="https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/figures/demo-2.gif?raw=true" width="250">
+<img src="https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/figures/demo-3.gif?raw=true" width="250">
+<img src="https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/figures/demo-4.gif?raw=true" width="250">
+<img src="https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/figures/demo-5.gif?raw=true" width="250">
+<img src="https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/figures/demo-6.gif?raw=true" width="250">
 </p>
 ---
 ## Dataset
