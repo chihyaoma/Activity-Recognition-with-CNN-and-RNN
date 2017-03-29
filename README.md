@@ -56,6 +56,7 @@ The above YouTube video demonstrates the top-3 predictions results of our LRCN a
 <img src="https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/figures/demo-5.gif?raw=true" width="250">
 <img src="https://github.com/chihyaoma/Activity-Recognition-with-CNN-and-RNN/blob/master/figures/demo-6.gif?raw=true" width="250">
 </p>
+
 ---
 ## Dataset
 We are currently using [UCF101](http://crcv.ucf.edu/data/UCF101.php) and [HMDB51](http://serre-lab.clps.brown.edu/resource/hmdb-a-large-human-motion-database/) dataset for our project.
