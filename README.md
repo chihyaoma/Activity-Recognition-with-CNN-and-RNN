@@ -84,13 +84,13 @@ $ th main.lua -pastalogName 'model_RNN' -nGPU 1 -dataset 'ucf101' -split '1' -fc
 The training and testing loss will be reported, and the results will be saved into log files. The learning rate and best testing accuracy will be reported each epoch if there is any update.
 
 #### Train with Temporal-ConvNet
-To start the training process, go to *./TCNN* and simply execute:
+To start the training process, go to *./Temporal-ConvNet* and simply execute:
 ```bash
-$ qlua run.lua -r 15e-5
+$ th run.lua -o <output_folder_name> --dataset <dataset-name>
 ```
-For more details, please refer to the readme file in the folder *./TCNN/*.
+For more details and hyper-parameter tuning, please refer to the readme file in the folder *./Temporal-ConvNet/*.
 
-You also need to modify the code in *./TCNN/data.lua* to the director where you put your feature vector files.
+You also need to modify the code in *./Temporal-ConvNet/data-2Stream.lua* to the director where you put your feature vector files.
 
 The training and testing performance will be plotted, and the results will be saved into log files. The best testing accuracy will be reported each epoch if there is any update.
 
