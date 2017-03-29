@@ -3,14 +3,13 @@
 # I am working for a deadline. It's still messed up...
 #
 # Contact: Chih-Yao Ma at cyma@gatech.edu
-# 05/03/2016
 
 import numpy as np
 import cv2
 import random 
 import re
 
-
+ 
 n = 3 # number of predictions per video
 nVideo = 3754 # number of total videos
 
@@ -26,10 +25,10 @@ out = cv2.VideoWriter('output.avi',fourcc, 20.0, (width*scale, height*scale))
 
 
 # Read the list of predictions from txt file
-with open('labels_rnn_3Pred.txt') as rnn:
+with open('labels_rnn_20170328.txt') as rnn:
 	linesRNN = rnn.readlines()
 	numPred = np.size(linesRNN)
-with open('labels_tcnn_3Pred.txt') as tcnn:
+with open('labels_tcnn_20170328.txt') as tcnn:
 	linesTCNN = tcnn.readlines()
 
 
@@ -54,7 +53,7 @@ for number in indVideo:
 	videoInfoTCNN_3rd = linesTCNN[idx+2].split()
 
 	# Read the video file
-	fileName = '/home/chih-yao/Downloads/UCF-101/' + videoInfoRNN_1st[0]
+	fileName = '/media/chih-yao/ssd-data/ucf101/video/' + videoInfoRNN_1st[0]
 	cap = cv2.VideoCapture(fileName)
 
 	# extract ground truth from file path
@@ -107,13 +106,13 @@ for number in indVideo:
 			y_pred = 40
 
 			# Print predictions from RNN
-			cv2.putText(frame, 'RNN', (x_pred,y_pred), font, 0.5, (0,0,255), 1, cv2.LINE_AA)
+			cv2.putText(frame, 'TS-LSTM', (x_pred,y_pred), font, 0.5, (0,0,255), 1, cv2.LINE_AA)
 			cv2.putText(frame, videoInfoRNN_1st[1], (x_pred, y_pred+y_spacing), font, 0.5, (255,255,0), 1, cv2.LINE_AA)
 			cv2.putText(frame, videoInfoRNN_2nd[1], (x_pred, y_pred+y_spacing*2), font, 0.5, (255,255,0), 1, cv2.LINE_AA)
 			cv2.putText(frame, videoInfoRNN_3rd[1], (x_pred, y_pred+y_spacing*3), font, 0.5, (255,255,0), 1, cv2.LINE_AA)
 
 			# Print predictions from TCNN
-			cv2.putText(frame, 'TCNN', (x_pred+x_spacing, y_pred), font, 0.5, (0,0,255), 1, cv2.LINE_AA)
+			cv2.putText(frame, 'Temporal-Inception', (x_pred+x_spacing, y_pred), font, 0.5, (0,0,255), 1, cv2.LINE_AA)
 			cv2.putText(frame, videoInfoTCNN_1st[1], (x_pred+x_spacing, y_pred+y_spacing), font, 0.5, (255,255,0), 1, cv2.LINE_AA)
 			cv2.putText(frame, videoInfoTCNN_2nd[1], (x_pred+x_spacing, y_pred+y_spacing*2), font, 0.5, (255,255,0), 1, cv2.LINE_AA)
 			cv2.putText(frame, videoInfoTCNN_3rd[1], (x_pred+x_spacing, y_pred+y_spacing*3), font, 0.5, (255,255,0), 1, cv2.LINE_AA)
