@@ -15,7 +15,6 @@ local nn = require 'nn'
 local sys = require 'sys'
 local xlua = require 'xlua'    -- xlua provides useful tools, like progress bars
 local optim = require 'optim'
-local pastalog = require 'pastalog'
 
 print(sys.COLORS.red .. '==> defining some tools')
 
@@ -59,12 +58,6 @@ function test(testData, testTarget)
 	local time = sys.clock()
 	local timer = torch.Timer()
 	local dataTimer = torch.Timer()
-
-	-- replace the JoinTable in model with CAddTable
-	-- model:remove(1)
-	-- model:insert(nn.View(#opt.hiddenSize, opt.batchSize, opt.inputSize, -1),1)
-	-- model:remove(#model.modules)
-	-- model:add(nn.CAddTable())
 
 	if opt.cuda == true then
 		model:cuda()
@@ -111,54 +104,16 @@ function test(testData, testTarget)
 				local indLong = torch.LongTensor():resize(Index:size()):copy(Index)
 				local inputsPreFrames = inputs:index(3, indLong)
 
-				-- inputsPreFrames = inputsPreFrames:transpose(2,3):transpose(1,2)
-
-				-- enable this when use tri-data method
-				-- replicate the testing data and feed into LSTM cells seperately
-				-- inputsPreFrames = torch.repeatTensor(inputsPreFrames,#opt.hiddenSize,1,1)
-
-				-- feedforward pass the trained model
-				-- print(inputsPreFrames:size())
-				-- local temp = model:forward(inputsPreFrames)
-				-- print(temp)
-				-- error('test')
 				predsFrames[{{},{},idx}] = model:forward(inputsPreFrames)
 
 				idx = idx + 1
 			end
 
 			-- Convert log probabilities back to [0, 1]
-			-- need to fix here
 			predsFrames:exp()
 			-- average all the prediction across all frames
 			preds = torch.mean(predsFrames, 3):squeeze()
 		else
-			-- make prediction for each of the images frames, start depends on # of numSegment
-			-- idx = 1
-			-- for i = opt.numSegment, opt.rho do
-			-- 	-- extract various length of frames
-			-- 	local Index = torch.range(1, i)
-			-- 	local indLong = torch.LongTensor():resize(Index:size()):copy(Index)
-			-- 	local inputsPreFrames = inputs:index(3, indLong)
-			--
-			-- 	local inputsSegments = {}
-			-- 	local segmentBasis = math.floor(i/opt.numSegment)
-			--
-			-- 	for s = 1, opt.numSegment do
-			-- 		table.insert(inputsSegments, inputsPreFrames[{{}, {}, {segmentBasis*(s-1) + 1,segmentBasis*s}}])
-			-- 	end
-			--
-			-- 	predsFrames[{{},{},idx}] = model:forward(inputsSegments):float()
-			--
-			-- 	idx = idx + 1
-			-- end
-			--
-			-- predsFrames:exp()
-			-- -- average all the prediction across all frames
-			-- preds = torch.mean(predsFrames, 3):squeeze()
-
-			-- inputsSegments = {inputs[{{}, {}, {1,8}}], inputs[{{}, {}, {9,17}}], inputs[{{}, {}, {18,25}}]}
-			-- inputsSegments = {inputs[{{}, {}, {1,5}}], inputs[{{}, {}, {6,10}}], inputs[{{}, {}, {11,15}}], inputs[{{}, {}, {16,20}}], inputs[{{}, {}, {21,25}}]}
 
 			local inputsSegments = {}
 			local segmentBasis = math.floor(inputs:size(3)/opt.numSegment)
@@ -206,11 +161,6 @@ function test(testData, testTarget)
 		end
 	end
 
-	-- revert back to the original model for training again
-	-- model:remove(1)
-	-- model:insert(nn.View(#opt.hiddenSize, opt.batchSize/#opt.hiddenSize, opt.inputSize, -1),1)
-	-- model:remove(#model.modules)
-	-- model:add(nn.JoinTable(1))
 	if opt.cuda == true then
 		model:cuda()
 	end
@@ -246,10 +196,6 @@ function test(testData, testTarget)
 	print(sys.COLORS.red .. '==> Best testing accuracy = ' .. bestAcc .. '%')
 	print(sys.COLORS.red .. (' * Finished epoch # %d     top1: %7.3f  top3: %7.3f\n'):format(
       epoch-1, top1Sum / N, top3Sum / N))
-
-	local modelName = 'DropOut=' .. opt.dropout
-	local epochSeriesName = 'epoch-top1-' .. opt.pastalogName
-	pastalog(modelName, epochSeriesName, confusion.totalValid * 100, epoch, 'http://ct5250-12.ece.gatech.edu:8120/data')
 
 	-- update log/plot
 	testLogger:add{['epoch'] = epoch-1, ['top-1 error'] = confusion.totalValid * 100}
