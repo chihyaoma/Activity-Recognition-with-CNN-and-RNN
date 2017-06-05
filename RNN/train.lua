@@ -15,7 +15,6 @@
 local sys = require 'sys'
 local xlua = require 'xlua'    -- xlua provides useful tools, like progress bars
 local optim = require 'optim'
-local pastalog = require 'pastalog'
 
 print(sys.COLORS.red .. '==> defining some tools')
 
@@ -155,10 +154,6 @@ function train(trainData, trainTarget)
 
       print(('%.3f | Epoch: [%d][%d/%d]    Time %.3f  Data %.3f  Err %1.4f  top1 %7.3f  top3 %7.3f'):format(
          bestAcc, epoch, t, trainData:size(1), timer:time().real, dataTime, loss, top1, top3))
-
-      local modelName = 'DropOut=' .. opt.dropout
-      local trainSeriesName = 'train-top1-' .. opt.pastalogName
-      pastalog(modelName, trainSeriesName, top1, (epoch-1)*trainData:size(1) + t, 'http://ct5250-12.ece.gatech.edu:8120/data')
 
       -- check that the storage didn't get changed do to an unfortunate getParameters call
       assert(params:storage() == model:parameters()[1]:storage())
