@@ -36,7 +36,12 @@ The GIFs demonstrate the top-3 predictions results of our TS-LSTM and Temporal-I
 ---
 ## Dataset
 We are currently using [UCF101](http://crcv.ucf.edu/data/UCF101.php) and [HMDB51](http://serre-lab.clps.brown.edu/resource/hmdb-a-large-human-motion-database/) dataset for our project.
+You can directly download the videos here:
 
+|      | UCF101 | HMDB51 |
+|:----:|:------:|:------:|
+| RGB      |[link](https://www.dropbox.com/sh/fibb0k5ji33nucn/AADg9VyZJwTlIYntHDNGi4QWa?dl=0)|[link](https://www.dropbox.com/sh/kma8z2pcy69pwmo/AAB2B4DmLz6fb0O78rOlFHDDa?dl=0)|
+| TV-L1       |[link](https://www.dropbox.com/sh/1drtfrzmn9sajv2/AAD1h73Emkdt1vlbqPZk59Z8a?dl=0)|[link](https://www.dropbox.com/sh/1glhoe7fg3eyil3/AADVD7PRsUSfDbs4WGre3u9la?dl=0)|
 
 ---
 #### Prerequisites
