@@ -268,8 +268,8 @@ int main(int argc, const char* argv[])
 	int numClassTotal = nameClasses.size();  // 101 classes
 
 	/* Process all the classes */
-	for (int c=60; c<61; c++)
-//	for (int c=60; c<numClassTotal; c++)
+//	for (int c=60; c<61; c++)
+	for (int c=0; c<numClassTotal; c++)
 //	for (int c=numClassTotal-1; c>=0; c--)
 	{
 		cout << "Current class: " << c << ". " << nameClasses[c] << endl;
@@ -311,8 +311,8 @@ int main(int argc, const char* argv[])
 		}
 
 		/* Process all the videos */
-		for (int sv=146; sv<148; sv++)
-//		for (int sv=0; sv<numSubVideoTotal; sv++)
+//		for (int sv=146; sv<148; sv++)
+		for (int sv=0; sv<numSubVideoTotal; sv++)
 		{
 			cout << sv << " " << flush;
 			// process the video name
