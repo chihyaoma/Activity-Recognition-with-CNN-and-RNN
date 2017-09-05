@@ -36,12 +36,16 @@ using namespace boost;
 /* user-defined parameters */
 string type("CPU"); // 1: CPU; 2. GPU
 int numStep = 1; // step for calculating the optical flow
+string methodOF("TVL1"); // Brox; TVL1
 int methodCoding = 2; // 1. Middlebury color coding; 2. 2 channels (0 for the 3rd channel)
+bool opt_crop = true; // whether to crop the optical flow value
+int value_crop = 20;
 
 /* Data Path */
-string dirDatabase("/home/cmhung/Code/Dataset/UCF-101/");
+ string dirDatabase("/home/cmhung/Code/Dataset/UCF-101/");
+//string dirDatabase("/media/chih-yao/SSD/dataset/UCF-101/");
 string inDir(dirDatabase + "RGB/");
-string outDir(dirDatabase + "FlowMap-Brox/");
+string outDir(dirDatabase + "FlowMap-" + methodOF + "-crop20/");
 
 inline bool isFlowCorrect(Point2f u)
 {
@@ -143,7 +147,7 @@ static void drawOpticalFlow(const Mat_<float>& flowx, const Mat_<float>& flowy, 
         }
     }
 
-    for (int y = 0; y < flowx.rows; ++y)
+    for (int y = 0; y < flowx.rows; ++y) // normalize using Middlebury color coding
     {
         for (int x = 0; x < flowx.cols; ++x)
         {
@@ -175,6 +179,14 @@ static void drawOpticalFlow2(const Mat_<float>& flowx, const Mat_<float>& flowy,
     		if (!isFlowCorrect(u))
     			continue;
 
+    		if (opt_crop)
+			{
+    			u.x = (u.x > value_crop) ? value_crop : u.x;
+    			u.y = (u.y > value_crop) ? value_crop : u.y;
+    			u.x = (u.x < -value_crop) ? -value_crop : u.x;
+    			u.y = (u.y < -value_crop) ? -value_crop : u.y;
+			}
+
     		maxX = max(maxX, u.x);
     		maxY = max(maxY, u.y);
     		minX = min(minX, u.x);
@@ -183,7 +195,7 @@ static void drawOpticalFlow2(const Mat_<float>& flowx, const Mat_<float>& flowy,
     }
 
 
-    for (int y = 0; y < flowx.rows; ++y) // normalize using Middlebury color coding
+    for (int y = 0; y < flowx.rows; ++y) // normalization
     {
         for (int x = 0; x < flowx.cols; ++x)
         {
@@ -223,6 +235,7 @@ int main(int argc, const char* argv[])
 
 	/* Initialize the optical flow algorithm */
 	Ptr<cuda::BroxOpticalFlow> brox = cuda::BroxOpticalFlow::create(0.197f, 50.0f, 0.8f, 10, 77, 10);
+	Ptr<cuda::OpticalFlowDual_TVL1> tvl1 = cuda::OpticalFlowDual_TVL1::create();
 
 	// create the output folder
 	if (!opendir(outDir.c_str())) // create the folder if not existed
@@ -255,7 +268,9 @@ int main(int argc, const char* argv[])
 	int numClassTotal = nameClasses.size();  // 101 classes
 
 	/* Process all the classes */
-	for (int c=0; c<numClassTotal; c++)
+	for (int c=60; c<61; c++)
+//	for (int c=60; c<numClassTotal; c++)
+//	for (int c=numClassTotal-1; c>=0; c--)
 	{
 		cout << "Current class: " << c << ". " << nameClasses[c] << endl;
 
@@ -296,7 +311,8 @@ int main(int argc, const char* argv[])
 		}
 
 		/* Process all the videos */
-		for (int sv=0; sv<numSubVideoTotal; sv++)
+		for (int sv=146; sv<148; sv++)
+//		for (int sv=0; sv<numSubVideoTotal; sv++)
 		{
 			cout << sv << " " << flush;
 			// process the video name
@@ -365,18 +381,21 @@ int main(int argc, const char* argv[])
 						g_framePrvs.convertTo(framePrvs_f, CV_32F, 1.0 / 255.0);
 						g_frameNext.convertTo(frameNext_f, CV_32F, 1.0 / 255.0);
 
-						brox->calc(framePrvs_f, frameNext_f, g_flow);
+						if(!methodOF.compare("Brox"))
+						{brox->calc(framePrvs_f, frameNext_f, g_flow);}
+						else if(!methodOF.compare("TVL1"))
+						{tvl1->calc(framePrvs_f, frameNext_f, g_flow);}
 
-						// Color coding (Middlebury)
+						// Color coding
 						Mat flow_out;
-						showFlow(nameFlow + " (Brox)", g_flow, flow_out);
+						showFlow(nameFlow + " (" + methodOF + ")", g_flow, flow_out);
 
 						// show the frames & result flow map
 						Mat imgDisplay;
 						hconcat(framePrvs, frameNext, imgDisplay);
 						hconcat(imgDisplay, flow_out, imgDisplay);
 
-						imshow(nameFlow + " (Brox)", imgDisplay);
+						imshow(nameFlow + " (" + methodOF + ")", imgDisplay);
 
 						waitKey(3);
 //						if (waitKey(3) > 0)
@@ -392,11 +411,11 @@ int main(int argc, const char* argv[])
 
 //				const double timeSec = (getTickCount() - start) / getTickFrequency();
 //				cout << "Computation time for " + nameFlow + " (Brox): " << timeSec << " sec" << endl;
-				destroyWindow(nameFlow + " (Brox)");
+				destroyWindow(nameFlow + " (" + methodOF + ")");
 			}
 		}
 		const double timeSec = (getTickCount() - startClass) / getTickFrequency();
-		cout << "Computation time for " + nameClasses[c] + " (Brox): " << timeSec/60.0 << " min. " << endl;
+		cout << "Computation time for " + nameClasses[c] + " (" + methodOF + "): " << timeSec/60.0 << " min. " << endl;
 
 	}
 	cout << "Finished!!!!!!" << endl;
