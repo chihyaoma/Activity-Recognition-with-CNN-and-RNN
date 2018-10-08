@@ -107,11 +107,12 @@ To standardize the comparison, the above features are equally sampled across eac
 ---
 #### Citation
 ```
-@article{ma2017tslstm,
-  title={TS-LSTM and Temporal-Inception: Exploiting Spatiotemporal Dynamics for Activity Recognition},
+@article{ma2018ts,
+  title={TS-LSTM and temporal-inception: Exploiting spatiotemporal dynamics for activity recognition},
   author={Ma, Chih-Yao and Chen, Min-Hung and Kira, Zsolt and AlRegib, Ghassan},
-  journal={arXiv preprint arXiv:1703.10667},
-  year={2017}
+  journal={Signal Processing: Image Communication},
+  year={2018},
+  publisher={Elsevier}
 }
 ```
 
