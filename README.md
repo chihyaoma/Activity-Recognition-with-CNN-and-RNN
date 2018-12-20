@@ -1,13 +1,13 @@
 # Activity Recognition with RNN and Temporal-ConvNet
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[Chih-Yao Ma](http://shallowdown.wixsite.com/chih-yao-ma/me), [Min-Hung Chen](https://www.linkedin.com/in/chensteven) <br />(equal contribution)
+[Chih-Yao Ma](https://chihyaoma.github.io/), [Min-Hung Chen](https://www.linkedin.com/in/chensteven) <br />(equal contribution)
 
 Codes for the paper:<br />
 [TS-LSTM and Temporal-Inception: Exploiting Spatiotemporal Dynamics for Activity Recognition](http://arxiv.org/abs/1703.10667)
 
 Project: <br />
-[Activity Recognition with RNN and Temporal-ConvNet](http://shallowdown.wixsite.com/chih-yao-ma/activity-recognition-rnn-tcnn)
+[Activity Recognition with RNN and Temporal-ConvNet](https://chihyaoma.github.io/project/2017/03/30/tslstm.html)
 
 ---
 ## Abstract
@@ -122,6 +122,6 @@ This work was initialized as a class project for deep learning class in Georgia 
 
 #### Please contact us if you have any questions.
 
-[Chih-Yao Ma](http://shallowdown.wix.com/chih-yao-ma/me) at <cyma@gatech.edu> or [[LinkedIn]](https://www.linkedin.com/in/chih-yao-ma-9b5b3063)
+[Chih-Yao Ma](https://chihyaoma.github.io/) at <cyma@gatech.edu> or [[LinkedIn]](https://www.linkedin.com/in/chih-yao-ma-9b5b3063)
 <br />
 [Min-Hung Chen](https://www.linkedin.com/in/chensteven) at <cmhungsteve@gatech.edu>
