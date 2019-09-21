@@ -5,6 +5,7 @@
 
 Codes for the paper:<br />
 [TS-LSTM and Temporal-Inception: Exploiting Spatiotemporal Dynamics for Activity Recognition](http://arxiv.org/abs/1703.10667)
+(Accepted in the journal [Signal Processing: Image Communication](https://www.sciencedirect.com/science/article/pii/S0923596518304922), 2019)
 
 Project: <br />
 [Activity Recognition with RNN and Temporal-ConvNet](https://chihyaoma.github.io/project/2017/03/30/tslstm.html)
@@ -107,11 +108,13 @@ To standardize the comparison, the above features are equally sampled across eac
 ---
 #### Citation
 ```
-@article{ma2018ts,
-  title={TS-LSTM and temporal-inception: Exploiting spatiotemporal dynamics for activity recognition},
+@article{ma2019ts,
+  title={Ts-lstm and temporal-inception: Exploiting spatiotemporal dynamics for activity recognition},
   author={Ma, Chih-Yao and Chen, Min-Hung and Kira, Zsolt and AlRegib, Ghassan},
   journal={Signal Processing: Image Communication},
-  year={2018},
+  volume={71},
+  pages={76--87},
+  year={2019},
   publisher={Elsevier}
 }
 ```
