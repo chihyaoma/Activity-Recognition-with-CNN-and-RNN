@@ -4,7 +4,7 @@
 [Chih-Yao Ma](https://chihyaoma.github.io/), [Min-Hung Chen](https://www.linkedin.com/in/chensteven) <br />(equal contribution)
 
 Codes for the paper:<br />
-[TS-LSTM and Temporal-Inception: Exploiting Spatiotemporal Dynamics for Activity Recognition](http://arxiv.org/abs/1703.10667)
+[TS-LSTM and Temporal-Inception: Exploiting Spatiotemporal Dynamics for Activity Recognition](http://arxiv.org/abs/1703.10667)<br />
 (Accepted in the journal [Signal Processing: Image Communication](https://www.sciencedirect.com/science/article/pii/S0923596518304922), 2019)
 
 Project: <br />
